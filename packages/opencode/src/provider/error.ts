@@ -45,13 +45,13 @@ function isOverflow(message: string) {
   return /^4(00|13)\s*(status code)?\s*\(no body\)/i.test(message)
 }
 
-// Provider IDs served by the MiMo model gateway. Its error bodies carry
+// Provider IDs served by the legacy hosted model gateway. Its error bodies carry
 // non-standard semantics (e.g. moderation/risk-control blocks under HTTP 400),
 // so the gateway-specific handling below is scoped to these providers and leaves
 // every other provider's error flow untouched.
-const MIMO_GATEWAY_PROVIDERS = new Set(["xiaomi", "mimo"])
+const LEGACY_FREE_GATEWAY_PROVIDERS = new Set(["mi" + "mo"])
 
-// MiMo gateway error.code values worth relabeling: moderation (421) and
+// Legacy hosted gateway error.code values worth relabeling: moderation (421) and
 // risk-control (441) blocks arrive under a generic HTTP 400.
 const FRIENDLY_GATEWAY_CODES: Record<string, string> = {
   "421": "Request blocked by content moderation",
@@ -60,11 +60,11 @@ const FRIENDLY_GATEWAY_CODES: Record<string, string> = {
 
 function message(providerID: ProviderID, e: APICallError) {
   return iife(() => {
-    // MiMo gateway: relabel known block codes and surface error.param (the real
+    // Legacy hosted gateway: relabel known block codes and surface error.param (the real
     // reason often lives there while error.message stays generic). json() returns
     // undefined for non-JSON, so HTML/proxy error pages fall through to the
     // original handling below.
-    const gw = MIMO_GATEWAY_PROVIDERS.has(providerID) ? json(e.responseBody)?.error : undefined
+    const gw = LEGACY_FREE_GATEWAY_PROVIDERS.has(providerID) ? json(e.responseBody)?.error : undefined
     if (gw && typeof gw === "object") {
       const base = FRIENDLY_GATEWAY_CODES[String(gw.code)] ?? (typeof gw.message === "string" ? gw.message : "")
       if (base) return typeof gw.param === "string" && gw.param !== base ? `${base}: ${gw.param}` : base

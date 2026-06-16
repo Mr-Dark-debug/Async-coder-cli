@@ -2,7 +2,7 @@ import { CliRenderEvents, SyntaxStyle, RGBA, type TerminalColors } from "@opentu
 import path from "path"
 import { createEffect, createMemo, onCleanup, onMount } from "solid-js"
 import { createSimpleContext } from "./helper"
-import { Glob } from "@mimo-ai/shared/util/glob"
+import { Glob } from "@async-coder/shared/util/glob"
 import aura from "./theme/aura.json" with { type: "json" }
 import ayu from "./theme/ayu.json" with { type: "json" }
 import catppuccin from "./theme/catppuccin.json" with { type: "json" }
@@ -24,7 +24,7 @@ import nightowl from "./theme/nightowl.json" with { type: "json" }
 import nord from "./theme/nord.json" with { type: "json" }
 import osakaJade from "./theme/osaka-jade.json" with { type: "json" }
 import onedark from "./theme/one-dark.json" with { type: "json" }
-import mimocode from "./theme/mimocode.json" with { type: "json" }
+import asyncCoder from "./theme/async-coder.json" with { type: "json" }
 import orng from "./theme/orng.json" with { type: "json" }
 import lucentOrng from "./theme/lucent-orng.json" with { type: "json" }
 import palenight from "./theme/palenight.json" with { type: "json" }
@@ -43,7 +43,7 @@ import { Global } from "@/global"
 import { Filesystem } from "@/util"
 import { useTuiConfig } from "./tui-config"
 import { isRecord } from "@/util/record"
-import type { TuiThemeCurrent } from "@mimo-ai/plugin/tui"
+import type { TuiThemeCurrent } from "@async-coder/plugin/tui"
 
 type Theme = TuiThemeCurrent & {
   _hasSelectedListItemText: boolean
@@ -86,9 +86,9 @@ export type ThemeJson = {
 }
 
 const PLAIN_TERMINAL_THEME: ThemeJson = {
-  ...mimocode,
+  ...asyncCoder,
   theme: {
-    ...mimocode.theme,
+    ...asyncCoder.theme,
     text: {
       dark: "darkStep12",
       light: "lightStep12",
@@ -142,7 +142,7 @@ export const DEFAULT_THEMES: Record<string, ThemeJson> = {
   nord,
   ["one-dark"]: onedark,
   ["osaka-jade"]: osakaJade,
-  mimocode,
+  ["async-coder"]: asyncCoder,
   orng,
   ["lucent-orng"]: lucentOrng,
   palenight,
@@ -190,7 +190,7 @@ const [store, setStore] = createStore<State>({
   themes: listThemes(),
   mode: "dark",
   lock: undefined,
-  active: "mimocode",
+  active: "async-coder",
   ready: false,
 })
 
@@ -355,8 +355,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         }
         draft.mode = mode
         draft.lock = lock
-        const active = props.plain ? "system" : config.theme ?? kv.get("theme", "mimocode")
-        draft.active = typeof active === "string" ? active : "mimocode"
+        const active = props.plain ? "system" : config.theme ?? kv.get("theme", "async-coder")
+        draft.active = typeof active === "string" ? active : "async-coder"
         draft.ready = false
       }),
     )
@@ -376,7 +376,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
             syncThemes()
           })
           .catch(() => {
-            setStore("active", "mimocode")
+            setStore("active", "async-coder")
           }),
       ]).finally(() => {
         setStore("ready", true)
@@ -395,7 +395,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
             systemTheme = undefined
             syncThemes()
             if (store.active === "system") {
-              setStore("active", "mimocode")
+              setStore("active", "async-coder")
             }
             return
           }
@@ -406,7 +406,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
           systemTheme = undefined
           syncThemes()
           if (store.active === "system") {
-            setStore("active", "mimocode")
+            setStore("active", "async-coder")
           }
         })
     }
@@ -477,7 +477,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         if (theme) return resolveTheme(theme, store.mode)
       }
 
-      return resolveTheme(store.themes.mimocode, store.mode)
+      return resolveTheme(store.themes["async-coder"], store.mode)
     })
 
     createEffect(() => {
@@ -539,7 +539,7 @@ async function getCustomThemes() {
     Global.Path.config,
     ...(await Array.fromAsync(
       Filesystem.up({
-        targets: [".mimocode"],
+        targets: [".async-coder"],
         start: process.cwd(),
       }),
     )),
@@ -605,20 +605,20 @@ function generateSystem(colors: TerminalColors, mode: "dark" | "light"): ThemeJs
   const diffRemovedLineNumberBg = tint(diffContextBg, ansiColors.red, diffAlpha)
   const diffLineNumber = textMuted
 
-  const xiaomiOrange = RGBA.fromInts(255, 103, 0)
+  const lavender = RGBA.fromInts(177, 151, 252)
 
   return {
     theme: {
-      // Primary colors using Xiaomi Orange
-      primary: xiaomiOrange,
-      secondary: xiaomiOrange,
-      accent: xiaomiOrange,
+      // Primary colors using Lavender
+      primary: lavender,
+      secondary: lavender,
+      accent: lavender,
 
       // Status colors using ANSI
       error: ansiColors.red,
       warning: ansiColors.yellow,
-      success: xiaomiOrange,
-      info: xiaomiOrange,
+      success: lavender,
+      info: lavender,
 
       // Text colors
       text: fg,

@@ -12,7 +12,7 @@ import { ModelsCommand } from "./cli/cmd/models"
 import { UI } from "./cli/ui"
 import { Installation } from "./installation"
 import { InstallationVersion } from "./installation/version"
-import { NamedError } from "@mimo-ai/shared/util/error"
+import { NamedError } from "@async-coder/shared/util/error"
 import { FormatError } from "./cli/error"
 import { ServeCommand } from "./cli/cmd/serve"
 import { Filesystem } from "./util"
@@ -40,7 +40,7 @@ import { errorMessage } from "./util/error"
 import { PluginCommand } from "./cli/cmd/plug"
 import { Heap } from "./cli/heap"
 import { drizzle } from "drizzle-orm/bun-sqlite"
-import { ensureProcessMetadata } from "./util/mimo-process"
+import { ensureProcessMetadata } from "./util/async-coder-process"
 
 const processMetadata = ensureProcessMetadata("main")
 
@@ -60,7 +60,7 @@ const args = hideBin(process.argv)
 
 function show(out: string) {
   const text = out.trimStart()
-  if (!text.startsWith("mimo ")) {
+  if (!text.startsWith("async-coder ")) {
     process.stderr.write(UI.logo() + EOL + EOL)
     process.stderr.write(text)
     return
@@ -70,7 +70,7 @@ function show(out: string) {
 
 const cli = yargs(args)
   .parserConfiguration({ "populate--": true })
-  .scriptName("mimo")
+  .scriptName("async-coder")
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
@@ -91,7 +91,7 @@ const cli = yargs(args)
   })
   .middleware(async (opts) => {
     if (opts.pure) {
-      process.env.MIMOCODE_PURE = "1"
+      process.env.ASYNC_CODER_PURE = "1"
     }
 
     await Log.init({
@@ -107,22 +107,22 @@ const cli = yargs(args)
     Heap.start()
 
     process.env.AGENT = "1"
-    process.env.MIMOCODE = "1"
-    process.env.MIMOCODE_PID = String(process.pid)
+    process.env.ASYNC_CODER = "1"
+    process.env.ASYNC_CODER_PID = String(process.pid)
 
-    Log.Default.info("mimocode", {
+    Log.Default.info("async-coder", {
       version: InstallationVersion,
       args: process.argv.slice(2),
       process_role: processMetadata.processRole,
       run_id: processMetadata.runID,
     })
 
-    const marker = path.join(Global.Path.data, "mimocode.db")
+    const marker = path.join(Global.Path.data, "async-coder.db")
     if (!(await Filesystem.exists(marker))) {
       const tty = process.stderr.isTTY
       process.stderr.write("Performing one time database migration, may take a few minutes..." + EOL)
       const width = 36
-      const orange = "\x1b[38;5;214m"
+      const lavender = "\x1b[38;5;141m"
       const muted = "\x1b[0;2m"
       const reset = "\x1b[0m"
       let last = -1
@@ -137,7 +137,7 @@ const cli = yargs(args)
               const fill = Math.round((percent / 100) * width)
               const bar = `${"■".repeat(fill)}${"･".repeat(width - fill)}`
               process.stderr.write(
-                `\r${orange}${bar} ${percent.toString().padStart(3)}%${reset} ${muted}${event.label.padEnd(12)} ${event.current}/${event.total}${reset}`,
+                `\r${lavender}${bar} ${percent.toString().padStart(3)}%${reset} ${muted}${event.label.padEnd(12)} ${event.current}/${event.total}${reset}`,
               )
               if (event.current === event.total) process.stderr.write("\n")
             } else {
@@ -157,8 +157,8 @@ const cli = yargs(args)
     // Idempotently import Claude Code sessions into SQLite. Runs once per process
     // tree (the env guard is inherited by spawned children) and is best-effort:
     // a failure here must never block command startup.
-    if (!process.env.MIMOCODE_DISABLE_CLAUDE_IMPORT && !process.env.MIMOCODE_CLAUDE_IMPORTED) {
-      process.env.MIMOCODE_CLAUDE_IMPORTED = "1"
+    if (!process.env.ASYNC_CODER_DISABLE_CLAUDE_IMPORT && !process.env.ASYNC_CODER_CLAUDE_IMPORTED) {
+      process.env.ASYNC_CODER_CLAUDE_IMPORTED = "1"
       try {
         await ClaudeImport.run()
       } catch (e) {

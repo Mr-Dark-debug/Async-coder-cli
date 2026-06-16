@@ -11,7 +11,7 @@ import type {
   ToolPart,
   FilePart,
   AgentPart,
-} from "@mimo-ai/sdk/v2"
+} from "@async-coder/sdk/v2"
 import { DataProvider } from "../context/data"
 import { FileComponentProvider } from "../context/file"
 import { SessionTurn } from "./session-turn"

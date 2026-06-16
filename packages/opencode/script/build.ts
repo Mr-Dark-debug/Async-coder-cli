@@ -14,10 +14,10 @@ process.chdir(dir)
 
 await import("./generate.ts")
 
-import { Script } from "@mimo-ai/script"
+import { Script } from "@async-coder/script"
 import pkg from "../package.json"
 
-const BINARY_PREFIX = "mimocode"
+const BINARY_PREFIX = "binary"
 
 // Load migrations from migration directories
 const migrationDirs = (
@@ -168,7 +168,7 @@ const targets = singleFlag
 
 await $`rm -rf dist`
 
-// Optional private overlay (internal-only, e.g. the free "mimo-auto" channel).
+// Optional private overlay (internal-only legacy channels).
 // The open-source tree has no src/private/. When present (injected by the
 // internal build), its files are loaded at runtime via dynamic import, so they
 // must be added as build entrypoints — otherwise the bundler can't statically
@@ -225,25 +225,25 @@ for (const item of targets) {
       autoloadTsconfig: true,
       autoloadPackageJson: true,
       target: name.replace(BINARY_PREFIX, "bun") as any,
-      outfile: `dist/${name}/bin/mimo`,
-      execArgv: [`--user-agent=mimocode/${Script.version}`, "--use-system-ca", "--"],
+      outfile: `dist/${name}/bin/async-coder`,
+      execArgv: [`--user-agent=async-coder/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     files: embeddedFileMap ? { "opencode-web-ui.gen.ts": embeddedFileMap } : {},
     entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : []), ...privateEntrypoints],
     define: {
-      MIMOCODE_VERSION: `'${Script.version}'`,
+      ASYNC_CODER_VERSION: `'${Script.version}'`,
       OPENCODE_MIGRATIONS: JSON.stringify(migrations),
       OTUI_TREE_SITTER_WORKER_PATH: bunfsRoot + workerRelativePath,
       OPENCODE_WORKER_PATH: workerPath,
-      MIMOCODE_CHANNEL: `'${Script.channel}'`,
+      ASYNC_CODER_CHANNEL: `'${Script.channel}'`,
       OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "",
     },
   })
 
   // Smoke test: only run if binary is for current platform
   if (item.os === process.platform && item.arch === process.arch && !item.abi) {
-    const binaryPath = `dist/${name}/bin/mimo`
+    const binaryPath = `dist/${name}/bin/async-coder`
     console.log(`Running smoke test: ${binaryPath} --version`)
     try {
       const versionOutput = await $`${binaryPath} --version`.text()
@@ -256,22 +256,22 @@ for (const item of targets) {
 
   await $`rm -rf ./dist/${name}/bin/tui`
   await Bun.file(`dist/${name}/README.md`).write(
-    `This is the ${item.os}-${item.arch} binary for [@mimo-ai/cli](https://www.npmjs.com/package/@mimo-ai/cli). Install that package directly.\n`,
+    `This is the ${item.os}-${item.arch} binary for [async-coder](https://www.npmjs.com/package/async-coder). Install that package directly.\n`,
   )
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
-        name: `@mimo-ai/${name}`,
+        name: `@async-coder/${name}`,
         version: Script.version,
-        description: "Platform-specific binary for @mimo-ai/cli.",
+        description: "Platform-specific binary for async-coder.",
         license: "MIT",
-        author: "Xiaomi MiMo Team",
-        homepage: "https://mimo.xiaomi.com/en/mimocode",
+        author: "async-coder",
+        homepage: "https://github.com/Mr-Dark-debug/Async-coder-cli",
         repository: {
           type: "git",
-          url: "git+https://github.com/XiaomiMiMo/MiMo-Code.git",
+          url: "git+https://github.com/Mr-Dark-debug/Async-coder-cli.git",
         },
-        keywords: ["ai", "coding", "agent", "cli", "mimo"],
+        keywords: ["ai", "coding", "agent", "cli", "async-coder"],
         os: [item.os],
         cpu: [item.arch],
       },

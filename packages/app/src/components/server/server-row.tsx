@@ -1,4 +1,4 @@
-import { Tooltip } from "@mimo-ai/ui/tooltip"
+import { Tooltip } from "@async-coder/ui/tooltip"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import {
   children,

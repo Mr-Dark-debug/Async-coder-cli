@@ -1,12 +1,12 @@
-export const MIMOCODE_RUN_ID = "MIMOCODE_RUN_ID"
-export const MIMOCODE_PROCESS_ROLE = "MIMOCODE_PROCESS_ROLE"
+export const ASYNC_CODER_RUN_ID = "ASYNC_CODER_RUN_ID"
+export const ASYNC_CODER_PROCESS_ROLE = "ASYNC_CODER_PROCESS_ROLE"
 
 export function ensureRunID() {
-  return (process.env[MIMOCODE_RUN_ID] ??= crypto.randomUUID())
+  return (process.env[ASYNC_CODER_RUN_ID] ??= crypto.randomUUID())
 }
 
 export function ensureProcessRole(fallback: "main" | "worker") {
-  return (process.env[MIMOCODE_PROCESS_ROLE] ??= fallback)
+  return (process.env[ASYNC_CODER_PROCESS_ROLE] ??= fallback)
 }
 
 export function ensureProcessMetadata(fallback: "main" | "worker") {

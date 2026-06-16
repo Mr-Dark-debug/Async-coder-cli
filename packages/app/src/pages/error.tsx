@@ -1,11 +1,11 @@
-import { TextField } from "@mimo-ai/ui/text-field"
-import { Logo } from "@mimo-ai/ui/logo"
-import { Button } from "@mimo-ai/ui/button"
+import { TextField } from "@async-coder/ui/text-field"
+import { Logo } from "@async-coder/ui/logo"
+import { Button } from "@async-coder/ui/button"
 import { Component, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { usePlatform } from "@/context/platform"
 import { useLanguage } from "@/context/language"
-import { Icon } from "@mimo-ai/ui/icon"
+import { Icon } from "@async-coder/ui/icon"
 
 export type InitError = {
   name: string

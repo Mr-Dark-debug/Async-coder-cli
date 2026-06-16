@@ -1,4 +1,4 @@
-import type { TuiPlugin, TuiPluginModule } from "@mimo-ai/plugin/tui"
+import type { TuiPlugin, TuiPluginModule } from "@async-coder/plugin/tui"
 import { createMemo, Show } from "solid-js"
 import { Tips } from "./tips-view"
 import { useLanguage } from "@tui/context/language"

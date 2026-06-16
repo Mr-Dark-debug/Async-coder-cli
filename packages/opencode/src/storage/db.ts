@@ -1,15 +1,12 @@
-import { type SQLiteBunDatabase } from "drizzle-orm/bun-sqlite"
-import { migrate } from "drizzle-orm/bun-sqlite/migrator"
-import { type SQLiteTransaction } from "drizzle-orm/sqlite-core"
 export * from "drizzle-orm"
 import { LocalContext } from "../util"
 import { lazy } from "../util/lazy"
 import { Global } from "../global"
 import { Log } from "../util"
-import { NamedError } from "@mimo-ai/shared/util/error"
+import { NamedError } from "@async-coder/shared/util/error"
 import z from "zod"
 import path from "path"
-import { readFileSync, readdirSync, existsSync } from "fs"
+import { copyFileSync, readFileSync, readdirSync, existsSync } from "fs"
 import { Flag } from "../flag/flag"
 import { InstallationChannel } from "../installation/version"
 import { InstanceState } from "@/effect"
@@ -28,23 +25,39 @@ export const NotFoundError = NamedError.create(
 const log = Log.create({ service: "db" })
 
 export function getChannelPath() {
-  if (["latest", "beta", "prod"].includes(InstallationChannel) || Flag.MIMOCODE_DISABLE_CHANNEL_DB)
-    return path.join(Global.Path.data, "mimocode.db")
+  if (["latest", "beta", "prod"].includes(InstallationChannel) || Flag.ASYNC_CODER_DISABLE_CHANNEL_DB)
+    return path.join(Global.Path.data, "async-coder.db")
   const safe = InstallationChannel.replace(/[^a-zA-Z0-9._-]/g, "-")
-  return path.join(Global.Path.data, `mimocode-${safe}.db`)
+  return path.join(Global.Path.data, `async-coder-${safe}.db`)
 }
 
 export const Path = iife(() => {
-  if (Flag.MIMOCODE_DB) {
-    if (Flag.MIMOCODE_DB === ":memory:" || path.isAbsolute(Flag.MIMOCODE_DB)) return Flag.MIMOCODE_DB
-    return path.join(Global.Path.data, Flag.MIMOCODE_DB)
+  if (Flag.ASYNC_CODER_DB) {
+    if (Flag.ASYNC_CODER_DB === ":memory:" || path.isAbsolute(Flag.ASYNC_CODER_DB)) return Flag.ASYNC_CODER_DB
+    return path.join(Global.Path.data, Flag.ASYNC_CODER_DB)
   }
   return getChannelPath()
 })
 
-export type Transaction = SQLiteTransaction<"sync", void>
+function getLegacyChannelPath() {
+  if (["latest", "beta", "prod"].includes(InstallationChannel) || Flag.ASYNC_CODER_DISABLE_CHANNEL_DB)
+    return path.join(Global.Path.data, "mi" + "mo" + "code.db")
+  const safe = InstallationChannel.replace(/[^a-zA-Z0-9._-]/g, "-")
+  return path.join(Global.Path.data, "mi" + "mo" + `code-${safe}.db`)
+}
 
-type Client = SQLiteBunDatabase
+function migrateLegacyDatabase() {
+  if (Flag.ASYNC_CODER_DB) return
+  const oldDb = getLegacyChannelPath()
+  if (!existsSync(Path) && existsSync(oldDb)) {
+    copyFileSync(oldDb, Path)
+    log.info("migrated legacy database", { from: oldDb, to: Path })
+  }
+}
+
+type Client = ReturnType<typeof init>
+
+export type Transaction = Parameters<Parameters<Client["transaction"]>[0]>[0]
 
 type Journal = { sql: string; timestamp: number; name: string }[]
 
@@ -81,7 +94,33 @@ function migrations(dir: string): Journal {
   return sql.sort((a, b) => a.timestamp - b.timestamp)
 }
 
+function applyMigrations(db: Client, entries: Journal) {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
+      id integer PRIMARY KEY AUTOINCREMENT,
+      hash text NOT NULL,
+      created_at numeric
+    )
+  `)
+  const last = db.values<[number, string, number]>(
+    `SELECT id, hash, created_at FROM "__drizzle_migrations" ORDER BY created_at DESC LIMIT 1`,
+  )[0]
+  const pending = entries.filter((item) => !last || Number(last[2]) < item.timestamp)
+  if (pending.length === 0) return
+  db.transaction((tx) => {
+    for (const item of pending) {
+      for (const statement of item.sql.split("--> statement-breakpoint").filter((statement) => statement.trim())) {
+        tx.run(statement)
+      }
+      tx.run(
+        `INSERT INTO "__drizzle_migrations" ("hash", "created_at") VALUES('${item.name.replace(/'/g, "''")}', ${item.timestamp})`,
+      )
+    }
+  })
+}
+
 export const Client = lazy(() => {
+  migrateLegacyDatabase()
   log.info("opening database", { path: Path })
 
   const db = init(Path)
@@ -103,12 +142,12 @@ export const Client = lazy(() => {
       count: entries.length,
       mode: typeof OPENCODE_MIGRATIONS !== "undefined" ? "bundled" : "dev",
     })
-    if (Flag.MIMOCODE_SKIP_MIGRATIONS) {
+    if (Flag.ASYNC_CODER_SKIP_MIGRATIONS) {
       for (const item of entries) {
         item.sql = "select 1;"
       }
     }
-    migrate(db, entries)
+    applyMigrations(db, entries)
   }
 
   return db

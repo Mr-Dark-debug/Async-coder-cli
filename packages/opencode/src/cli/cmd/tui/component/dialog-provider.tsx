@@ -8,7 +8,7 @@ import { DialogPrompt } from "../ui/dialog-prompt"
 import { Link } from "../ui/link"
 import { useTheme } from "../context/theme"
 import { TextAttributes } from "@opentui/core"
-import type { ProviderAuthAuthorization, ProviderAuthMethod } from "@mimo-ai/sdk/v2"
+import type { ProviderAuthAuthorization, ProviderAuthMethod } from "@async-coder/sdk/v2"
 import { DialogModel } from "./dialog-model"
 import { useKeyboard } from "@opentui/solid"
 import * as Clipboard from "@tui/util/clipboard"
@@ -16,13 +16,15 @@ import { useToast, type ToastContext } from "../ui/toast"
 import { isConsoleManagedProvider } from "@tui/util/provider-origin"
 
 const PROVIDER_PRIORITY: Record<string, number> = {
-  opencode: 0,
-  "opencode-go": 1,
+  groq: 0,
+  openrouter: 1,
   openai: 2,
-  "github-copilot": 3,
-  anthropic: 4,
-  google: 5,
+  anthropic: 3,
+  google: 4,
+  xai: 5,
+  "github-copilot": 6,
 }
+const HIDDEN_PROVIDER_IDS = ["xi" + "ao" + "mi", "mi" + "mo", "opencode", "opencode-go"]
 
 export function createDialogProviderOptions() {
   const sync = useSync()
@@ -32,7 +34,7 @@ export function createDialogProviderOptions() {
   const { theme } = useTheme()
   const options = createMemo(() => {
     const list = pipe(
-      sync.data.provider_next.all,
+      sync.data.provider_next.all.filter((provider) => !HIDDEN_PROVIDER_IDS.includes(provider.id)),
       sortBy((x) => PROVIDER_PRIORITY[x.id] ?? 99),
       map((provider) => {
         const consoleManaged = isConsoleManagedProvider(sync.data.console_state.consoleManagedProviders, provider.id)
@@ -42,10 +44,13 @@ export function createDialogProviderOptions() {
           title: provider.name,
           value: provider.id,
           description: {
-            opencode: "(Recommended)",
-            anthropic: "(API key)",
-            openai: "(ChatGPT Plus/Pro or API key)",
-            "opencode-go": "Low cost subscription for everyone",
+            groq: "Fast inference, free tier - get a key at console.groq.com/keys",
+            openrouter: "One API key, hundreds of models - openrouter.ai/keys",
+            openai: "ChatGPT Plus/Pro or API key - platform.openai.com",
+            anthropic: "Claude API key - console.anthropic.com",
+            google: "Gemini API key - aistudio.google.com",
+            xai: "Grok API key - x.ai/api",
+            "github-copilot": "GitHub Copilot subscription",
           }[provider.id],
           footer: consoleManaged ? sync.data.console_state.activeOrgName : undefined,
           category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Other",
@@ -142,9 +147,42 @@ export function createDialogProviderOptions() {
     return [
       ...list,
       {
-        title: "+ Custom provider",
+        title: "Tavily",
+        value: "__search_tavily__",
+        description: "Web search API key - 1k free searches/month",
+        footer: undefined,
+        category: "Web Search",
+        gutter: undefined,
+        async onSelect() {
+          await runSearchAuthWizard({ dialog, sdk, sync, toast, providerID: "tavily", title: "Tavily API key" })
+        },
+      },
+      {
+        title: "Brave Search",
+        value: "__search_brave__",
+        description: "Web search API key - 2k free queries/month",
+        footer: undefined,
+        category: "Web Search",
+        gutter: undefined,
+        async onSelect() {
+          await runSearchAuthWizard({ dialog, sdk, sync, toast, providerID: "brave", title: "Brave Search API key" })
+        },
+      },
+      {
+        title: "Google Custom Search",
+        value: "__search_google__",
+        description: "Requires GOOGLE_API_KEY and GOOGLE_CSE_ID",
+        footer: undefined,
+        category: "Web Search",
+        gutter: undefined,
+        async onSelect() {
+          await runGoogleSearchAuthWizard({ dialog, sdk, sync, toast })
+        },
+      },
+      {
+        title: "Custom Provider",
         value: "__custom__",
-        description: undefined,
+        description: "OpenAI-compatible endpoint",
         footer: undefined,
         category: "Other",
         gutter: undefined,
@@ -174,33 +212,49 @@ export async function runCustomProviderWizard(opts: {
     return DialogPrompt.show(dialog, `${title} (${n}/${total})`, { placeholder, value })
   }
 
-  const providerIDRaw = await step(1, 6, "Provider id", "e.g. mimorouter")
+  const total = 9
+  const providerIDRaw = await step(1, total, "Provider id", "e.g. my-local-llama")
   if (providerIDRaw === null) return
   const providerID = providerIDRaw.trim()
   if (!providerID) return
 
-  const nameRaw = await step(2, 6, "Display name", "e.g. MiMo Router", providerID)
+  const nameRaw = await step(2, total, "Display name", "e.g. My Local Llama", providerID)
   if (nameRaw === null) return
   const name = nameRaw.trim() || providerID
 
-  const baseURLRaw = await step(3, 6, "Base URL", "https://.../v1")
+  const baseURLRaw = await step(3, total, "Base URL", "http://localhost:11434/v1")
   if (baseURLRaw === null) return
   const baseURL = baseURLRaw.trim()
   if (!baseURL) return
 
-  const apiKeyRaw = await step(4, 6, "API key", "sk-...")
+  const apiKeyRaw = await step(4, total, "API key", "optional")
   if (apiKeyRaw === null) return
   const apiKey = apiKeyRaw.trim()
-  if (!apiKey) return
 
-  const modelIDRaw = await step(5, 6, "First model id", "e.g. claude-sonnet-4-6")
-  if (modelIDRaw === null) return
-  const modelID = modelIDRaw.trim()
-  if (!modelID) return
+  const modelIDsRaw = await step(5, total, "Model IDs", "llama3.1:70b, qwen2.5:32b")
+  if (modelIDsRaw === null) return
+  const modelIDs = modelIDsRaw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+  if (!modelIDs.length) return
 
-  const modelNameRaw = await step(6, 6, "First model name", "e.g. Claude Sonnet 4.6", modelID)
-  if (modelNameRaw === null) return
-  const modelName = modelNameRaw.trim() || modelID
+  const inputCostRaw = await step(6, total, "Cost input USD / 1M", "blank for free")
+  if (inputCostRaw === null) return
+  const outputCostRaw = await step(7, total, "Cost output USD / 1M", "blank for free")
+  if (outputCostRaw === null) return
+  const cacheReadCostRaw = await step(8, total, "Cost cache read USD / 1M", "blank for free")
+  if (cacheReadCostRaw === null) return
+  const cacheWriteCostRaw = await step(9, total, "Cost cache write USD / 1M", "blank for free")
+  if (cacheWriteCostRaw === null) return
+
+  const cost = {
+    input: Number(inputCostRaw.trim() || 0),
+    output: Number(outputCostRaw.trim() || 0),
+    cache_read: Number(cacheReadCostRaw.trim() || 0),
+    cache_write: Number(cacheWriteCostRaw.trim() || 0),
+  }
+  const hasCost = cost.input > 0 || cost.output > 0 || cost.cache_read > 0 || cost.cache_write > 0
 
   const envKey = `${providerID.toUpperCase().replace(/[^A-Z0-9]+/g, "_")}_API_KEY`
   const patch = {
@@ -213,11 +267,15 @@ export async function runCustomProviderWizard(opts: {
           baseURL,
           setCacheKey: true,
         },
-        models: {
-          [modelID]: {
-            name: modelName,
-          },
-        },
+        models: Object.fromEntries(
+          modelIDs.map((modelID) => [
+            modelID,
+            {
+              name: modelID,
+              ...(hasCost ? { cost } : {}),
+            },
+          ]),
+        ),
       },
     },
   } as const
@@ -228,18 +286,74 @@ export async function runCustomProviderWizard(opts: {
     return
   }
 
-  const authRes = await sdk.client.auth.set({
-    providerID,
-    auth: { type: "api", key: apiKey },
-  })
-  if (authRes.error) {
-    toast.show({ variant: "error", message: JSON.stringify(authRes.error) })
-    return
+  if (apiKey) {
+    const authRes = await sdk.client.auth.set({
+      providerID,
+      auth: { type: "api", key: apiKey },
+    })
+    if (authRes.error) {
+      toast.show({ variant: "error", message: JSON.stringify(authRes.error) })
+      return
+    }
   }
 
   await sdk.client.instance.dispose()
   await sync.bootstrap()
   dialog.replace(() => <DialogModel providerID={providerID} />)
+}
+
+async function runSearchAuthWizard(opts: {
+  dialog: DialogContext
+  sdk: ReturnType<typeof useSDK>
+  sync: ReturnType<typeof useSync>
+  toast: ToastContext
+  providerID: string
+  title: string
+}) {
+  const keyRaw = await DialogPrompt.show(opts.dialog, opts.title, { placeholder: "API key" })
+  if (keyRaw === null) return
+  const key = keyRaw.trim()
+  if (!key) return
+  const result = await opts.sdk.client.auth.set({
+    providerID: opts.providerID,
+    auth: { type: "api", key },
+  })
+  if (result.error) {
+    opts.toast.show({ variant: "error", message: JSON.stringify(result.error) })
+    return
+  }
+  await opts.sdk.client.instance.dispose()
+  await opts.sync.bootstrap()
+  opts.toast.show({ variant: "info", message: `${opts.title.replace(" API key", "")} connected` })
+  opts.dialog.clear()
+}
+
+async function runGoogleSearchAuthWizard(opts: {
+  dialog: DialogContext
+  sdk: ReturnType<typeof useSDK>
+  sync: ReturnType<typeof useSync>
+  toast: ToastContext
+}) {
+  const keyRaw = await DialogPrompt.show(opts.dialog, "Google API key (1/2)", { placeholder: "AIza..." })
+  if (keyRaw === null) return
+  const key = keyRaw.trim()
+  if (!key) return
+  const cseRaw = await DialogPrompt.show(opts.dialog, "Google CSE ID (2/2)", { placeholder: "Programmable Search cx" })
+  if (cseRaw === null) return
+  const cse = cseRaw.trim()
+  if (!cse) return
+  const result = await opts.sdk.client.auth.set({
+    providerID: "google",
+    auth: { type: "api", key, metadata: { cseID: cse } },
+  })
+  if (result.error) {
+    opts.toast.show({ variant: "error", message: JSON.stringify(result.error) })
+    return
+  }
+  await opts.sdk.client.instance.dispose()
+  await opts.sync.bootstrap()
+  opts.toast.show({ variant: "info", message: "Google Custom Search connected" })
+  opts.dialog.clear()
 }
 
 interface AutoMethodProps {
@@ -353,38 +467,11 @@ function ApiMethod(props: ApiMethodProps) {
   const dialog = useDialog()
   const sdk = useSDK()
   const sync = useSync()
-  const { theme } = useTheme()
 
   return (
     <DialogPrompt
       title={props.title}
       placeholder="API key"
-      description={
-        {
-          opencode: (
-            <box gap={1}>
-              <text fg={theme.textMuted}>
-                OpenCode Zen gives you access to all the best coding models at the cheapest prices with a single API
-                key.
-              </text>
-              <text fg={theme.text}>
-                Go to <span style={{ fg: theme.primary }}>https://opencode.ai/zen</span> to get a key
-              </text>
-            </box>
-          ),
-          "opencode-go": (
-            <box gap={1}>
-              <text fg={theme.textMuted}>
-                OpenCode Go is a $10 per month subscription that provides reliable access to popular open coding models
-                with generous usage limits.
-              </text>
-              <text fg={theme.text}>
-                Go to <span style={{ fg: theme.primary }}>https://opencode.ai/zen</span> and enable OpenCode Go
-              </text>
-            </box>
-          ),
-        }[props.providerID] ?? undefined
-      }
       onConfirm={async (value) => {
         if (!value) return
         await sdk.client.auth.set({

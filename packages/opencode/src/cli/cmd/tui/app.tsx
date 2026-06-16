@@ -18,7 +18,6 @@ import { win32DisableProcessedInput, win32InstallCtrlCGuard } from "./win32"
 import { Flag } from "@/flag/flag"
 import semver from "semver"
 import { DialogProvider, useDialog } from "@tui/ui/dialog"
-import { DialogMimoLogin } from "@tui/component/dialog-mimo-login"
 import { ErrorComponent } from "@tui/component/error-component"
 import { PluginRouteMissing } from "@tui/component/plugin-route-missing"
 import { ProjectProvider } from "@tui/context/project"
@@ -28,6 +27,7 @@ import { StartupLoading } from "@tui/component/startup-loading"
 import { SyncProvider, useSync } from "@tui/context/sync"
 import { LocalProvider, useLocal } from "@tui/context/local"
 import { DialogModel, useConnected } from "@tui/component/dialog-model"
+import { DialogProvider as DialogProviderConnect } from "@tui/component/dialog-provider"
 import { DialogMcp } from "@tui/component/dialog-mcp"
 import { DialogStatus } from "@tui/component/dialog-status"
 import { DialogWorktree } from "@tui/component/dialog-worktree"
@@ -73,7 +73,7 @@ import type { EventSource } from "./context/sdk"
 import { DialogVariant } from "./component/dialog-variant"
 
 function rendererConfig(_config: TuiConfig.Info, plainTerminal: boolean): CliRendererConfig {
-  const mouseEnabled = !plainTerminal && !Flag.MIMOCODE_DISABLE_MOUSE && (_config.mouse ?? true)
+  const mouseEnabled = !plainTerminal && !Flag.ASYNC_CODER_DISABLE_MOUSE && (_config.mouse ?? true)
 
   return {
     externalOutputMode: "passthrough",
@@ -279,7 +279,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     })
 
   useKeyboard((evt) => {
-    if (!Flag.MIMOCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
+    if (!Flag.ASYNC_CODER_EXPERIMENTAL_DISABLE_COPY_ON_SELECT) return
     const sel = renderer.getSelection()
     if (!sel) return
 
@@ -327,17 +327,17 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
 
   // Update terminal window title based on current route and session
   createEffect(() => {
-    if (!terminalTitleEnabled() || Flag.MIMOCODE_DISABLE_TERMINAL_TITLE) return
+    if (!terminalTitleEnabled() || Flag.ASYNC_CODER_DISABLE_TERMINAL_TITLE) return
 
     if (route.data.type === "home") {
-      renderer.setTerminalTitle("MiMoCode")
+      renderer.setTerminalTitle("async-coder")
       return
     }
 
     if (route.data.type === "session") {
       const session = sync.session.get(route.data.sessionID)
       if (!session || SessionApi.isDefaultTitle(session.title)) {
-        renderer.setTerminalTitle("MiMoCode")
+        renderer.setTerminalTitle("async-coder")
         return
       }
 
@@ -444,7 +444,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
       title: t("tui.command.workflow.list.title"),
       value: "workflow.list",
       category: "session",
-      enabled: Flag.MIMOCODE_EXPERIMENTAL_WORKFLOW_TOOL,
+      enabled: Flag.ASYNC_CODER_EXPERIMENTAL_WORKFLOW_TOOL,
       slash: {
         name: "workflows",
       },
@@ -613,7 +613,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         name: "login",
       },
       onSelect: () => {
-        dialog.replace(() => <DialogMimoLogin />)
+        dialog.replace(() => <DialogProviderConnect />)
       },
       category: "provider",
     },
@@ -625,7 +625,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         name: "connect",
       },
       onSelect: () => {
-        dialog.replace(() => <DialogMimoLogin />)
+        dialog.replace(() => <DialogProviderConnect />)
       },
       category: "provider",
     },
@@ -636,7 +636,12 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         name: "logout",
       },
       onSelect: async () => {
-        await sdk.client.auth.remove({ providerID: "xiaomi" })
+        const model = local.model.current()
+        if (!model) {
+          toast.show({ message: "No provider selected", variant: "info" })
+          return
+        }
+        await sdk.client.auth.remove({ providerID: model.providerID })
         await sdk.client.instance.dispose()
         await sync.bootstrap()
         toast.show({ message: t("tui.command.logout.toast"), variant: "info" })
@@ -772,7 +777,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         aliases: ["docs"],
       },
       onSelect: () => {
-        open("https://mimo.xiaomi.com/coder/docs").catch(() => {})
+        open("https://github.com/Mr-Dark-debug/Async-coder-clidocs").catch(() => {})
         dialog.clear()
       },
       category: "system",
@@ -1099,7 +1104,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         // When copy-on-mousedown is enabled, prefer copying an active selection;
         // fall through to paste when there is nothing selected.
         if (
-          Flag.MIMOCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT &&
+          Flag.ASYNC_CODER_EXPERIMENTAL_DISABLE_COPY_ON_SELECT &&
           Selection.copy(renderer, toast, t("tui.toast.copied_to_clipboard"))
         ) {
           evt.preventDefault()
@@ -1112,12 +1117,12 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         evt.stopPropagation()
       }}
       onMouseUp={
-        Flag.MIMOCODE_EXPERIMENTAL_DISABLE_COPY_ON_SELECT
+        Flag.ASYNC_CODER_EXPERIMENTAL_DISABLE_COPY_ON_SELECT
           ? undefined
           : () => Selection.copy(renderer, toast, t("tui.toast.copied_to_clipboard"))
       }
     >
-      <Show when={Flag.MIMOCODE_SHOW_TTFD}>
+      <Show when={Flag.ASYNC_CODER_SHOW_TTFD}>
         <TimeToFirstDraw />
       </Show>
       <Show when={ready()}>

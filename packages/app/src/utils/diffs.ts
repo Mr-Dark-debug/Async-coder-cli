@@ -1,5 +1,5 @@
-import type { SnapshotFileDiff, VcsFileDiff } from "@mimo-ai/sdk/v2"
-import type { Message } from "@mimo-ai/sdk/v2/client"
+import type { SnapshotFileDiff, VcsFileDiff } from "@async-coder/sdk/v2"
+import type { Message } from "@async-coder/sdk/v2/client"
 
 type Diff = SnapshotFileDiff | VcsFileDiff
 

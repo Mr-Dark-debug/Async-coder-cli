@@ -32,7 +32,7 @@ function run<A, E>(fx: Effect.Effect<A, E, SessionPrompt.Service | Session.Servi
 
 function writeConfig(dir: string, origin: string) {
   return Bun.write(
-    path.join(dir, "mimocode.json"),
+    path.join(dir, "async-coder.json"),
     JSON.stringify({
       $schema: "https://opencode.ai/config.json",
       enabled_providers: ["alibaba"],

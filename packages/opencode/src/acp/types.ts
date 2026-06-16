@@ -1,5 +1,5 @@
 import type { McpServer } from "@agentclientprotocol/sdk"
-import type { OpencodeClient } from "@mimo-ai/sdk/v2"
+import type { OpencodeClient } from "@async-coder/sdk/v2"
 import type { ProviderID, ModelID } from "../provider/schema"
 
 export interface ACPSessionState {

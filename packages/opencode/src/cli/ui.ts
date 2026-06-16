@@ -1,6 +1,6 @@
 import z from "zod"
 import { EOL } from "os"
-import { NamedError } from "@mimo-ai/shared/util/error"
+import { NamedError } from "@async-coder/shared/util/error"
 import { logo as glyphs } from "./logo"
 
 const wordmark = [

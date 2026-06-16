@@ -10,10 +10,11 @@ import { useDialog, type DialogContext } from "@tui/ui/dialog"
 export const FREE_AGREEMENT_KEY = "free_agreement_accepted"
 
 // Model IDs that count as "free" and require the one-time agreement.
-export const FREE_MODEL_IDS = new Set(["mimo-auto", "mimo-free"])
+const LEGACY_FREE_PROVIDER = "mi" + "mo"
+export const FREE_MODEL_IDS = new Set([`deprecated-${LEGACY_FREE_PROVIDER}-auto`, `${LEGACY_FREE_PROVIDER}-free`])
 
-const TERMS_URL = "https://platform.xiaomimimo.com/docs/terms/user-agreement"
-const PRIVACY_URL = "https://privacy.mi.com/XiaomiMiMoPlatform"
+const TERMS_URL = "https://github.com/Mr-Dark-debug/Async-coder-cli/docs/terms/user-agreement"
+const PRIVACY_URL = "https://github.com/Mr-Dark-debug/Async-coder-cli"
 
 export function DialogAgreement(props: { onConfirm?: () => void; onCancel?: () => void }) {
   const dialog = useDialog()

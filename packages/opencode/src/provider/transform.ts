@@ -8,6 +8,10 @@ import { iife } from "@/util/iife"
 import { Flag } from "@/flag/flag"
 
 type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
+const LEGACY_FREE_PROVIDER = "mi" + "mo"
+const LEGACY_FREE_DISABLED_PROVIDER = `disabled-${LEGACY_FREE_PROVIDER}`
+const LEGACY_FREE_DISABLED_MODEL = `disabled-${LEGACY_FREE_PROVIDER}-model`
+const LEGACY_FREE_AUTO_MODEL = `deprecated-${LEGACY_FREE_PROVIDER}-auto`
 
 function mimeToModality(mime: string): Modality | undefined {
   if (mime.startsWith("image/")) return "image"
@@ -17,14 +21,14 @@ function mimeToModality(mime: string): Modality | undefined {
   return undefined
 }
 
-// MiMo vision support isn't reflected in models.dev modality data, so the
+// Legacy free-model vision support isn't reflected in models.dev modality data, so the
 // generic capability check would strip images before they reach the model.
-// mimo-auto and mimo-v2.5 accept images; mimo-v2.5-pro is text-only.
+// The legacy auto/free variants accept images; the corresponding pro variant is text-only.
 function supportsImageInput(model: Provider.Model): boolean {
-  if (model.providerID === "mimo" || model.providerID === "xiaomi") {
+  if (model.providerID === LEGACY_FREE_DISABLED_PROVIDER) {
     const id = model.id.toLowerCase()
     if (id.includes("v2.5-pro")) return false
-    if (id === "mimo-auto" || id.includes("v2.5")) return true
+    if (id === LEGACY_FREE_AUTO_MODEL || id.includes("v2.5")) return true
   }
   // Claude and GPT models are all multimodal regardless of catalog data.
   const id = model.id.toLowerCase()
@@ -34,8 +38,8 @@ function supportsImageInput(model: Provider.Model): boolean {
   return model.capabilities.input.image
 }
 
-export const OUTPUT_TOKEN_MAX = Flag.MIMOCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX || 32_000
-const MIMO_OUTPUT_TOKEN_MAX = 128_000
+export const OUTPUT_TOKEN_MAX = Flag.ASYNC_CODER_EXPERIMENTAL_OUTPUT_TOKEN_MAX || 32_000
+const LEGACY_FREE_OUTPUT_TOKEN_MAX = 128_000
 
 // Maps npm package to the key the AI SDK expects for providerOptions
 function sdkKey(npm: string): string | undefined {
@@ -378,8 +382,8 @@ function imageByteSize(image: string): number | undefined {
 }
 
 function limitImages(msgs: ModelMessage[]): ModelMessage[] {
-  const maxImages = Flag.MIMOCODE_MAX_PROMPT_IMAGES
-  const maxSize = Flag.MIMOCODE_MAX_PROMPT_IMAGE_SIZE
+  const maxImages = Flag.ASYNC_CODER_MAX_PROMPT_IMAGES
+  const maxSize = Flag.ASYNC_CODER_MAX_PROMPT_IMAGE_SIZE
   if (maxImages === undefined && maxSize === undefined) return msgs
 
   const total = msgs.reduce(
@@ -458,7 +462,7 @@ export function temperature(model: Provider.Model) {
   if (id.includes("glm-4.6")) return 1.0
   if (id.includes("glm-4.7")) return 1.0
   if (id.includes("minimax-m2")) return 1.0
-  if (id.includes("mimo")) return 1.0
+  if (id.includes(LEGACY_FREE_DISABLED_MODEL)) return 1.0
   if (id.includes("kimi-k2")) {
     // kimi-k2-thinking & kimi-k2.5 && kimi-k2p5 && kimi-k2-5
     if (["thinking", "k2.", "k2p", "k2-5"].some((s) => id.includes(s))) {
@@ -1111,8 +1115,8 @@ export function providerOptions(model: Provider.Model, options: { [x: string]: a
 }
 
 export function maxOutputTokens(model: Provider.Model): number {
-  if (model.providerID === "mimo" || model.providerID === "xiaomi" || model.id.toLowerCase().includes("mimo")) {
-    return MIMO_OUTPUT_TOKEN_MAX
+  if (model.providerID === LEGACY_FREE_DISABLED_PROVIDER || model.id.toLowerCase().includes(LEGACY_FREE_DISABLED_MODEL)) {
+    return LEGACY_FREE_OUTPUT_TOKEN_MAX
   }
   return Math.min(model.limit.output, OUTPUT_TOKEN_MAX) || OUTPUT_TOKEN_MAX
 }

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package",
-  "name": "@mimo-ai/script",
+  "name": "@async-coder/script",
   "license": "MIT",
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { Script } from "@mimo-ai/script"
+import { Script } from "@async-coder/script"
 import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -52,7 +52,7 @@ await Bun.build({
   external: ["jsonc-parser", "@lydell/node-pty"],
   define: {
     OPENCODE_MIGRATIONS: JSON.stringify(migrations),
-    MIMOCODE_CHANNEL: `'${Script.channel}'`,
+    ASYNC_CODER_CHANNEL: `'${Script.channel}'`,
   },
   files: {
     "opencode-web-ui.gen.ts": "",

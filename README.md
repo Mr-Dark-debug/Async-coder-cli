@@ -1,24 +1,24 @@
-<h1 align="center">MiMoCode</h1>
+<h1 align="center">async-coder</h1>
 
 <p align="center">
-  <img src="assets/readme/mimocode-banner.png" alt="MiMoCode" width="700">
+  <img src="assets/readme/async-coder-banner.png" alt="async-coder" width="700">
 </p>
 
-<p align="center"><strong>MiMo Code: Where Models and Agents Co-Evolve</strong></p>
+<p align="center"><strong>async-coder: a multi-provider async coding agent</strong></p>
 
 <p align="center">
   <a href="README.zh.md">中文</a> | English
 </p>
 
 <p align="center">
-  <a href="https://mimo.xiaomi.com/en/mimocode">Website</a> | <a href="https://mimo.xiaomi.com/en/blog/mimo-code-long-horizon">Blog</a>
+  <a href="https://github.com/Mr-Dark-debug/Async-coder-cli">Website</a> | <a href="https://github.com/Mr-Dark-debug/Async-coder-cli/en/blog/mimo-code-long-horizon">Blog</a>
 </p>
 
 ---
 
-MiMoCode is a terminal-native AI coding assistant. It can read and write code, run commands, manage Git, and use a persistent memory system to keep a deep understanding of your project across sessions while continuously improving itself.
+async-coder is a terminal-native AI coding assistant. It can read and write code, run commands, manage Git, and use a persistent memory system to keep a deep understanding of your project across sessions while continuously improving itself.
 
-MiMo Auto is built in as a free-for-limited-time channel, so you can start with zero configuration. MiMoCode also supports connecting to any mainstream LLM provider API.
+MiMo Auto is built in as a free-for-limited-time channel, so you can start with zero configuration. async-coder also supports connecting to any mainstream LLM provider API.
 
 ---
 
@@ -26,10 +26,10 @@ MiMo Auto is built in as a free-for-limited-time channel, so you can start with 
 
 ```bash
 # One-line install
-curl -fsSL https://mimo.xiaomi.com/install | bash
+curl -fsSL https://github.com/Mr-Dark-debug/Async-coder-cli/install | bash
 
 # Or install via npm
-npm install -g @mimo-ai/cli
+npm install -g async-coder
 
 # Run
 mimo
@@ -135,7 +135,7 @@ export PULSE_SERVER=tcp:127.0.0.1:4713
 
 ## Configuration
 
-MiMoCode is configured via `.mimocode/mimocode.json` in the project directory (or `~/.config/mimocode/mimocode.json` globally). Key options include:
+async-coder is configured via `.async-coder/async-coder.json` in the project directory (or `~/.config/async-coder/async-coder.json` globally). Key options include:
 
 - Provider and model selection
 - Agent permissions and custom agents
@@ -159,7 +159,7 @@ bun turbo typecheck      # Type check
 
 ## Relationship to OpenCode
 
-MiMoCode is built as a fork of [OpenCode](https://github.com/XiaomiMiMo/MiMo-Code). It keeps all core OpenCode capabilities (multiple providers, TUI, LSP, MCP, plugins) and adds persistent memory, intelligent context management, subagent orchestration, goal-driven autonomous loops, compose workflows, and self-improvement via dream/distill.
+async-coder is built as a fork of [OpenCode](https://github.com/Mr-Dark-debug/Async-coder-cli). It keeps all core OpenCode capabilities (multiple providers, TUI, LSP, MCP, plugins) and adds persistent memory, intelligent context management, subagent orchestration, goal-driven autonomous loops, compose workflows, and self-improvement via dream/distill.
 
 ---
 
@@ -177,6 +177,6 @@ Scan the QR code to join the community group chat:
 
 Source code is licensed under the [MIT License](./LICENSE).
 
-Use of MiMoCode is also subject to the [Use Restrictions](./USE_RESTRICTIONS.md).
-Use of Xiaomi MiMo-hosted services is subject to the [MiMo Terms of Service](https://platform.xiaomimimo.com/docs/terms/user-agreement).
+Use of async-coder is also subject to the [Use Restrictions](./USE_RESTRICTIONS.md).
+Use of Xiaomi MiMo-hosted services is subject to the [MiMo Terms of Service](https://github.com/Mr-Dark-debug/Async-coder-cli/docs/terms/user-agreement).
 Use of the MiMo name, logo, and trademarks is subject to the MiMo Trademark Policy.

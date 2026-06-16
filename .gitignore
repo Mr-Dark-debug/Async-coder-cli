@@ -36,7 +36,7 @@ tsconfig.tsbuildinfo
 .claude/
 *.pid
 .mimo-worktrees
-.mimocode/
+.async-coder/
 
 # experiment run artifacts (regenerated per run, not source)
 experiment/*.log

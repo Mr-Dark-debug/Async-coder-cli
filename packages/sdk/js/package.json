@@ -1,20 +1,20 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "@mimo-ai/sdk",
+  "name": "@async-coder/sdk",
   "version": "0.1.1",
-  "description": "TypeScript SDK for the MiMoCode API",
-  "keywords": ["mimo", "mimocode", "ai", "sdk", "coding-assistant"],
+  "description": "TypeScript SDK for the async-coder API",
+  "keywords": ["async-coder", "ai", "sdk", "coding-agent"],
   "type": "module",
   "license": "MIT",
-  "author": "Xiaomi MiMo Team",
-  "homepage": "https://mimo.xiaomi.com/en/mimocode",
+  "author": "async-coder",
+  "homepage": "https://github.com/Mr-Dark-debug/Async-coder-cli",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/XiaomiMiMo/MiMo-Code.git",
+    "url": "git+https://github.com/Mr-Dark-debug/Async-coder-cli.git",
     "directory": "packages/sdk/js"
   },
   "bugs": {
-    "url": "https://github.com/XiaomiMiMo/MiMo-Code/issues"
+    "url": "https://github.com/Mr-Dark-debug/Async-coder-cli/issues"
   },
   "publishConfig": {
     "access": "public"

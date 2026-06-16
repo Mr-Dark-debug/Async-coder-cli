@@ -547,8 +547,8 @@ describe("Actor tool subagent_type enum (F36)", () => {
         const def = yield* tool.init()
         const fakeModel = {
           providerID: "mimo",
-          api: { id: "mimo-v2.5-pro", npm: "@ai-sdk/openai-compatible" },
-          id: "mimo-v2.5-pro",
+          api: { id: "deprecated-mimo-v2.5-pro", npm: "@ai-sdk/openai-compatible" },
+          id: "deprecated-mimo-v2.5-pro",
           capabilities: { input: {} },
         } as any
         const flat = transformSchema(fakeModel, z.toJSONSchema(def.parameters)) as any

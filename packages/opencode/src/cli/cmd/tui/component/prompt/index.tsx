@@ -27,7 +27,7 @@ import * as Editor from "@tui/util/editor"
 import * as Voice from "@tui/util/voice"
 import { useExit } from "../../context/exit"
 import * as Clipboard from "../../util/clipboard"
-import type { AssistantMessage, FilePart, UserMessage } from "@mimo-ai/sdk/v2"
+import type { AssistantMessage, FilePart, UserMessage } from "@async-coder/sdk/v2"
 import { TuiEvent } from "../../event"
 import { iife } from "@/util/iife"
 import { Locale } from "@/util"
@@ -45,6 +45,7 @@ import { DialogWorkspaceCreate, restoreWorkspaceSession } from "../dialog-worksp
 import { DialogWorkspaceUnavailable } from "../dialog-workspace-unavailable"
 import { DialogAgreement, FREE_AGREEMENT_KEY, FREE_MODEL_IDS } from "../dialog-agreement"
 import { useArgs } from "@tui/context/args"
+import { formatCost, formatTokens } from "../../feature-plugins/sidebar/usage-data"
 
 export type PromptProps = {
   sessionID?: string
@@ -72,11 +73,6 @@ export type PromptRef = {
   submit(): void
   paste(): void
 }
-
-const money = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-})
 
 function randomIndex(count: number) {
   if (count <= 0) return 0
@@ -227,9 +223,9 @@ export function Prompt(props: PromptProps) {
       return
     }
     if (state === "finishing") return
-    // Start streaming
-    const xiaomi = sync.data.provider.find((p) => p.id === "xiaomi")
-    if (!xiaomi?.key) {
+    const apiKey = process.env.ASYNC_CODER_VOICE_API_KEY
+    const baseUrl = process.env.ASYNC_CODER_VOICE_BASE_URL
+    if (!apiKey || !baseUrl) {
       toast.show({ message: t("tui.voice.error.no_auth"), variant: "error" })
       return
     }
@@ -237,8 +233,6 @@ export function Prompt(props: PromptProps) {
       toast.show({ message: t("tui.voice.error.no_recorder"), variant: "error" })
       return
     }
-    const apiKey = xiaomi.key
-    const baseUrl = (xiaomi.options?.baseURL as string) || "https://api.xiaomimimo.com/v1"
 
     const av: NonNullable<typeof activeVoice> = {
       handle: undefined!,
@@ -456,10 +450,17 @@ export function Prompt(props: PromptProps) {
 
     const model = sync.data.provider.find((item) => item.id === last.providerID)?.models[last.modelID]
     const pct = model?.limit.context ? `${Math.round((tokens / model.limit.context) * 100)}%` : undefined
-    const cost = msg.reduce((sum, item) => sum + (item.role === "assistant" ? item.cost : 0), 0)
+    const breakdown = [
+      `in ${formatTokens(last.tokens.input)}`,
+      `out ${formatTokens(last.tokens.output)}`,
+      `cr ${formatTokens(last.tokens.cache.read)}`,
+      `cw ${formatTokens(last.tokens.cache.write)}`,
+      `reason ${formatTokens(last.tokens.reasoning)}`,
+      last.cost > 0 ? formatCost(last.cost) : undefined,
+    ].filter((item) => item !== undefined)
     return {
       context: pct ? `${Locale.number(tokens)} (${pct})` : Locale.number(tokens),
-      cost: cost > 0 ? money.format(cost) : undefined,
+      breakdown: breakdown.join(" | "),
     }
   })
 
@@ -1815,7 +1816,7 @@ export function Prompt(props: PromptProps) {
                     <Show when={usage()}>
                       {(item) => (
                         <text fg={theme.textMuted} wrapMode="none">
-                          {[item().context, item().cost].filter(Boolean).join(" · ")}
+                          {[item().context, item().breakdown].filter(Boolean).join(" · ")}
                         </text>
                       )}
                     </Show>

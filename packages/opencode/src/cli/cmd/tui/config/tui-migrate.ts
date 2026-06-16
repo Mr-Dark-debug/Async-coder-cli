@@ -1,7 +1,7 @@
-import path from "path"
 import { type ParseError as JsoncParseError, applyEdits, modify, parse as parseJsonc } from "jsonc-parser"
 import { unique } from "remeda"
 import z from "zod"
+import path from "path"
 import { TuiInfo, TuiOptions } from "./tui-schema"
 import { Flag } from "@/flag/flag"
 import { Global } from "@/global"
@@ -29,13 +29,13 @@ interface MigrateInput {
 }
 
 /**
- * Migrates tui-specific keys (theme, keybinds, tui) from mimocode.json files
+ * Migrates tui-specific keys (theme, keybinds, tui) from async-coder.json files
  * into dedicated tui.json files. Migration is performed per-directory and
  * skips only locations where a tui.json already exists.
  */
 export async function migrateTuiConfig(input: MigrateInput) {
-  const mimocode = await mimocodeFiles(input)
-  for (const file of mimocode) {
+  const asyncCoder = await asyncCoderFiles(input)
+  for (const file of asyncCoder) {
     const source = await Filesystem.readText(file).catch((error) => {
       log.warn("failed to read config for tui migration", { path: file, error })
       return undefined
@@ -131,15 +131,15 @@ async function backupAndStripLegacy(file: string, source: string) {
     })
 }
 
-async function mimocodeFiles(input: { directories: string[]; cwd: string }) {
+async function asyncCoderFiles(input: { directories: string[]; cwd: string }) {
   const files = [
-    ...ConfigPaths.fileInDirectory(Global.Path.config, "mimocode"),
-    ...(await Filesystem.findUp(["mimocode.json", "mimocode.jsonc"], input.cwd, undefined, { rootFirst: true })),
+    ...ConfigPaths.fileInDirectory(Global.Path.config, "async-coder"),
+    ...(await Filesystem.findUp(["async-coder.json", "async-coder.jsonc"], input.cwd, undefined, { rootFirst: true })),
   ]
   for (const dir of unique(input.directories)) {
-    files.push(...ConfigPaths.fileInDirectory(dir, "mimocode"))
+    files.push(...ConfigPaths.fileInDirectory(dir, "async-coder"))
   }
-  if (Flag.MIMOCODE_CONFIG) files.push(Flag.MIMOCODE_CONFIG)
+  if (Flag.ASYNC_CODER_CONFIG) files.push(Flag.ASYNC_CODER_CONFIG)
 
   const existing = await Promise.all(
     unique(files).map(async (file) => {

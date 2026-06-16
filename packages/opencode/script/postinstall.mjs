@@ -49,8 +49,8 @@ function detectPlatformAndArch() {
 
 function findBinary() {
   const { platform, arch } = detectPlatformAndArch()
-  const packageName = `@mimo-ai/mimocode-${platform}-${arch}`
-  const binaryName = platform === "windows" ? "mimo.exe" : "mimo"
+  const packageName = `@async-coder/binary-${platform}-${arch}`
+  const binaryName = platform === "windows" ? "async-coder.exe" : "async-coder"
 
   try {
     // Use require.resolve to find the package
@@ -80,7 +80,7 @@ async function main() {
     // On non-Windows platforms, just verify the binary package exists
     // Don't replace the wrapper script - it handles binary execution
     const { binaryPath } = findBinary()
-    const target = path.join(__dirname, "bin", ".mimocode")
+    const target = path.join(__dirname, "bin", ".async-coder")
     if (fs.existsSync(target)) fs.unlinkSync(target)
     try {
       fs.linkSync(binaryPath, target)
@@ -89,7 +89,7 @@ async function main() {
     }
     fs.chmodSync(target, 0o755)
   } catch (error) {
-    console.error("Failed to setup mimocode binary:", error.message)
+    console.error("Failed to setup async-coder binary:", error.message)
     process.exit(1)
   }
 }

@@ -6,21 +6,19 @@ import { UI } from "../ui"
 import { ModelsDev } from "../../provider"
 import { map, pipe, sortBy, values } from "remeda"
 import path from "path"
-import fs from "fs"
-import { pathToFileURL } from "url"
 import os from "os"
 import { Config } from "../../config"
 import { Global } from "../../global"
 import { Plugin } from "../../plugin"
 import { t } from "../i18n"
 import { Instance } from "../../project/instance"
-import type { Hooks } from "@mimo-ai/plugin"
+import type { Hooks } from "@async-coder/plugin"
 import { Process } from "../../util"
 import { text } from "node:stream/consumers"
 import { Effect } from "effect"
-import * as readline from "readline"
 
 type PluginAuth = NonNullable<Hooks["auth"]>
+const HIDDEN_PROVIDER_IDS = ["xi" + "ao" + "mi", "mi" + "mo", "opencode", "opencode-go"]
 
 const put = (key: string, info: Auth.Info) =>
   AppRuntime.runPromise(
@@ -219,112 +217,6 @@ export function resolvePluginProviders(input: {
 // Dynamically load the optional private free-login entry (src/private/free-login.ts).
 // Present in the full build → returns its handler; absent in the open-source build
 // → returns undefined. Computed path so the open-source build doesn't fail to resolve it.
-async function loadFreeLogin(): Promise<(() => Promise<void>) | undefined> {
-  const file = path.join(import.meta.dir, "..", "..", "private", "free-login.ts")
-  if (!fs.existsSync(file)) return undefined
-  try {
-    const mod = await import(/* @vite-ignore */ pathToFileURL(file).href)
-    return typeof mod.mimoFreeLogin === "function" ? mod.mimoFreeLogin : undefined
-  } catch {
-    return undefined
-  }
-}
-
-async function mimoLogin() {
-  const hooks = await AppRuntime.runPromise(
-    Effect.gen(function* () {
-      const plugin = yield* Plugin.Service
-      return yield* plugin.list()
-    }),
-  )
-  const mimoHook = hooks.findLast((h) => h.auth?.provider === "xiaomi")
-  if (!mimoHook?.auth) {
-    prompts.log.error("MiMo auth plugin not found")
-    return
-  }
-
-  const method = mimoHook.auth.methods[0]
-  if (method.type !== "oauth") return
-
-  const authorize = await method.authorize()
-  if (authorize.method !== "auto") return
-
-  prompts.log.info(`Browser didn't open? Use the url below to sign in:\n${authorize.url}`)
-
-  const browserPromise = authorize.callback().catch(() => ({ type: "failed" as const }))
-
-  const MAX_RETRIES = 3
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const raceResult = await raceCallbackAndStdin(browserPromise)
-
-    if (raceResult.source === "browser") {
-      if (raceResult.data.type === "success" && "key" in raceResult.data) {
-        await put("xiaomi", {
-          type: "api",
-          key: raceResult.data.key,
-          ...(raceResult.data.metadata ? { metadata: raceResult.data.metadata } : {}),
-        })
-        prompts.log.success("Login successful")
-        prompts.outro("Done")
-        return
-      }
-      prompts.log.error("Login failed")
-      prompts.outro("Done")
-      return
-    }
-
-    const callbackResult = await authorize.callback(raceResult.input)
-    if (callbackResult.type === "success" && "key" in callbackResult) {
-      await put("xiaomi", {
-        type: "api",
-        key: callbackResult.key,
-        ...(callbackResult.metadata ? { metadata: callbackResult.metadata } : {}),
-      })
-      prompts.log.success("Login successful")
-      prompts.outro("Done")
-      return
-    }
-
-    const remaining = MAX_RETRIES - attempt - 1
-    if (remaining > 0) {
-      prompts.log.error(t("cli.providers.mimo_login.decrypt_retry", { remaining }))
-    } else {
-      prompts.log.error(t("cli.providers.mimo_login.decrypt_exhausted"))
-    }
-  }
-}
-
-function raceCallbackAndStdin<T>(
-  browserPromise: Promise<T>,
-): Promise<{ source: "browser"; data: T } | { source: "paste"; input: string }> {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-
-    let settled = false
-    const cleanup = () => {
-      if (settled) return
-      settled = true
-      rl.close()
-    }
-
-    browserPromise.then((data) => {
-      if (settled) return
-      cleanup()
-      process.stdout.write("\n")
-      resolve({ source: "browser", data })
-    })
-
-    rl.question("Paste code here if prompted > ", (answer) => {
-      if (settled) return
-      const trimmed = answer.trim()
-      if (trimmed.length > 0) {
-        cleanup()
-        resolve({ source: "paste", input: trimmed })
-      }
-    })
-  })
-}
-
 export const ProvidersCommand = cmd({
   command: "providers",
   aliases: ["auth"],
@@ -396,7 +288,7 @@ export const ProvidersLoginCommand = cmd({
   builder: (yargs) =>
     yargs
       .positional("url", {
-        describe: "mimocode auth provider",
+        describe: "async-coder auth provider",
         type: "string",
       })
       .option("provider", {
@@ -454,6 +346,7 @@ export const ProvidersLoginCommand = cmd({
         const providers = await ModelsDev.get().then((x) => {
           const filtered: Record<string, (typeof x)[string]> = {}
           for (const [key, value] of Object.entries(x)) {
+            if (HIDDEN_PROVIDER_IDS.includes(key)) continue
             if ((enabled ? enabled.has(key) : true) && !disabled.has(key)) {
               filtered[key] = value
             }
@@ -468,13 +361,13 @@ export const ProvidersLoginCommand = cmd({
         )
 
         const priority: Record<string, number> = {
-          opencode: 0,
-          openai: 1,
-          "github-copilot": 2,
-          google: 3,
-          anthropic: 4,
-          openrouter: 5,
-          vercel: 6,
+          groq: 0,
+          openrouter: 1,
+          openai: 2,
+          anthropic: 3,
+          google: 4,
+          xai: 5,
+          "github-copilot": 6,
         }
         const pluginProviders = resolvePluginProviders({
           hooks,
@@ -495,7 +388,8 @@ export const ProvidersLoginCommand = cmd({
               label: x.name,
               value: x.id,
               hint: {
-                opencode: "recommended",
+                groq: "Fast inference, free tier",
+                openrouter: "One key, hundreds of models",
                 openai: "ChatGPT Plus/Pro or API key",
               }[x.id],
             })),
@@ -507,15 +401,8 @@ export const ProvidersLoginCommand = cmd({
           })),
         ]
 
-        const freeLogin = await loadFreeLogin()
         let provider: string
-        if (args.provider === "xiaomi") {
-          await mimoLogin()
-          return
-        } else if ((args.provider === "mimo" || args.provider === "mimo-free") && freeLogin) {
-          await freeLogin()
-          return
-        } else if (args.provider) {
+        if (args.provider) {
           const input = args.provider
           const byID = options.find((x) => x.value === input)
           const byName = options.find((x) => x.label.toLowerCase() === input.toLowerCase())
@@ -526,28 +413,6 @@ export const ProvidersLoginCommand = cmd({
           }
           provider = match.value
         } else {
-          const choice = await prompts.select({
-            message: t("cli.providers.select"),
-            options: [
-              { label: "MiMo", value: "xiaomi", hint: t("cli.providers.mimo.recommended_hint") },
-              ...(freeLogin
-                ? [{ label: "MiMo Auto (free)", value: "mimo-free", hint: t("cli.providers.mimo_free.hint") }]
-                : []),
-              { label: t("cli.providers.other"), value: "__other__" },
-            ],
-          })
-          if (prompts.isCancel(choice)) throw new UI.CancelledError()
-
-          if (choice === "xiaomi") {
-            await mimoLogin()
-            return
-          }
-
-          if (choice === "mimo-free" && freeLogin) {
-            await freeLogin()
-            return
-          }
-
           const selected = await prompts.autocomplete({
             message: t("cli.providers.select"),
             maxItems: 8,
@@ -584,7 +449,7 @@ export const ProvidersLoginCommand = cmd({
           }
 
           prompts.log.warn(
-            `This only stores a credential for ${provider} - you will need configure it in mimocode.json, check the docs for examples.`,
+            `This only stores a credential for ${provider} - you will need configure it in async-coder.json, check the docs for examples.`,
           )
         }
 
@@ -593,13 +458,9 @@ export const ProvidersLoginCommand = cmd({
             "Amazon Bedrock authentication priority:\n" +
               "  1. Bearer token (AWS_BEARER_TOKEN_BEDROCK or /connect)\n" +
               "  2. AWS credential chain (profile, access keys, IAM roles, EKS IRSA)\n\n" +
-              "Configure via mimocode.json options (profile, region, endpoint) or\n" +
+              "Configure via async-coder.json options (profile, region, endpoint) or\n" +
               "AWS environment variables (AWS_PROFILE, AWS_REGION, AWS_ACCESS_KEY_ID, AWS_WEB_IDENTITY_TOKEN_FILE).",
           )
-        }
-
-        if (provider === "opencode") {
-          prompts.log.info("Create an api key at https://opencode.ai/auth")
         }
 
         if (provider === "vercel") {
@@ -669,23 +530,20 @@ export const ProvidersWhoamiCommand = cmd({
   describe: "show current logged-in user info",
   async handler(_args) {
     UI.empty()
-    prompts.intro("Current user")
-    const info = await AppRuntime.runPromise(
+    prompts.intro("Current credentials")
+    const credentials = await AppRuntime.runPromise(
       Effect.gen(function* () {
         const auth = yield* Auth.Service
-        return yield* auth.get("xiaomi")
+        return Object.entries(yield* auth.all())
       }),
     )
-    if (!info) {
-      prompts.log.error("Not logged in. Run `mimo auth login` to log in.")
+    if (credentials.length === 0) {
+      prompts.log.error("No credentials found. Run `async-coder auth login` to add one.")
       return
     }
-    if (info.type === "api" && info.metadata) {
-      prompts.log.info(`Provider: MiMo`)
-      prompts.log.info(`User ID: ${info.metadata.uid ?? "unknown"}`)
-    } else {
-      prompts.log.info(`Provider: MiMo`)
-      prompts.log.info(`Type: ${info.type}`)
+    const database = await ModelsDev.get()
+    for (const [provider, info] of credentials) {
+      prompts.log.info(`${database[provider]?.name ?? provider} ${UI.Style.TEXT_DIM}${info.type}`)
     }
     prompts.outro("")
   },

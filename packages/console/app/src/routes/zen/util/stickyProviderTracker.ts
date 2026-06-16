@@ -1,4 +1,4 @@
-import { Resource } from "@mimo-ai/console-resource"
+import { Resource } from "@async-coder/console-resource"
 
 export function createStickyTracker(stickyProvider: "strict" | "prefer" | undefined, session: string) {
   if (!stickyProvider) return

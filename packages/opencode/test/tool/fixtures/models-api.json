@@ -7072,8 +7072,8 @@
         "cost": { "input": 0.57, "output": 2.3 },
         "limit": { "context": 131072, "output": 131072 }
       },
-      "xiaomimimo/mimo-v2-flash": {
-        "id": "xiaomimimo/mimo-v2-flash",
+      "async-coder/mimo-v2-flash": {
+        "id": "async-coder/mimo-v2-flash",
         "name": "XiaomiMiMo/MiMo-V2-Flash",
         "family": "mimo",
         "attachment": false,
@@ -22053,8 +22053,8 @@
         "cost": { "input": 0.57, "output": 2.3 },
         "limit": { "context": 131072, "output": 131072 }
       },
-      "xiaomimimo/mimo-v2-flash": {
-        "id": "xiaomimimo/mimo-v2-flash",
+      "async-coder/mimo-v2-flash": {
+        "id": "async-coder/mimo-v2-flash",
         "name": "XiaomiMiMo/MiMo-V2-Flash",
         "family": "mimo",
         "attachment": false,
@@ -36002,9 +36002,9 @@
     "id": "xiaomi",
     "env": ["XIAOMI_API_KEY"],
     "npm": "@ai-sdk/openai-compatible",
-    "api": "https://api.xiaomimimo.com/v1",
+    "api": "https://github.com/Mr-Dark-debug/Async-coder-cli/v1",
     "name": "Xiaomi",
-    "doc": "https://platform.xiaomimimo.com/#/docs",
+    "doc": "https://github.com/Mr-Dark-debug/Async-coder-cli/#/docs",
     "models": {
       "mimo-v2-pro": {
         "id": "mimo-v2-pro",

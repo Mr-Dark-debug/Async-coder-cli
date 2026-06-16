@@ -4,15 +4,31 @@ import { useTheme } from "../context/theme"
 import { useDialog } from "@tui/ui/dialog"
 import { useSync } from "@tui/context/sync"
 import { For, Match, Switch, Show, createMemo } from "solid-js"
+import { useRoute } from "@tui/context/route"
+import { useLocal } from "@tui/context/local"
+import { aggregateUsage, formatCost, formatTokens, modelCostLabel } from "../feature-plugins/sidebar/usage-data"
 
 export type DialogStatusProps = {}
 
 export function DialogStatus() {
   const sync = useSync()
+  const route = useRoute()
+  const local = useLocal()
   const { theme } = useTheme()
   const dialog = useDialog()
 
   const enabledFormatters = createMemo(() => sync.data.formatter.filter((f) => f.enabled))
+  const sessionID = createMemo(() => (route.data.type === "session" ? route.data.sessionID : undefined))
+  const usage = createMemo(() => {
+    const id = sessionID()
+    if (!id) return
+    return aggregateUsage(sync.data.message[id]?.["main"] ?? [])
+  })
+  const activeModelCost = createMemo(() => {
+    const current = local.model.current()
+    if (!current) return
+    return sync.data.provider.find((provider) => provider.id === current.providerID)?.models[current.modelID]?.cost
+  })
 
   const plugins = createMemo(() => {
     const list = sync.data.config.plugin ?? []
@@ -50,6 +66,23 @@ export function DialogStatus() {
           esc
         </text>
       </box>
+      <Show when={usage()}>
+        {(item) => (
+          <box>
+            <text fg={theme.text}>Usage</text>
+            <box flexDirection="row" gap={1}>
+              <text fg={theme.primary}>{formatCost(item().total.cost)}</text>
+              <text fg={theme.textMuted}>in {formatTokens(item().total.input)}</text>
+              <text fg={theme.textMuted}>out {formatTokens(item().total.output)}</text>
+              <text fg={theme.textMuted}>cr {formatTokens(item().total.cacheRead)}</text>
+              <text fg={theme.textMuted}>cw {formatTokens(item().total.cacheWrite)}</text>
+            </box>
+            <Show when={modelCostLabel(activeModelCost())}>
+              {(label) => <text fg={theme.textMuted}>rates {label()}</text>}
+            </Show>
+          </box>
+        )}
+      </Show>
       <Show when={Object.keys(sync.data.mcp).length > 0} fallback={<text fg={theme.text}>No MCP Servers</text>}>
         <box>
           <text fg={theme.text}>{Object.keys(sync.data.mcp).length} MCP Servers</text>

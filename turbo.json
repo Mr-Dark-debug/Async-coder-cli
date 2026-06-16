@@ -18,11 +18,11 @@
       "outputs": [".artifacts/unit/junit.xml"],
       "passThroughEnv": ["*"]
     },
-    "@mimo-ai/app#test": {
+    "@async-coder/app#test": {
       "dependsOn": ["^build"],
       "outputs": []
     },
-    "@mimo-ai/app#test:ci": {
+    "@async-coder/app#test:ci": {
       "dependsOn": ["^build"],
       "outputs": [".artifacts/unit/junit.xml"],
       "passThroughEnv": ["*"]

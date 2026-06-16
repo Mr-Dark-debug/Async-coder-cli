@@ -6,7 +6,7 @@ import z from "zod"
 import { mergeDeep, pipe } from "remeda"
 import { Global } from "../global"
 import fsNode from "fs/promises"
-import { NamedError } from "@mimo-ai/shared/util/error"
+import { NamedError } from "@async-coder/shared/util/error"
 import { Flag } from "../flag/flag"
 import { Auth } from "../auth"
 import { Env } from "../env"
@@ -19,10 +19,10 @@ import { Event } from "../server/event"
 import { Account } from "@/account/account"
 import { isRecord } from "@/util/record"
 import type { ConsoleState } from "./console-state"
-import { AppFileSystem } from "@mimo-ai/shared/filesystem"
+import { AppFileSystem } from "@async-coder/shared/filesystem"
 import { InstanceState } from "@/effect"
 import { Context, Duration, Effect, Exit, Fiber, Layer, Option, Schema } from "effect"
-import { EffectFlock } from "@mimo-ai/shared/util/effect-flock"
+import { EffectFlock } from "@async-coder/shared/util/effect-flock"
 import { InstanceRef } from "@/effect/instance-ref"
 import { zod, ZodOverride } from "@/util/effect-zod"
 import { ConfigAgent } from "./agent"
@@ -63,7 +63,7 @@ function normalizeLoadedConfig(data: unknown, source: string) {
   delete copy.theme
   delete copy.keybinds
   delete copy.tui
-  log.warn("tui keys in mimocode config are deprecated; move them to tui.json", { path: source })
+  log.warn("tui keys in async-coder config are deprecated; move them to tui.json", { path: source })
   return copy
 }
 
@@ -91,6 +91,7 @@ const LogLevelRef = Schema.Any.annotate({ [ZodOverride]: Log.Level })
 
 const PositiveInt = Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThan(0))
 const NonNegativeInt = Schema.Number.check(Schema.isInt()).check(Schema.isGreaterThanOrEqualTo(0))
+const WebSearchProvider = Schema.Literals(["duckduckgo", "tavily", "brave", "google", "exa"])
 
 const InfoSchema = Schema.Struct({
   $schema: Schema.optional(Schema.String).annotate({
@@ -98,7 +99,7 @@ const InfoSchema = Schema.Struct({
   }),
   logLevel: Schema.optional(LogLevelRef).annotate({ description: "Log level" }),
   server: Schema.optional(ConfigServer.Server).annotate({
-    description: "Server configuration for mimo serve and web commands",
+    description: "Server configuration for async-coder serve and web commands",
   }),
   command: Schema.optional(Schema.Record(Schema.String, ConfigCommand.Info)).annotate({
     description: "Command configuration, see https://opencode.ai/docs/commands",
@@ -224,6 +225,21 @@ const InfoSchema = Schema.Struct({
   ).annotate({
     description: "Tool invocation style configuration (JSON vs shell-style).",
   }),
+  websearch: Schema.optional(
+    Schema.Struct({
+      provider: Schema.optional(WebSearchProvider).annotate({
+        description: "Web search backend. Defaults to duckduckgo.",
+      }),
+      numResults: Schema.optional(PositiveInt.check(Schema.isLessThanOrEqualTo(20))).annotate({
+        description: "Default number of web search results, from 1 to 20. Defaults to 8.",
+      }),
+      timeout: Schema.optional(PositiveInt).annotate({
+        description: "Web search timeout in seconds. Defaults to 25.",
+      }),
+    }),
+  ).annotate({
+    description: "Web search backend configuration.",
+  }),
   enterprise: Schema.optional(
     Schema.Struct({
       url: Schema.optional(Schema.String).annotate({ description: "Enterprise URL" }),
@@ -324,7 +340,7 @@ const InfoSchema = Schema.Struct({
     Schema.Struct({
       cc_index: Schema.optional(Schema.Boolean).annotate({
         description:
-          "Index Claude Code memory (~/.claude/projects/<slug>/memory) and expose under scope='cc'. Default: false. Note: when enabled, every mimocode agent (build/explore/subagents) can search these memories via the builtin `memory` tool — including CC's `type: user` (your role/preferences) and `type: feedback` (your guidance) categories. CC originally writes them for future CC sessions; flipping this on widens the consumer set to mimocode agents on the same machine. Leave disabled (default) if you don't want personal context recallable from a prompt-injection-vulnerable agent.",
+          "Index Claude Code memory (~/.claude/projects/<slug>/memory) and expose under scope='cc'. Default: false. Note: when enabled, every async-coder agent (build/explore/subagents) can search these memories via the builtin `memory` tool — including CC's `type: user` (your role/preferences) and `type: feedback` (your guidance) categories. CC originally writes them for future CC sessions; flipping this on widens the consumer set to async-coder agents on the same machine. Leave disabled (default) if you don't want personal context recallable from a prompt-injection-vulnerable agent.",
       }),
     }),
   ),
@@ -462,7 +478,7 @@ export interface Interface {
 export class Service extends Context.Service<Service, Interface>()("@opencode/Config") {}
 
 function globalConfigFile() {
-  const candidates = ["mimocode.jsonc", "mimocode.json", "config.json"].map((file) =>
+  const candidates = ["async-coder.jsonc", "async-coder.json", "config.json"].map((file) =>
     path.join(Global.Path.config, file),
   )
   for (const file of candidates) {
@@ -555,8 +571,8 @@ export const layer = Layer.effect(
       let result: Info = pipe(
         {},
         mergeDeep(yield* loadFile(path.join(Global.Path.config, "config.json"))),
-        mergeDeep(yield* loadFile(path.join(Global.Path.config, "mimocode.json"))),
-        mergeDeep(yield* loadFile(path.join(Global.Path.config, "mimocode.jsonc"))),
+        mergeDeep(yield* loadFile(path.join(Global.Path.config, "async-coder.json"))),
+        mergeDeep(yield* loadFile(path.join(Global.Path.config, "async-coder.jsonc"))),
       )
 
       const legacy = path.join(Global.Path.config, "config")
@@ -620,7 +636,7 @@ export const layer = Layer.effect(
 
         const pluginScopeForSource = Effect.fnUntraced(function* (source: string) {
           if (source.startsWith("http://") || source.startsWith("https://")) return "global"
-          if (source === "MIMOCODE_CONFIG_CONTENT") return "local"
+          if (source === "ASYNC_CODER_CONFIG_CONTENT") return "local"
           if (yield* InstanceRef.use((ctx) => Effect.succeed(Instance.containsPath(source, ctx)))) return "local"
           return "global"
         })
@@ -730,13 +746,13 @@ export const layer = Layer.effect(
         const global = yield* getGlobal()
         yield* merge(Global.Path.config, global, "global")
 
-        if (Flag.MIMOCODE_CONFIG) {
-          yield* merge(Flag.MIMOCODE_CONFIG, yield* loadFile(Flag.MIMOCODE_CONFIG))
-          log.debug("loaded custom config", { path: Flag.MIMOCODE_CONFIG })
+        if (Flag.ASYNC_CODER_CONFIG) {
+          yield* merge(Flag.ASYNC_CODER_CONFIG, yield* loadFile(Flag.ASYNC_CODER_CONFIG))
+          log.debug("loaded custom config", { path: Flag.ASYNC_CODER_CONFIG })
         }
 
-        if (!Flag.MIMOCODE_DISABLE_PROJECT_CONFIG) {
-          for (const file of yield* ConfigPaths.files("mimocode", ctx.directory, ctx.worktree).pipe(Effect.orDie)) {
+        if (!Flag.ASYNC_CODER_DISABLE_PROJECT_CONFIG) {
+          for (const file of yield* ConfigPaths.files("async-coder", ctx.directory, ctx.worktree).pipe(Effect.orDie)) {
             yield* merge(file, yield* loadFile(file), "local")
           }
         }
@@ -747,20 +763,20 @@ export const layer = Layer.effect(
 
         const directories = yield* ConfigPaths.directories(ctx.directory, ctx.worktree)
 
-        if (Flag.MIMOCODE_CONFIG_DIR) {
-          log.debug("loading config from MIMOCODE_CONFIG_DIR", { path: Flag.MIMOCODE_CONFIG_DIR })
+        if (Flag.ASYNC_CODER_CONFIG_DIR) {
+          log.debug("loading config from ASYNC_CODER_CONFIG_DIR", { path: Flag.ASYNC_CODER_CONFIG_DIR })
         }
 
         const deps: Fiber.Fiber<void, never>[] = []
 
-        // Load Claude Code commands first so .mimocode commands override on name collision.
+        // Load Claude Code commands first so .async-coder commands override on name collision.
         for (const dir of yield* ConfigPaths.claudeCommandDirectories(ctx.directory, ctx.worktree)) {
           result.command = mergeDeep(result.command ?? {}, yield* Effect.promise(() => ConfigCommand.load(dir)))
         }
 
         for (const dir of directories) {
-          if (dir.endsWith(".mimocode") || dir === Flag.MIMOCODE_CONFIG_DIR) {
-            for (const file of ["mimocode.json", "mimocode.jsonc"]) {
+          if (dir.endsWith(".async-coder") || dir === Flag.ASYNC_CODER_CONFIG_DIR) {
+            for (const file of ["async-coder.json", "async-coder.jsonc"]) {
               const source = path.join(dir, file)
               log.debug(`loading config from ${source}`)
               yield* merge(source, yield* loadFile(source))
@@ -776,7 +792,7 @@ export const layer = Layer.effect(
             .install(dir, {
               add: [
                 {
-                  name: "@mimo-ai/plugin",
+                  name: "@async-coder/plugin",
                   version: InstallationLocal ? undefined : InstallationVersion,
                 },
               ],
@@ -798,20 +814,20 @@ export const layer = Layer.effect(
           result.command = mergeDeep(result.command ?? {}, yield* Effect.promise(() => ConfigCommand.load(dir)))
           result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.load(dir)))
           result.agent = mergeDeep(result.agent ?? {}, yield* Effect.promise(() => ConfigAgent.loadMode(dir)))
-          // Auto-discovered plugins under `.mimocode/plugin(s)` are already local files, so ConfigPlugin.load
+          // Auto-discovered plugins under `.async-coder/plugin(s)` are already local files, so ConfigPlugin.load
           // returns normalized Specs and we only need to attach origin metadata here.
           const list = yield* Effect.promise(() => ConfigPlugin.load(dir))
           yield* mergePluginOrigins(dir, list)
         }
 
-        if (process.env.MIMOCODE_CONFIG_CONTENT) {
-          const source = "MIMOCODE_CONFIG_CONTENT"
-          const next = yield* loadConfig(process.env.MIMOCODE_CONFIG_CONTENT, {
+        if (process.env.ASYNC_CODER_CONFIG_CONTENT) {
+          const source = "ASYNC_CODER_CONFIG_CONTENT"
+          const next = yield* loadConfig(process.env.ASYNC_CODER_CONFIG_CONTENT, {
             dir: ctx.directory,
             source,
           })
           yield* merge(source, next, "local")
-          log.debug("loaded custom config from MIMOCODE_CONFIG_CONTENT")
+          log.debug("loaded custom config from ASYNC_CODER_CONFIG_CONTENT")
         }
 
         const activeAccount = Option.getOrUndefined(
@@ -827,8 +843,8 @@ export const layer = Layer.effect(
               { concurrency: 2 },
             )
             if (Option.isSome(tokenOpt)) {
-              process.env["MIMOCODE_CONSOLE_TOKEN"] = tokenOpt.value
-              yield* env.set("MIMOCODE_CONSOLE_TOKEN", tokenOpt.value)
+              process.env["ASYNC_CODER_CONSOLE_TOKEN"] = tokenOpt.value
+              yield* env.set("ASYNC_CODER_CONSOLE_TOKEN", tokenOpt.value)
             }
 
             if (Option.isSome(configOpt)) {
@@ -855,7 +871,7 @@ export const layer = Layer.effect(
 
         const managedDir = ConfigManaged.managedConfigDir()
         if (existsSync(managedDir)) {
-          for (const file of ["mimocode.json", "mimocode.jsonc"]) {
+          for (const file of ["async-coder.json", "async-coder.jsonc"]) {
             const source = path.join(managedDir, file)
             yield* merge(source, yield* loadFile(source), "global")
           }
@@ -872,7 +888,7 @@ export const layer = Layer.effect(
           mergeMcpOrigins(managed.source, next, "opencode")
         }
 
-        if (!Flag.MIMOCODE_DISABLE_CLAUDE_CODE_MCP) {
+        if (!Flag.ASYNC_CODER_DISABLE_CLAUDE_CODE_MCP) {
           yield* mergeClaudeMcp(path.join(Global.Path.home, ".claude.json"))
           yield* mergeClaudeMcp(path.join(ctx.directory, ".claude.json"))
         }
@@ -886,8 +902,8 @@ export const layer = Layer.effect(
           })
         }
 
-        if (Flag.MIMOCODE_PERMISSION) {
-          result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.MIMOCODE_PERMISSION))
+        if (Flag.ASYNC_CODER_PERMISSION) {
+          result.permission = mergeDeep(result.permission ?? {}, JSON.parse(Flag.ASYNC_CODER_PERMISSION))
         }
 
         if (result.tools) {
@@ -909,10 +925,10 @@ export const layer = Layer.effect(
           result.share = "auto"
         }
 
-        if (Flag.MIMOCODE_DISABLE_AUTOCOMPACT) {
+        if (Flag.ASYNC_CODER_DISABLE_AUTOCOMPACT) {
           result.compaction = { ...result.compaction, auto: false }
         }
-        if (Flag.MIMOCODE_DISABLE_PRUNE) {
+        if (Flag.ASYNC_CODER_DISABLE_PRUNE) {
           result.compaction = { ...result.compaction, prune: false }
         }
 

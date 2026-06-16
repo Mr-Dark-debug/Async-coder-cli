@@ -1,16 +1,22 @@
 import z from "zod"
-import { Effect } from "effect"
+import { Duration, Effect } from "effect"
 import { HttpClient } from "effect/unstable/http"
 import * as Tool from "../tool"
 import * as McpExa from "../mcp-exa"
-import * as MimoWebsearch from "./mimo"
+import * as Tavily from "./providers/tavily"
+import * as Brave from "./providers/brave"
+import * as Google from "./providers/google"
+import * as DuckDuckGo from "./providers/duckduckgo"
 import { Auth } from "@/auth"
-import { Provider } from "@/provider"
+import { Config } from "@/config"
+import { Log } from "@/util"
 import DESCRIPTION from "./websearch.txt"
 
+const log = Log.create({ service: "websearch" })
+
 const WEBFETCH_FALLBACK =
-  "Web search unavailable. Use `webfetch` with a relevant URL instead, or enable the Web Search plugin at https://platform.xiaomimimo.com/console/plugin."
-const MAX_TIMEOUT = 120 * 1000 // 2 minutes
+  "Web search unavailable. Use `webfetch` with a relevant URL instead, or configure websearch.provider in async-coder.json."
+const MAX_TIMEOUT = 120
 
 const Parameters = z.object({
   query: z.string().describe("Websearch query"),
@@ -32,11 +38,14 @@ const Parameters = z.object({
     .describe("Maximum characters for context string optimized for LLMs (default: 10000)"),
 })
 
+type WebSearchProvider = "duckduckgo" | "tavily" | "brave" | "google" | "exa"
+
 export const WebSearchTool = Tool.define(
   "websearch",
   Effect.gen(function* () {
     const http = yield* HttpClient.HttpClient
     const auth = yield* Auth.Service
+    const config = yield* Config.Service
 
     return {
       get description() {
@@ -59,39 +68,49 @@ export const WebSearchTool = Tool.define(
             },
           })
 
-          const model = (ctx.extra as { model?: Provider.Model })?.model
-          const timeout = params.timeout === undefined ? undefined : Math.min(params.timeout * 1000, MAX_TIMEOUT)
+          const cfg = (yield* config.get()).websearch ?? {}
+          const provider = (cfg.provider ?? "duckduckgo") as WebSearchProvider
+          const value = {
+            ...params,
+            numResults: params.numResults ?? cfg.numResults ?? 8,
+            timeout: Math.min(params.timeout ?? cfg.timeout ?? 25, MAX_TIMEOUT),
+          }
+          const timeout = Duration.seconds(value.timeout)
 
-          const result =
-            model?.providerID === "xiaomi"
-              ? yield* Effect.catchCause(
-                  Effect.gen(function* () {
-                    const info = yield* auth.get("xiaomi")
-                    if (!info || info.type !== "api") return undefined
-                    return yield* MimoWebsearch.call(
-                      http,
-                      model.api.url,
-                      info.key,
-                      params.query,
-                      "mimo-v2.5",
-                      timeout ?? "30 seconds",
-                    )
-                  }),
-                  () => Effect.succeed(undefined),
-                )
-              : yield* McpExa.call(
-                  http,
-                  "web_search_exa",
-                  McpExa.SearchArgs,
-                  {
-                    query: params.query,
-                    type: params.type || "auto",
-                    numResults: params.numResults || 8,
-                    livecrawl: params.livecrawl || "fallback",
-                    contextMaxCharacters: params.contextMaxCharacters,
-                  },
-                  timeout ?? "25 seconds",
-                )
+          const runDuckDuckGo = DuckDuckGo.call(http, value, auth, timeout)
+          const result = yield* Effect.gen(function* () {
+            if (provider === "duckduckgo") return yield* runDuckDuckGo
+            if (provider === "exa") {
+              if (!process.env.EXA_API_KEY) {
+                log.warn("websearch provider 'exa' has no API key, falling back to duckduckgo")
+                return yield* runDuckDuckGo
+              }
+              return yield* McpExa.call(
+                http,
+                "web_search_exa",
+                McpExa.SearchArgs,
+                {
+                  query: value.query,
+                  type: value.type || "auto",
+                  numResults: value.numResults,
+                  livecrawl: value.livecrawl || "fallback",
+                  contextMaxCharacters: value.contextMaxCharacters,
+                },
+                timeout,
+              )
+            }
+            const backend =
+              provider === "tavily" ? Tavily.call : provider === "brave" ? Brave.call : Google.call
+            const output = yield* backend(http, value, auth, timeout)
+            if (output) return output
+            log.warn(`websearch provider '${provider}' has no API key, falling back to duckduckgo`)
+            return yield* runDuckDuckGo
+          }).pipe(
+            Effect.catchCause((cause) => {
+              log.warn("websearch backend failed", { provider, cause: String(cause) })
+              return runDuckDuckGo.pipe(Effect.catchCause(() => Effect.succeed(undefined)))
+            }),
+          )
 
           return {
             output: result ?? WEBFETCH_FALLBACK,

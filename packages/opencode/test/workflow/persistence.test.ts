@@ -222,7 +222,7 @@ describe("journalKey", () => {
     const lite = journalKey("p", { agentType: "g", model: "lite" }, 0)
     expect(journalKey("p", { agentType: "g", model: "lite" }, 0)).toBe(lite)
     expect(journalKey("p", { agentType: "g", model: "ultra" }, 0)).not.toBe(lite)
-    expect(journalKey("p", { agentType: "g", model: "mimo/mimo-v2.5-pro" }, 0)).not.toBe(lite)
+    expect(journalKey("p", { agentType: "g", model: "mimo/deprecated-mimo-v2.5-pro" }, 0)).not.toBe(lite)
     // omitting model differs from naming a tier
     expect(journalKey("p", { agentType: "g" }, 0)).not.toBe(lite)
   })

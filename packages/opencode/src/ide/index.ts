@@ -1,6 +1,6 @@
 import { BusEvent } from "@/bus/bus-event"
 import z from "zod"
-import { NamedError } from "@mimo-ai/shared/util/error"
+import { NamedError } from "@async-coder/shared/util/error"
 import { Log } from "../util"
 import { Process } from "@/util"
 

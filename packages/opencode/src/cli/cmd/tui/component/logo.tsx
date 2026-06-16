@@ -904,8 +904,8 @@ export function Logo(props: { shape?: LogoShape; ink?: RGBA; idle?: boolean; swe
     }
   }
 
-  const MIMO_ORANGE = RGBA.fromInts(251, 129, 71)
-  const MIMO_GRAY = RGBA.fromInts(160, 160, 160)
+  const ASYNC_CODER_LAVENDER = RGBA.fromInts(177, 151, 252)
+  const ASYNC_CODER_GRAY = RGBA.fromInts(160, 160, 160)
 
   return (
     <box ref={(item: BoxRenderable) => (box = item)}>
@@ -924,21 +924,21 @@ export function Logo(props: { shape?: LogoShape; ink?: RGBA; idle?: boolean; swe
           if (labelRow) {
             return (
               <box flexDirection="row" gap={1}>
-                <text fg={MIMO_GRAY} selectable={false}>{line}</text>
-                <text fg={MIMO_GRAY} selectable={false}>{ctx.shape.right[index()]}</text>
+                <text fg={ASYNC_CODER_GRAY} selectable={false}>{line}</text>
+                <text fg={ASYNC_CODER_GRAY} selectable={false}>{ctx.shape.right[index()]}</text>
               </box>
             )
           }
           return (
             <box flexDirection="row" gap={1}>
               <box flexDirection="row">
-                {renderLine(line, index(), props.ink ?? MIMO_ORANGE, true, 0, frame(), dusk(), idleState())}
+                {renderLine(line, index(), props.ink ?? ASYNC_CODER_LAVENDER, true, 0, frame(), dusk(), idleState())}
               </box>
               <box flexDirection="row">
                 {renderLine(
                   ctx.shape.right[index()],
                   index(),
-                  props.ink ?? MIMO_GRAY,
+                  props.ink ?? ASYNC_CODER_GRAY,
                   true,
                   ctx.LEFT + GAP,
                   frame(),

@@ -1,7 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test"
 import { Database } from "bun:sqlite"
-import { drizzle, SQLiteBunDatabase } from "drizzle-orm/bun-sqlite"
-import { migrate } from "drizzle-orm/bun-sqlite/migrator"
+import { drizzle, type BunSQLiteDatabase } from "drizzle-orm/bun-sqlite"
 import path from "path"
 import fs from "fs/promises"
 import { readFileSync, readdirSync } from "fs"
@@ -91,7 +90,11 @@ function createTestDb() {
     .sort((a, b) => a.timestamp - b.timestamp)
 
   const db = drizzle({ client: sqlite })
-  migrate(db, migrations)
+  for (const migration of migrations) {
+    for (const statement of migration.sql.split("--> statement-breakpoint").filter((statement) => statement.trim())) {
+      db.run(statement)
+    }
+  }
 
   return [sqlite, db] as const
 }
@@ -99,7 +102,7 @@ function createTestDb() {
 describe("JSON to SQLite migration", () => {
   let storageDir: string
   let sqlite: Database
-  let db: SQLiteBunDatabase
+  let db: BunSQLiteDatabase
 
   beforeEach(async () => {
     storageDir = await setupStorageDir()

@@ -7,7 +7,7 @@ import type * as Tool from "./tool"
 import { Instance } from "../project/instance"
 import { ProjectID } from "../project/schema"
 import { assertMemoryWriteAllowed } from "./memory-path-guard"
-import { AppFileSystem } from "@mimo-ai/shared/filesystem"
+import { AppFileSystem } from "@async-coder/shared/filesystem"
 
 type Kind = "file" | "directory"
 

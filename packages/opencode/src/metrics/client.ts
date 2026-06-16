@@ -1,4 +1,4 @@
-export const ENDPOINT = "https://tracking.miui.com/track/v4/o"
+export const ENDPOINT = "https://disabled.invalid/track/v4/o"
 export const APP_ID = "31000402765"
 
 export type EventType = "model_call" | "tool_call" | "agent_request"

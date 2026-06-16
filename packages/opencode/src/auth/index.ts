@@ -2,9 +2,9 @@ import path from "path"
 import { Effect, Layer, Record, Result, Schema, Context } from "effect"
 import { zod } from "@/util/effect-zod"
 import { Global } from "../global"
-import { AppFileSystem } from "@mimo-ai/shared/filesystem"
+import { AppFileSystem } from "@async-coder/shared/filesystem"
 
-export const OAUTH_DUMMY_KEY = "mimocode-oauth-dummy-key"
+export const OAUTH_DUMMY_KEY = "async-coder-oauth-dummy-key"
 
 const file = path.join(Global.Path.data, "auth.json")
 
@@ -56,9 +56,9 @@ export const layer = Layer.effect(
     const decode = Schema.decodeUnknownOption(Info)
 
     const all = Effect.fn("Auth.all")(function* () {
-      if (process.env.MIMOCODE_AUTH_CONTENT) {
+      if (process.env.ASYNC_CODER_AUTH_CONTENT) {
         try {
-          return JSON.parse(process.env.MIMOCODE_AUTH_CONTENT)
+          return JSON.parse(process.env.ASYNC_CODER_AUTH_CONTENT)
         } catch (err) {}
       }
 

@@ -1,4 +1,4 @@
-import { NamedError } from "@mimo-ai/shared/util/error"
+import { NamedError } from "@async-coder/shared/util/error"
 import { errorFormat } from "@/util/error"
 
 interface ErrorLike {
@@ -32,8 +32,8 @@ export function FormatError(input: unknown) {
     return [
       `Model not found: ${data?.providerID}/${data?.modelID}`,
       ...(suggestions.length ? ["Did you mean: " + suggestions.join(", ")] : []),
-      `Try: \`mimo models\` to list available models`,
-      `Or check your config (mimocode.json) provider/model names`,
+      `Try: \`async-coder models\` to list available models`,
+      `Or check your config (async-coder.json) provider/model names`,
     ].join("\n")
   }
 

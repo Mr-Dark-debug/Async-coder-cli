@@ -114,23 +114,23 @@ export async function run(opts?: { force?: boolean; dbPath?: string }): Promise<
           continue
         }
 
-        // If this import previously created a mimocode session that the user has
+        // If this import previously created a async-coder session that the user has
         // since deleted, drop the stale mapping and re-import fresh (otherwise the
         // update below touches zero rows and the message FK insert fails). When it
         // still exists, remember its time_updated so a re-sync never moves the
-        // session backward past mimocode-native activity (cc/codex parity).
+        // session backward past async-coder-native activity (cc/codex parity).
         let existingUpdated: number | undefined
         if (existing) {
-          const mimoSess = Database.use((db) =>
+          const existingSess = Database.use((db) =>
             db.select({ updated: SessionTable.time_updated }).from(SessionTable).where(eq(SessionTable.id, existing!.session_id)).get(),
           )
-          if (!mimoSess) {
+          if (!existingSess) {
             Database.use((db) =>
               db.delete(ExternalImportTable).where(and(eq(ExternalImportTable.source, "opencode"), eq(ExternalImportTable.source_key, sourceKey))).run(),
             )
             existing = undefined
           } else {
-            existingUpdated = mimoSess.updated
+            existingUpdated = existingSess.updated
           }
         }
 

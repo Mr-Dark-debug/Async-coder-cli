@@ -1,8 +1,8 @@
 import { Component, For, Show } from "solid-js"
-import { FileIcon } from "@mimo-ai/ui/file-icon"
-import { IconButton } from "@mimo-ai/ui/icon-button"
-import { Tooltip } from "@mimo-ai/ui/tooltip"
-import { getDirectory, getFilename, getFilenameTruncated } from "@mimo-ai/shared/util/path"
+import { FileIcon } from "@async-coder/ui/file-icon"
+import { IconButton } from "@async-coder/ui/icon-button"
+import { Tooltip } from "@async-coder/ui/tooltip"
+import { getDirectory, getFilename, getFilenameTruncated } from "@async-coder/shared/util/path"
 import type { ContextItem } from "@/context/prompt"
 
 type PromptContextItem = ContextItem & { key: string }

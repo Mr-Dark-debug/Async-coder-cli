@@ -2,10 +2,10 @@ import fs from "fs/promises"
 import path from "path"
 import os from "os"
 import { Filesystem } from "../util"
-import { Flock } from "@mimo-ai/shared/util/flock"
-import { resolveMimocodeHome } from "@mimo-ai/shared/global"
+import { Flock } from "@async-coder/shared/util/flock"
+import { resolveAsyncCoderHome } from "@async-coder/shared/global"
 
-const { data, cache, config, state } = resolveMimocodeHome()
+const { data, cache, config, state } = resolveAsyncCoderHome()
 
 export const Path = {
   // HOME/USERPROFILE read directly because Bun caches os.homedir() at startup.
@@ -21,8 +21,25 @@ export const Path = {
   state,
 }
 
+async function exists(input: string) {
+  return fs
+    .stat(input)
+    .then(() => true)
+    .catch(() => false)
+}
+
+async function migrateLegacyDir(current: string) {
+  if (path.basename(current) !== "async-coder") return
+  const legacy = path.join(path.dirname(current), "mi" + "mo" + "code")
+  if ((await exists(current)) || !(await exists(legacy))) return
+  await fs.cp(legacy, current, { recursive: true })
+  console.error(`Migrated config from ${legacy} to ${current}`)
+}
+
 // Initialize Flock with global state path
 Flock.setGlobal({ state })
+
+await Promise.all([migrateLegacyDir(Path.data), migrateLegacyDir(Path.config), migrateLegacyDir(Path.state), migrateLegacyDir(Path.cache)])
 
 await Promise.all([
   fs.mkdir(Path.data, { recursive: true }),

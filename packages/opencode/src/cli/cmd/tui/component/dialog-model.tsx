@@ -11,6 +11,7 @@ import { useSDK } from "../context/sdk"
 import { useToast, type ToastContext } from "../ui/toast"
 import { DialogPrompt } from "../ui/dialog-prompt"
 import * as fuzzysort from "fuzzysort"
+import { modelCostLabel } from "../feature-plugins/sidebar/usage-data"
 
 const ADD_MODEL_SENTINEL = "__add_model__"
 
@@ -56,7 +57,7 @@ export function DialogModel(props: { providerID?: string }) {
             description: provider.name,
             category,
             disabled: provider.id === "opencode" && model.id.includes("-nano"),
-            footer: model.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
+            footer: modelCostLabel(model.cost),
             onSelect: () => {
               onSelect(provider.id, model.id)
             },
@@ -93,7 +94,7 @@ export function DialogModel(props: { providerID?: string }) {
               : undefined,
             category: connected() ? provider.name : undefined,
             disabled: provider.id === "opencode" && model.includes("-nano"),
-            footer: info.cost?.input === 0 && provider.id === "opencode" ? "Free" : undefined,
+            footer: modelCostLabel(info.cost),
             onSelect() {
               onSelect(provider.id, model)
             },
@@ -121,7 +122,7 @@ export function DialogModel(props: { providerID?: string }) {
             description: undefined,
             category: connected() ? provider.name : undefined,
             disabled: false,
-            footer: undefined as "Free" | undefined,
+            footer: undefined as string | undefined,
             onSelect() {
               void runAddModelWizard({ dialog, sdk, sync, toast, providerID: provider.id })
             },

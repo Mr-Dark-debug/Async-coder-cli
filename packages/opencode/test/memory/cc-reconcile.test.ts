@@ -104,7 +104,7 @@ metadata:
 Body about cache.`
         yield* Effect.promise(() => fs.writeFile(path.join(ccDir, "feedback_cache_ttl.md"), fb))
 
-        yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot, cc: ccBase }))
+        yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot, cc: ccBase }))
 
         const rows = Database.use((db) =>
           db.select().from(MemoryFtsTable).where(eq(MemoryFtsTable.scope, "cc")).all(),
@@ -132,7 +132,7 @@ Body about cache.`
           fs.writeFile(path.join(ccDir, "MEMORY.md"), "- [Title](file.md) — line"),
         )
 
-        yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot, cc: ccBase }))
+        yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot, cc: ccBase }))
 
         const rows = Database.use((db) =>
           db.select().from(MemoryFtsTable).where(eq(MemoryFtsTable.scope, "cc")).all(),
@@ -167,12 +167,12 @@ cc body`,
           ),
         )
 
-        yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot, cc: ccBase }))
+        yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot, cc: ccBase }))
         expect(Database.use((db) => db.select().from(MemoryFtsTable).all()).length).toBe(2)
 
         // Delete CC file off disk; reconcile.
         yield* Effect.promise(() => fs.rm(ccFile))
-        yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot, cc: ccBase }))
+        yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot, cc: ccBase }))
 
         const rows = Database.use((db) => db.select().from(MemoryFtsTable).all())
         expect(rows.length).toBe(1)
@@ -203,7 +203,7 @@ body`,
         )
 
         // First reconcile WITH cc root — row indexed.
-        yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot, cc: ccBase }))
+        yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot, cc: ccBase }))
         expect(
           Database.use((db) =>
             db.select().from(MemoryFtsTable).where(eq(MemoryFtsTable.scope, "cc")).all(),
@@ -211,7 +211,7 @@ body`,
         ).toBe(1)
 
         // Second reconcile WITHOUT cc root — row pruned.
-        yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot }))
+        yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot }))
         expect(
           Database.use((db) =>
             db.select().from(MemoryFtsTable).where(eq(MemoryFtsTable.scope, "cc")).all(),
@@ -229,7 +229,7 @@ body`,
         yield* Effect.promise(() => fs.rm(mimoRoot, { recursive: true, force: true }))
 
         const result = yield* Effect.promise(() =>
-          reconcileMemory({ mimo: mimoRoot, cc: "/definitely/not/a/real/path/abc123" }),
+          reconcileMemory({ asyncCoder: mimoRoot, cc: "/definitely/not/a/real/path/abc123" }),
         )
         expect(result.indexed).toBe(0)
         expect(result.pruned).toBe(0)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { $ } from "bun"
 import pkg from "../package.json"
-import { Script } from "@mimo-ai/script"
+import { Script } from "@async-coder/script"
 import { fileURLToPath } from "url"
 
 const dir = fileURLToPath(new URL("..", import.meta.url))
@@ -42,20 +42,20 @@ await Bun.file(`./dist/${pkg.name}/package.json`).write(
     {
       name: pkg.name,
       version: version,
-      description: "MiMo Code: Where Models and Agents Co-Evolve",
+      description: "async-coder: a multi-provider async coding agent",
       license: "MIT",
-      author: "Xiaomi MiMo Team",
-      homepage: "https://mimo.xiaomi.com/en/mimocode",
+      author: "async-coder",
+      homepage: "https://github.com/Mr-Dark-debug/Async-coder-cli",
       repository: {
         type: "git",
-        url: "git+https://github.com/XiaomiMiMo/MiMo-Code.git",
+        url: "git+https://github.com/Mr-Dark-debug/Async-coder-cli.git",
       },
       bugs: {
-        url: "https://github.com/XiaomiMiMo/MiMo-Code/issues",
+        url: "https://github.com/Mr-Dark-debug/Async-coder-cli/issues",
       },
-      keywords: ["ai", "cli", "code", "xiaomi", "mimo", "mimocode"],
+      keywords: ["ai", "cli", "code", "coding-agent", "groq", "openrouter", "lavender"],
       bin: {
-        mimo: "./bin/mimo",
+        "async-coder": "./bin/async-coder",
       },
       scripts: {
         postinstall: "bun ./postinstall.mjs || node ./postinstall.mjs",

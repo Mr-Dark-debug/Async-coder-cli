@@ -6,7 +6,7 @@
 // the file primitives (writeFile/glob/readFile/exists), and nested concurrency.
 //
 // Gated behind RUN_WOW_VERIFY=1 so it never runs in the normal suite (it needs
-// the live router + a real key in ~/.config/mimocode/mimocode.json). Run with:
+// the live router + a real key in ~/.config/async-coder/async-coder.json). Run with:
 //   RUN_WOW_VERIFY=1 bun test test/workflow/verify-wow.test.ts
 import { describe, expect, test } from "bun:test"
 import { Effect } from "effect"
@@ -26,14 +26,14 @@ const ENABLED = process.env["RUN_WOW_VERIFY"] === "1"
 
 // The real mimo provider, read verbatim from the user's config (key included).
 function realConfig() {
-  const home = path.join(os.homedir(), ".config", "mimocode", "mimocode.json")
+  const home = path.join(os.homedir(), ".config", "async-coder", "async-coder.json")
   const full = JSON.parse(readFileSync(home, "utf8"))
   const mimo = full.provider?.mimo
   if (!mimo?.options?.apiKey) throw new Error("no mimo provider/key in " + home)
   return { provider: { mimo } }
 }
 
-const realRef = { providerID: ProviderID.make("mimo"), modelID: ModelID.make("mimo-v2.5-pro") }
+const realRef = { providerID: ProviderID.make("mimo"), modelID: ModelID.make("deprecated-mimo-v2.5-pro") }
 
 const it = testEffect(makeLayer())
 const maybe = ENABLED ? it.live : it.live.skip
@@ -61,8 +61,8 @@ describe("workflow-of-workflows real-LLM verification", () => {
               permission: [{ permission: "*", pattern: "*", action: "allow" }],
             })
 
-            // Two saved workflows on disk, resolved by name from .mimocode/workflows.
-            const wfDir = path.join(dir, ".mimocode", "workflows")
+            // Two saved workflows on disk, resolved by name from .async-coder/workflows.
+            const wfDir = path.join(dir, ".async-coder", "workflows")
             mkdirSync(wfDir, { recursive: true })
             // classify: a real agent returns a structured list of "units" to process.
             writeFileSync(

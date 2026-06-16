@@ -67,7 +67,7 @@ distinctivetoken from CC`,
             ),
           )
 
-          yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot, cc: ccBase }))
+          yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot, cc: ccBase }))
 
           const results = yield* memory.search({ query: "distinctivetoken" })
           expect(results.length).toBe(2)
@@ -97,7 +97,7 @@ metadata:
 tokenz`),
           )
 
-          yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot, cc: ccBase }))
+          yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot, cc: ccBase }))
 
           const ccOnly = yield* memory.search({ query: "tokenz", scope: "cc" })
           expect(ccOnly.length).toBe(1)
@@ -135,7 +135,7 @@ metadata:
 sharedterm b`),
           )
 
-          yield* Effect.promise(() => reconcileMemory({ mimo: mimoRoot, cc: ccBase }))
+          yield* Effect.promise(() => reconcileMemory({ asyncCoder: mimoRoot, cc: ccBase }))
 
           const fb = yield* memory.search({ query: "sharedterm", type: "feedback" })
           expect(fb.length).toBe(1)

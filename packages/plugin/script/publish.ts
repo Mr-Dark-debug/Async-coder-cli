@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { Script } from "@mimo-ai/script"
+import { Script } from "@async-coder/script"
 import { $ } from "bun"
 import { fileURLToPath } from "url"
 

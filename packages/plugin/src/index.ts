@@ -10,8 +10,8 @@ import type {
   Part,
   Auth,
   Config as SDKConfig,
-} from "@mimo-ai/sdk"
-import type { Provider as ProviderV2, Model as ModelV2 } from "@mimo-ai/sdk/v2"
+} from "@async-coder/sdk"
+import type { Provider as ProviderV2, Model as ModelV2 } from "@async-coder/sdk/v2"
 
 import type { BunShell } from "./shell.js"
 import { type ToolDefinition } from "./tool.js"
