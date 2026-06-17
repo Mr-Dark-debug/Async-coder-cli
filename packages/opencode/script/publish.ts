@@ -8,25 +8,9 @@ import path from "node:path"
 
 const dir = fileURLToPath(new URL("..", import.meta.url))
 process.chdir(dir)
-const npm = ["npm"]
 
 async function published(name: string, version: string) {
-  return Bun.spawnSync({
-    cmd: [...npm, "view", `${name}@${version}`, "version"],
-    stdout: "ignore",
-    stderr: "ignore",
-  }).exitCode === 0
-}
-
-function run(cmd: string[], cwd: string) {
-  const result = Bun.spawnSync({
-    cmd,
-    cwd,
-    stdout: "inherit",
-    stderr: "inherit",
-    stdin: "inherit",
-  })
-  if (result.exitCode !== 0) throw new Error(`${cmd.join(" ")} failed with exit code ${result.exitCode}`)
+  return (await $`npm view ${`${name}@${version}`} version`.quiet().nothrow()).exitCode === 0
 }
 
 async function publish(dir: string, name: string, version: string) {
@@ -38,17 +22,18 @@ async function publish(dir: string, name: string, version: string) {
   for await (const file of new Bun.Glob("*.tgz").scan({ cwd: dir })) {
     await fs.rm(`${dir}/${file}`, { force: true })
   }
-  run([...npm, "pack"], dir)
+  await $`npm pack`.cwd(dir)
   const tgz = Array.from(new Bun.Glob("*.tgz").scanSync({ cwd: dir })).at(0)
   if (!tgz) throw new Error(`No package tarball generated in ${dir}`)
-  run([...npm, "publish", tgz, "--access", "public", "--tag", Script.channel], dir)
+  await $`npm publish ${tgz} --access public --tag ${Script.channel}`.cwd(dir)
 }
 
 const binaries: { dir: string; name: string; version: string }[] = []
 for (const filepath of new Bun.Glob("*/package.json").scanSync({ cwd: "./dist" })) {
+  const normalized = filepath.replaceAll("\\", "/")
   const p = await Bun.file(`./dist/${filepath}`).json()
   binaries.push({
-    dir: path.join(dir, "dist", ...filepath.replace("/package.json", "").split("/")),
+    dir: path.join(dir, "dist", ...normalized.replace("/package.json", "").split("/")),
     name: p.name,
     version: p.version,
   })
