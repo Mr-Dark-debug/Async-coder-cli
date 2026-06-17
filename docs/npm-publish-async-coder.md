@@ -1,6 +1,6 @@
 # Publish async-coder to npm
 
-This guide publishes the fixed Windows release as version `0.1.1`.
+This guide publishes the polished Windows release as version `0.1.2`.
 
 Repository: <https://github.com/Mr-Dark-debug/Async-coder-cli>
 
@@ -53,7 +53,7 @@ cd ..\..\ui; bun typecheck
 From `packages/opencode`:
 
 ```powershell
-$env:ASYNC_CODER_VERSION = "0.1.1"
+$env:ASYNC_CODER_VERSION = "0.1.2"
 $env:ASYNC_CODER_CHANNEL = "latest"
 bun run script/build.ts --single --skip-install
 ```
@@ -61,7 +61,7 @@ bun run script/build.ts --single --skip-install
 Expected smoke-test output:
 
 ```text
-Smoke test passed: async-coder 0.1.1
+Smoke test passed: async-coder 0.1.2
 ```
 
 The Windows binary package is generated at:
@@ -79,15 +79,15 @@ For a Windows-only first release, keep only `dist/binary-windows-x64` before run
 ```powershell
 cd packages/opencode
 Remove-Item -Recurse -Force .\dist\@async-coder\cli -ErrorAction SilentlyContinue
-$env:ASYNC_CODER_VERSION = "0.1.1"
+$env:ASYNC_CODER_VERSION = "0.1.2"
 $env:ASYNC_CODER_CHANNEL = "latest"
 bun run script/publish.ts
 ```
 
 This publishes:
 
-- `@async-coder/binary-windows-x64@0.1.1`
-- `@async-coder/cli@0.1.1`
+- `@async-coder/binary-windows-x64@0.1.2`
+- `@async-coder/cli@0.1.2`
 
 If npm asks for a one-time password, enter the OTP from your authenticator.
 
@@ -119,7 +119,7 @@ Create `packages/opencode/dist/@async-coder/cli/package.json`:
 ```json
 {
   "name": "@async-coder/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "async-coder: a multi-provider async coding agent",
   "license": "MIT",
   "author": "async-coder",
@@ -139,7 +139,7 @@ Create `packages/opencode/dist/@async-coder/cli/package.json`:
     "postinstall": "bun ./postinstall.mjs || node ./postinstall.mjs"
   },
   "optionalDependencies": {
-    "@async-coder/binary-windows-x64": "0.1.1"
+    "@async-coder/binary-windows-x64": "0.1.2"
   }
 }
 ```
@@ -166,5 +166,5 @@ async-coder
 Expected version output:
 
 ```text
-async-coder 0.1.1
+async-coder 0.1.2
 ```

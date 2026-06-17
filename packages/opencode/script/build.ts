@@ -256,14 +256,32 @@ for (const item of targets) {
 
   await $`rm -rf ./dist/${name}/bin/tui`
   await Bun.file(`dist/${name}/README.md`).write(
-    `This is the ${item.os}-${item.arch} binary for [async-coder](https://www.npmjs.com/package/@async-coder/cli). Most users should install @async-coder/cli globally instead.\n`,
+    [
+      "# async-coder runtime package",
+      "",
+      `This package contains the ${item.os}-${item.arch} executable used by [@async-coder/cli](https://www.npmjs.com/package/@async-coder/cli).`,
+      "",
+      "It is published separately so npm can install the correct native runtime for each supported platform.",
+      "",
+      "## Install",
+      "",
+      "Install the user-facing CLI package instead:",
+      "",
+      "```bash",
+      "npm install -g @async-coder/cli",
+      "async-coder --version",
+      "```",
+      "",
+      "Only install this runtime package directly if you are debugging packaging or building a custom distribution.",
+      "",
+    ].join("\n"),
   )
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
         name: `@async-coder/${name}`,
         version: Script.version,
-        description: "Platform-specific binary for async-coder.",
+        description: "Native runtime package used by @async-coder/cli.",
         license: "MIT",
         author: "async-coder",
         homepage: "https://github.com/Mr-Dark-debug/Async-coder-cli",

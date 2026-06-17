@@ -1,8 +1,8 @@
 # async-coder
 
-`async-coder` is a terminal-native AI coding agent with a multi-provider model workflow, usage reporting, and configurable web search.
+`async-coder` is a terminal-native AI coding agent for developers who want one focused command-line workspace across multiple model providers.
 
-It builds on the OpenCode-style terminal experience while focusing on bring-your-own-key providers such as Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, GitHub Copilot, and custom OpenAI-compatible endpoints.
+It keeps the OpenCode-style terminal workflow while adding first-class bring-your-own-key onboarding, lavender branding, usage visibility, and configurable web search.
 
 ## Install
 
@@ -10,7 +10,7 @@ It builds on the OpenCode-style terminal experience while focusing on bring-your
 npm install -g @async-coder/cli
 ```
 
-Start the terminal interface:
+Launch the terminal interface:
 
 ```bash
 async-coder
@@ -22,9 +22,9 @@ Run a prompt without opening the TUI:
 async-coder run "summarize the current project"
 ```
 
-Version `0.1.1` publishes the scoped installer package `@async-coder/cli` and the Windows x64 binary package.
+The npm package `@async-coder/cli` is the user-facing installer. Platform runtime packages under `@async-coder/binary-*` are installed automatically when a matching build is available and should not be installed directly.
 
-Most users should install `@async-coder/cli`. The `@async-coder/binary-windows-x64` package is a platform payload used by the installer package.
+The current npm release includes the Windows x64 runtime. Linux and macOS users can build from source until their platform runtime packages are published.
 
 ## Highlights
 
@@ -79,6 +79,18 @@ Configure web search in `async-coder.json`:
 Project configuration lives in `.async-coder/`.
 
 User configuration and local data are stored under the platform config/data directories for `async-coder`. Existing data from the previous fork is copied forward on first launch when possible.
+
+## Platform Packages
+
+Runtime packages such as `@async-coder/binary-windows-x64` are implementation details used by `@async-coder/cli`. They appear on npm because npm installs platform-specific executables through separate optional packages.
+
+For normal use, install only:
+
+```bash
+npm install -g @async-coder/cli
+```
+
+If a platform runtime is not published yet, the installer will report the missing package name. Build from source for that platform, or wait for the corresponding `@async-coder/binary-*` package to be released.
 
 ## Repository
 

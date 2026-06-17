@@ -37,7 +37,7 @@ Run a non-interactive prompt:
 async-coder run "explain this repository"
 ```
 
-Version `0.1.1` publishes the scoped installer package `@async-coder/cli` and the Windows x64 binary package. Do not install `@async-coder/binary-windows-x64` directly unless you specifically want the platform payload; the installer package owns the global `async-coder` command.
+Version `0.1.2` publishes the scoped installer package `@async-coder/cli`. Platform packages such as `@async-coder/binary-windows-x64` are runtime payloads used by the installer and are not the normal user-facing install path.
 
 ## Provider Setup
 
@@ -115,7 +115,7 @@ Build the current platform package:
 
 ```bash
 cd packages/opencode
-$env:ASYNC_CODER_VERSION="0.1.1"
+$env:ASYNC_CODER_VERSION="0.1.2"
 $env:ASYNC_CODER_CHANNEL="latest"
 bun run script/build.ts --single --skip-install
 ```
