@@ -9,6 +9,7 @@ import { Flag } from "@/flag/flag"
 
 type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
 const LEGACY_FREE_PROVIDER = "mi" + "mo"
+const LEGACY_DIRECT_PROVIDER = "xi" + "ao" + "mi"
 const LEGACY_FREE_DISABLED_PROVIDER = `disabled-${LEGACY_FREE_PROVIDER}`
 const LEGACY_FREE_DISABLED_MODEL = `disabled-${LEGACY_FREE_PROVIDER}-model`
 const LEGACY_FREE_AUTO_MODEL = `deprecated-${LEGACY_FREE_PROVIDER}-auto`
@@ -1115,7 +1116,12 @@ export function providerOptions(model: Provider.Model, options: { [x: string]: a
 }
 
 export function maxOutputTokens(model: Provider.Model): number {
-  if (model.providerID === LEGACY_FREE_DISABLED_PROVIDER || model.id.toLowerCase().includes(LEGACY_FREE_DISABLED_MODEL)) {
+  if (
+    model.providerID === LEGACY_FREE_PROVIDER ||
+    model.providerID === LEGACY_DIRECT_PROVIDER ||
+    model.providerID === LEGACY_FREE_DISABLED_PROVIDER ||
+    model.id.toLowerCase().includes(LEGACY_FREE_DISABLED_MODEL)
+  ) {
     return LEGACY_FREE_OUTPUT_TOKEN_MAX
   }
   return Math.min(model.limit.output, OUTPUT_TOKEN_MAX) || OUTPUT_TOKEN_MAX

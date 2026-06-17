@@ -1,4 +1,4 @@
-{
+﻿{
   "openapi": "3.1.1",
   "info": {
     "title": "opencode",
@@ -230,6 +230,134 @@
           {
             "lang": "js",
             "source": "import { createOpencodeClient } from \"@async-coder/sdk\n\nconst client = createOpencodeClient()\nawait client.global.upgrade({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/global/import/scan": {
+      "get": {
+        "operationId": "global.import.scan",
+        "summary": "Scan external session sources",
+        "description": "Detect availability and session counts of external AI tool session stores (Claude Code, Codex, opencode). Read-only.",
+        "responses": {
+          "200": {
+            "description": "Per-source availability and counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "enum": ["cc", "codex", "opencode"]
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "available": {
+                        "type": "boolean"
+                      },
+                      "sessions": {
+                        "type": "number"
+                      },
+                      "imported": {
+                        "type": "number"
+                      }
+                    },
+                    "required": ["available", "sessions", "imported"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpencodeClient } from \"@async-coder/sdk\n\nconst client = createOpencodeClient()\nawait client.global.import.scan({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/global/import/run": {
+      "post": {
+        "operationId": "global.import.run",
+        "summary": "Import external sessions",
+        "description": "Import sessions from external AI tools (Claude Code, Codex, opencode) into async-coder. Idempotent; pass force to re-sync. Per-source failures are not thrown as HTTP errors — they are collected into the corresponding stats.errors[] while other sources continue.",
+        "responses": {
+          "200": {
+            "description": "Per-source import stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "enum": ["cc", "codex", "opencode"]
+                  },
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "scanned": {
+                        "type": "number"
+                      },
+                      "imported": {
+                        "type": "number"
+                      },
+                      "resynced": {
+                        "type": "number"
+                      },
+                      "skipped": {
+                        "type": "number"
+                      },
+                      "errors": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": ["scanned", "imported", "resynced", "skipped", "errors"]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequestError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["cc", "codex", "opencode"]
+                    }
+                  },
+                  "force": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpencodeClient } from \"@async-coder/sdk\n\nconst client = createOpencodeClient()\nawait client.global.import.run({\n  ...\n})"
           }
         ]
       }
@@ -1358,6 +1486,78 @@
           {
             "lang": "js",
             "source": "import { createOpencodeClient } from \"@async-coder/sdk\n\nconst client = createOpencodeClient()\nawait client.pty.remove({\n  ...\n})"
+          }
+        ]
+      }
+    },
+    "/pty/{ptyID}/connect-token": {
+      "post": {
+        "operationId": "pty.connectToken",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "directory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "workspace",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ptyID",
+            "schema": {
+              "type": "string",
+              "pattern": "^pty.*"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Issue PTY connect ticket",
+        "description": "Issue a one-time ticket for authenticating a WebSocket connection to a PTY session. The ticket must be passed as the 'ticket' query parameter on the /connect WebSocket URL.",
+        "responses": {
+          "200": {
+            "description": "Issued ticket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ticket": {
+                      "type": "string"
+                    },
+                    "expires_in": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["ticket", "expires_in"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — missing required header or invalid origin"
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundError"
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "js",
+            "source": "import { createOpencodeClient } from \"@async-coder/sdk\n\nconst client = createOpencodeClient()\nawait client.pty.connectToken({\n  ...\n})"
           }
         ]
       }
@@ -9484,58 +9684,6 @@
         },
         "required": ["type", "properties"]
       },
-      "Event.team.created": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "team.created"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "teamID": {
-                "type": "string"
-              },
-              "creatorSessionID": {
-                "type": "string",
-                "pattern": "^ses.*"
-              }
-            },
-            "required": ["teamID", "creatorSessionID"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
-      "Event.team.member.joined": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "const": "team.member.joined"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "teamID": {
-                "type": "string"
-              },
-              "sessionID": {
-                "type": "string",
-                "pattern": "^ses.*"
-              },
-              "agent": {
-                "type": "string"
-              },
-              "role": {
-                "type": "string"
-              }
-            },
-            "required": ["teamID", "sessionID", "agent", "role"]
-          }
-        },
-        "required": ["type", "properties"]
-      },
       "Event.task.created": {
         "type": "object",
         "properties": {
@@ -9696,6 +9844,58 @@
               }
             },
             "required": ["sessionID", "todos"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "Event.team.created": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "team.created"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "teamID": {
+                "type": "string"
+              },
+              "creatorSessionID": {
+                "type": "string",
+                "pattern": "^ses.*"
+              }
+            },
+            "required": ["teamID", "creatorSessionID"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "Event.team.member.joined": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "team.member.joined"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "teamID": {
+                "type": "string"
+              },
+              "sessionID": {
+                "type": "string",
+                "pattern": "^ses.*"
+              },
+              "agent": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              }
+            },
+            "required": ["teamID", "sessionID", "agent", "role"]
           }
         },
         "required": ["type", "properties"]
@@ -9921,7 +10121,7 @@
               },
               "tool_call_status": {
                 "type": "string",
-                "enum": ["success", "error"]
+                "enum": ["success", "error", "cancelled"]
               }
             },
             "required": ["sessionID", "tool_name", "input_bytes", "output_bytes", "tool_call_id", "tool_call_status"]
@@ -10483,6 +10683,84 @@
               }
             },
             "required": ["sessionID", "runID", "status"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "Event.workflow.agent_failed": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "workflow.agent_failed"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string",
+                "pattern": "^ses.*"
+              },
+              "runID": {
+                "type": "string"
+              },
+              "actorID": {
+                "type": "string"
+              },
+              "agentType": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "phase": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string",
+                "enum": ["over-cap", "spawn-reject", "timeout", "actor-error", "no-deliverable"]
+              },
+              "errorMessage": {
+                "type": "string"
+              }
+            },
+            "required": ["sessionID", "runID", "agentType", "reason"]
+          }
+        },
+        "required": ["type", "properties"]
+      },
+      "Event.workflow.child_failed": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "workflow.child_failed"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "sessionID": {
+                "type": "string",
+                "pattern": "^ses.*"
+              },
+              "runID": {
+                "type": "string"
+              },
+              "childRunID": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["failed", "cancelled"]
+              },
+              "error": {
+                "type": "string"
+              }
+            },
+            "required": ["sessionID", "runID", "childRunID", "name", "status"]
           }
         },
         "required": ["type", "properties"]
@@ -12658,12 +12936,6 @@
                 "$ref": "#/components/schemas/Event.bash.interactive.replied"
               },
               {
-                "$ref": "#/components/schemas/Event.team.created"
-              },
-              {
-                "$ref": "#/components/schemas/Event.team.member.joined"
-              },
-              {
                 "$ref": "#/components/schemas/Event.task.created"
               },
               {
@@ -12671,6 +12943,12 @@
               },
               {
                 "$ref": "#/components/schemas/Event.todo.updated"
+              },
+              {
+                "$ref": "#/components/schemas/Event.team.created"
+              },
+              {
+                "$ref": "#/components/schemas/Event.team.member.joined"
               },
               {
                 "$ref": "#/components/schemas/Event.session.status"
@@ -12751,6 +13029,12 @@
                 "$ref": "#/components/schemas/Event.workflow.finished"
               },
               {
+                "$ref": "#/components/schemas/Event.workflow.agent_failed"
+              },
+              {
+                "$ref": "#/components/schemas/Event.workflow.child_failed"
+              },
+              {
                 "$ref": "#/components/schemas/Event.workspace.ready"
               },
               {
@@ -12815,7 +13099,7 @@
         "enum": ["DEBUG", "INFO", "WARN", "ERROR"]
       },
       "ServerConfig": {
-        "description": "Server configuration for mimo serve and web commands",
+        "description": "Server configuration for async-coder serve and web commands",
         "type": "object",
         "properties": {
           "port": {
@@ -13806,6 +14090,29 @@
               }
             }
           },
+          "websearch": {
+            "description": "Web search backend configuration.",
+            "type": "object",
+            "properties": {
+              "provider": {
+                "description": "Web search backend. Defaults to duckduckgo.",
+                "type": "string",
+                "enum": ["duckduckgo", "tavily", "brave", "google", "exa"]
+              },
+              "numResults": {
+                "description": "Default number of web search results, from 1 to 20. Defaults to 8.",
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 20
+              },
+              "timeout": {
+                "description": "Web search timeout in seconds. Defaults to 25.",
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
           "enterprise": {
             "type": "object",
             "properties": {
@@ -13867,6 +14174,10 @@
                 "type": "integer",
                 "exclusiveMinimum": 0,
                 "maximum": 9007199254740991
+              },
+              "fork": {
+                "description": "Whether to fork the parent agent's message prefix into the writer session for prefix-cache reuse. Requires provider cache-breakpoint support. Default: false.",
+                "type": "boolean"
               },
               "push_caps": {
                 "description": "Per-section token caps for rebuild context (renderRebuildContext). Each section is loaded up to its cap so the rebuild stays within a predictable budget.",
@@ -13949,6 +14260,63 @@
               "memory_reconcile_on_search": {
                 "description": "Whether to reconcile memory state on search operations. Default: true.",
                 "type": "boolean"
+              },
+              "memory_search_score_floor": {
+                "description": "Relative BM25 floor for memory.search (OR-joined query): keep results scoring >= this fraction of the top hit, dropping common-word-only noise. The #1 result is always kept. Default: 0.15. Set 0 to keep all matches.",
+                "type": "number"
+              }
+            }
+          },
+          "memory": {
+            "type": "object",
+            "properties": {
+              "cc_index": {
+                "description": "Index Claude Code memory (~/.claude/projects/<slug>/memory) and expose under scope='cc'. Default: false. Note: when enabled, every async-coder agent (build/explore/subagents) can search these memories via the builtin `memory` tool — including CC's `type: user` (your role/preferences) and `type: feedback` (your guidance) categories. CC originally writes them for future CC sessions; flipping this on widens the consumer set to async-coder agents on the same machine. Leave disabled (default) if you don't want personal context recallable from a prompt-injection-vulnerable agent.",
+                "type": "boolean"
+              }
+            }
+          },
+          "history": {
+            "description": "Trajectory (conversation history) FTS index configuration.",
+            "type": "object",
+            "properties": {
+              "kinds": {
+                "description": "Which part kinds the history FTS index should cover. Defaults to text (user/assistant) + tool input + tool errors. Add 'reasoning' or 'tool_output' to grow recall at the cost of database size. Note: enabling 'tool_output' reclassifies completed tools from kind='tool_input' to kind='tool_output' (input remains searchable in the body, but kind:['tool_input'] filter will then only match pending/error tools).",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["user_text", "assistant_text", "tool_input", "tool_error", "reasoning", "tool_output"]
+                }
+              }
+            }
+          },
+          "dream": {
+            "type": "object",
+            "properties": {
+              "auto": {
+                "description": "Auto-trigger dream memory consolidation on new session start. Default: true.",
+                "type": "boolean"
+              },
+              "interval_days": {
+                "description": "Minimum days between automatic dream runs. Set to 0 to trigger on every new session. Default: 7.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "distill": {
+            "type": "object",
+            "properties": {
+              "auto": {
+                "description": "Auto-trigger distill workflow packaging on new session start. Default: true.",
+                "type": "boolean"
+              },
+              "interval_days": {
+                "description": "Minimum days between automatic distill runs. Default: 30.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
               }
             }
           },
@@ -14006,7 +14374,15 @@
             "type": "object",
             "properties": {
               "maxConcurrentAgents": {
-                "description": "Max subagents running concurrently in one workflow run. Default min(16, 2x CPU cores). Hard-capped at 2x cores.",
+                "description": "Process-wide ceiling on subagents running concurrently across ALL workflow runs (including nested children). Default min(16, 2x CPU cores). No upper clamp: the previous 2x-cores hard cap was removed so an operator can match real provider capacity — but that also means a misconfigured value (e.g. an extra zero) can exhaust provider rate limits or host memory. This is the only concurrency ceiling, so set it deliberately.",
+                "type": "number"
+              },
+              "maxDepth": {
+                "description": "Max nesting depth for workflow()-calls-workflow. Default 8. Exceeding it fails the run.",
+                "type": "number"
+              },
+              "maxLifecycleAgents": {
+                "description": "Hard ceiling on total agents a single workflow run may spawn over its life. Default 1000. Over-cap agent() calls return null (graceful degradation). PER-RUN, not tree-wide: each child workflow has its own independent budget, so a deep nesting can spawn maxDepth × this over the whole tree (concurrent in-flight is still bounded by maxConcurrentAgents).",
                 "type": "number"
               },
               "scriptDeadlineMs": {
@@ -15211,12 +15587,6 @@
             "$ref": "#/components/schemas/Event.bash.interactive.replied"
           },
           {
-            "$ref": "#/components/schemas/Event.team.created"
-          },
-          {
-            "$ref": "#/components/schemas/Event.team.member.joined"
-          },
-          {
             "$ref": "#/components/schemas/Event.task.created"
           },
           {
@@ -15224,6 +15594,12 @@
           },
           {
             "$ref": "#/components/schemas/Event.todo.updated"
+          },
+          {
+            "$ref": "#/components/schemas/Event.team.created"
+          },
+          {
+            "$ref": "#/components/schemas/Event.team.member.joined"
           },
           {
             "$ref": "#/components/schemas/Event.session.status"
@@ -15302,6 +15678,12 @@
           },
           {
             "$ref": "#/components/schemas/Event.workflow.finished"
+          },
+          {
+            "$ref": "#/components/schemas/Event.workflow.agent_failed"
+          },
+          {
+            "$ref": "#/components/schemas/Event.workflow.child_failed"
           },
           {
             "$ref": "#/components/schemas/Event.workspace.ready"

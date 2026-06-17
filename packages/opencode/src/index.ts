@@ -74,7 +74,7 @@ const cli = yargs(args)
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
-  .version("version", "show version number", InstallationVersion)
+  .version("version", "show version number", `async-coder ${InstallationVersion}`)
   .alias("version", "v")
   .option("print-logs", {
     describe: "print logs to stderr",

@@ -49,7 +49,7 @@ import {
   setBackgroundColor,
   setDockIcon,
 } from "./windows"
-import { drizzle } from "drizzle-orm/node-sqlite/driver"
+import { drizzle } from "drizzle-orm/bun-sqlite"
 import type { Server } from "virtual:opencode-server"
 
 const initEmitter = new EventEmitter()

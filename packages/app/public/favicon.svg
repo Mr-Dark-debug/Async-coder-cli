@@ -1,1 +1,5 @@
-../../ui/src/assets/favicon/favicon.svg
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="96" height="96" rx="18" fill="#B197FC"/>
+  <path d="M25 61c0-10 7-17 17-17h14v-3c0-6-4-10-11-10-6 0-10 3-13 8l-10-5c4-8 12-13 23-13 14 0 23 8 23 20v34H56v-8c-4 6-9 9-17 9-8 0-14-2-14-15Zm12-1c0 4 3 6 8 6 7 0 11-4 11-10v-3H44c-5 0-7 3-7 7Z" fill="white"/>
+  <path d="M72 34l15 14-15 14-7-7 7-7-7-7 7-7Z" fill="white"/>
+</svg>

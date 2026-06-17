@@ -1,7 +1,6 @@
 import { createMemo, createSignal, For, onCleanup } from "solid-js"
 import { DEFAULT_THEMES, useTheme } from "@tui/context/theme"
 import { useLanguage } from "@tui/context/language"
-import { useLocal } from "@tui/context/local"
 
 const themeCount = Object.keys(DEFAULT_THEMES).length
 const TIP_ROTATION_MS = 10_000
@@ -166,21 +165,16 @@ function pickWeighted(keys: readonly string[]): string {
 export function Tips() {
   const theme = useTheme().theme
   const lang = useLanguage()
-  const local = useLocal()
   const platformSuspendKey = process.platform === "win32" ? "tui.tips.suspend.win" : "tui.tips.suspend.unix"
   const allKeys = [...TIP_KEYS, platformSuspendKey] as readonly string[]
   const [key, setKey] = createSignal(pickWeighted(allKeys))
   const interval = setInterval(() => setKey(pickWeighted(allKeys)), TIP_ROTATION_MS)
   onCleanup(() => clearInterval(interval))
   const parts = createMemo(() => parse(lang.t(key(), { count: themeCount })))
-  const labelColor = createMemo(() => {
-    const agent = local.agent.current()
-    return agent ? local.agent.color(agent.name) : theme.warning
-  })
 
   return (
     <box flexDirection="row" maxWidth="100%">
-      <text flexShrink={0} style={{ fg: labelColor() }}>
+      <text flexShrink={0} style={{ fg: theme.primary }}>
         ● {lang.t("tui.tips.label")}{" "}
       </text>
       <text flexShrink={1}>

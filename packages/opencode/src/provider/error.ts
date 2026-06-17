@@ -49,7 +49,7 @@ function isOverflow(message: string) {
 // non-standard semantics (e.g. moderation/risk-control blocks under HTTP 400),
 // so the gateway-specific handling below is scoped to these providers and leaves
 // every other provider's error flow untouched.
-const LEGACY_FREE_GATEWAY_PROVIDERS = new Set(["mi" + "mo"])
+const LEGACY_FREE_GATEWAY_PROVIDERS = new Set(["mi" + "mo", "xi" + "ao" + "mi"])
 
 // Legacy hosted gateway error.code values worth relabeling: moderation (421) and
 // risk-control (441) blocks arrive under a generic HTTP 400.
