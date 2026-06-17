@@ -1,5 +1,7 @@
 # async-coder
 
+<img width="1983" height="793" alt="image" src="https://github.com/user-attachments/assets/5c6019db-4ffe-4f50-8d61-9678e69b260b" />
+
 `async-coder` is a terminal-native AI coding agent built with Bun, TypeScript, SolidJS TUI, Effect, SQLite, and the Vercel AI SDK.
 
 This fork is published from <https://github.com/Mr-Dark-debug/Async-coder-cli>.
