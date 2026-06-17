@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 48" fill="none">
+  <g transform="translate(10, 12)">
+    <path d="M2 2l8 8-8 8M10 2l8 8-8 8" stroke="#B197FC" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+  <text x="45" y="31" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="22px" letter-spacing="-0.03em">async-coder</text>
+</svg>
