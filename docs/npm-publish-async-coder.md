@@ -1,6 +1,6 @@
 # Publish async-coder to npm
 
-This guide publishes the first public Windows release as version `0.1.0`.
+This guide publishes the fixed Windows release as version `0.1.1`.
 
 Repository: <https://github.com/Mr-Dark-debug/Async-coder-cli>
 
@@ -19,10 +19,10 @@ Repository: <https://github.com/Mr-Dark-debug/Async-coder-cli>
    npm whoami
    ```
 
-3. Make sure the unscoped package is still available:
+3. Make sure the scoped installer package is available:
 
    ```powershell
-   npm view async-coder version
+   npm view @async-coder/cli version
    ```
 
    A `404 Not Found` means the name is available.
@@ -53,7 +53,7 @@ cd ..\..\ui; bun typecheck
 From `packages/opencode`:
 
 ```powershell
-$env:ASYNC_CODER_VERSION = "0.1.0"
+$env:ASYNC_CODER_VERSION = "0.1.1"
 $env:ASYNC_CODER_CHANNEL = "latest"
 bun run script/build.ts --single --skip-install
 ```
@@ -61,7 +61,7 @@ bun run script/build.ts --single --skip-install
 Expected smoke-test output:
 
 ```text
-Smoke test passed: async-coder 0.1.0
+Smoke test passed: async-coder 0.1.1
 ```
 
 The Windows binary package is generated at:
@@ -70,24 +70,24 @@ The Windows binary package is generated at:
 packages/opencode/dist/binary-windows-x64
 ```
 
-## Publish Windows binary and root package
+## Publish Windows binary and installer package
 
-The publish script publishes every binary package present in `packages/opencode/dist`, then publishes the root `async-coder` package.
+The publish script publishes every binary package present in `packages/opencode/dist`, then publishes the installer package `@async-coder/cli`.
 
 For a Windows-only first release, keep only `dist/binary-windows-x64` before running publish:
 
 ```powershell
 cd packages/opencode
-Remove-Item -Recurse -Force .\dist\async-coder -ErrorAction SilentlyContinue
-$env:ASYNC_CODER_VERSION = "0.1.0"
+Remove-Item -Recurse -Force .\dist\@async-coder\cli -ErrorAction SilentlyContinue
+$env:ASYNC_CODER_VERSION = "0.1.1"
 $env:ASYNC_CODER_CHANNEL = "latest"
 bun run script/publish.ts
 ```
 
 This publishes:
 
-- `@async-coder/binary-windows-x64@0.1.0`
-- `async-coder@0.1.0`
+- `@async-coder/binary-windows-x64@0.1.1`
+- `@async-coder/cli@0.1.1`
 
 If npm asks for a one-time password, enter the OTP from your authenticator.
 
@@ -102,24 +102,24 @@ bun pm pack
 npm publish *.tgz --access public --tag latest
 ```
 
-Then create and publish the root package:
+Then create and publish the installer package:
 
 ```powershell
 cd ..\..
-Remove-Item -Recurse -Force .\dist\async-coder -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force .\dist\async-coder | Out-Null
-Copy-Item -Recurse .\bin .\dist\async-coder\bin
-Copy-Item .\script\postinstall.mjs .\dist\async-coder\postinstall.mjs
-Copy-Item ..\..\LICENSE .\dist\async-coder\LICENSE
-Copy-Item ..\..\README_npm.md .\dist\async-coder\README.md
+Remove-Item -Recurse -Force .\dist\@async-coder\cli -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force .\dist\@async-coder\cli | Out-Null
+Copy-Item -Recurse .\bin .\dist\@async-coder\cli\bin
+Copy-Item .\script\postinstall.mjs .\dist\@async-coder\cli\postinstall.mjs
+Copy-Item ..\..\LICENSE .\dist\@async-coder\cli\LICENSE
+Copy-Item ..\..\README_npm.md .\dist\@async-coder\cli\README.md
 ```
 
-Create `packages/opencode/dist/async-coder/package.json`:
+Create `packages/opencode/dist/@async-coder/cli/package.json`:
 
 ```json
 {
-  "name": "async-coder",
-  "version": "0.1.0",
+  "name": "@async-coder/cli",
+  "version": "0.1.1",
   "description": "async-coder: a multi-provider async coding agent",
   "license": "MIT",
   "author": "async-coder",
@@ -139,7 +139,7 @@ Create `packages/opencode/dist/async-coder/package.json`:
     "postinstall": "bun ./postinstall.mjs || node ./postinstall.mjs"
   },
   "optionalDependencies": {
-    "@async-coder/binary-windows-x64": "0.1.0"
+    "@async-coder/binary-windows-x64": "0.1.1"
   }
 }
 ```
@@ -147,7 +147,7 @@ Create `packages/opencode/dist/async-coder/package.json`:
 Pack and publish:
 
 ```powershell
-cd packages/opencode/dist/async-coder
+cd packages/opencode/dist/@async-coder/cli
 Remove-Item *.tgz -ErrorAction SilentlyContinue
 bun pm pack
 npm publish *.tgz --access public --tag latest
@@ -158,7 +158,7 @@ npm publish *.tgz --access public --tag latest
 On a clean Windows machine:
 
 ```powershell
-npm install -g async-coder
+npm install -g @async-coder/cli
 async-coder --version
 async-coder
 ```
@@ -166,5 +166,5 @@ async-coder
 Expected version output:
 
 ```text
-async-coder 0.1.0
+async-coder 0.1.1
 ```

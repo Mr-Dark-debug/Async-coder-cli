@@ -7,7 +7,7 @@ It builds on the OpenCode-style terminal experience while focusing on bring-your
 ## Install
 
 ```bash
-npm install -g async-coder
+npm install -g @async-coder/cli
 ```
 
 Start the terminal interface:
@@ -22,7 +22,9 @@ Run a prompt without opening the TUI:
 async-coder run "summarize the current project"
 ```
 
-Version `0.1.0` is prepared first for Windows x64. Additional platform binaries can be published from the same build matrix.
+Version `0.1.1` publishes the scoped installer package `@async-coder/cli` and the Windows x64 binary package.
+
+Most users should install `@async-coder/cli`. The `@async-coder/binary-windows-x64` package is a platform payload used by the installer package.
 
 ## Highlights
 

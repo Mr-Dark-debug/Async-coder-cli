@@ -19,10 +19,10 @@ This repository is maintained at:
 
 ## Installation
 
-Install the CLI from npm:
+Install the CLI package from npm:
 
 ```bash
-npm install -g async-coder
+npm install -g @async-coder/cli
 ```
 
 Start the TUI:
@@ -37,7 +37,7 @@ Run a non-interactive prompt:
 async-coder run "explain this repository"
 ```
 
-Version `0.1.0` is prepared first for Windows x64. Additional platform binary packages can be published from the same build matrix.
+Version `0.1.1` publishes the scoped installer package `@async-coder/cli` and the Windows x64 binary package. Do not install `@async-coder/binary-windows-x64` directly unless you specifically want the platform payload; the installer package owns the global `async-coder` command.
 
 ## Provider Setup
 
@@ -115,7 +115,7 @@ Build the current platform package:
 
 ```bash
 cd packages/opencode
-$env:ASYNC_CODER_VERSION="0.1.0"
+$env:ASYNC_CODER_VERSION="0.1.1"
 $env:ASYNC_CODER_CHANNEL="latest"
 bun run script/build.ts --single --skip-install
 ```
@@ -136,7 +136,7 @@ The short release order is:
 
 1. Build platform binary packages.
 2. Publish `@async-coder/binary-*` packages first.
-3. Publish the root `async-coder` package.
+3. Publish the installer package `@async-coder/cli`.
 4. Create or update the GitHub release for the matching tag.
 
 ## License

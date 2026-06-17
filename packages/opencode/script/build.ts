@@ -256,7 +256,7 @@ for (const item of targets) {
 
   await $`rm -rf ./dist/${name}/bin/tui`
   await Bun.file(`dist/${name}/README.md`).write(
-    `This is the ${item.os}-${item.arch} binary for [async-coder](https://www.npmjs.com/package/async-coder). Install that package directly.\n`,
+    `This is the ${item.os}-${item.arch} binary for [async-coder](https://www.npmjs.com/package/@async-coder/cli). Most users should install @async-coder/cli globally instead.\n`,
   )
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
@@ -272,6 +272,9 @@ for (const item of targets) {
           url: "git+https://github.com/Mr-Dark-debug/Async-coder-cli.git",
         },
         keywords: ["ai", "coding", "agent", "cli", "async-coder"],
+        bin: {
+          "async-coder": `./bin/${item.os === "win32" ? "async-coder.exe" : "async-coder"}`,
+        },
         os: [item.os],
         cpu: [item.arch],
       },
