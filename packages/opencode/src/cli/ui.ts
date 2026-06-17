@@ -3,13 +3,6 @@ import { EOL } from "os"
 import { NamedError } from "@async-coder/shared/util/error"
 import { logo as glyphs } from "./logo"
 
-const wordmark = [
-  `⠀                                       `,
-  `█▀▄▀█ █ █▄ ▄█ █▀▀█ █▀▀ █▀▀█ █▀▀▄ █▀▀▀`,
-  `█ ▀ █ █ █ ▀ █ █  █ █   █  █ █  █ █▀▀ `,
-  `▀   ▀ ▀ ▀   ▀ ▀▀▀▀ ▀▀▀ ▀▀▀▀ ▀▀▀  ▀▀▀▀`,
-]
-
 export const CancelledError = NamedError.create("UICancelledError", z.void())
 
 export const Style = {
@@ -49,7 +42,8 @@ export function empty() {
 export function logo(pad?: string) {
   if (!process.stdout.isTTY && !process.stderr.isTTY) {
     const result = []
-    for (const row of wordmark) {
+    const rows = glyphs.left.map((row, index) => `${row}  ${glyphs.right[index] ?? ""}`)
+    for (const row of rows) {
       if (pad) result.push(pad)
       result.push(row)
       result.push(EOL)
@@ -60,9 +54,9 @@ export function logo(pad?: string) {
   const result: string[] = []
   const reset = "\x1b[0m"
   const left = {
-    fg: "\x1b[90m",
-    shadow: "\x1b[38;5;235m",
-    bg: "\x1b[48;5;235m",
+    fg: "\x1b[38;5;141m",
+    shadow: "\x1b[38;5;97m",
+    bg: "\x1b[48;5;97m",
   }
   const right = {
     fg: reset,

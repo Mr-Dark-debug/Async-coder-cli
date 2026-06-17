@@ -1,6 +1,7 @@
 import { createMemo, createSignal, For, onCleanup } from "solid-js"
 import { DEFAULT_THEMES, useTheme } from "@tui/context/theme"
 import { useLanguage } from "@tui/context/language"
+import { TextAttributes } from "@opentui/core"
 
 const themeCount = Object.keys(DEFAULT_THEMES).length
 const TIP_ROTATION_MS = 10_000
@@ -174,12 +175,12 @@ export function Tips() {
 
   return (
     <box flexDirection="row" maxWidth="100%">
-      <text flexShrink={0} style={{ fg: theme.primary }}>
+      <text flexShrink={0} fg={theme.primary} attributes={TextAttributes.BOLD}>
         ● {lang.t("tui.tips.label")}{" "}
       </text>
       <text flexShrink={1}>
         <For each={parts()}>
-          {(part) => <span style={{ fg: part.highlight ? theme.text : theme.textMuted }}>{part.text}</span>}
+          {(part) => <span style={{ fg: part.highlight ? theme.primary : theme.textMuted }}>{part.text}</span>}
         </For>
       </text>
     </box>

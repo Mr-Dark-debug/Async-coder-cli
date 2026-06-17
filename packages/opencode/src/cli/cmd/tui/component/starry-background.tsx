@@ -262,11 +262,15 @@ export function StarryBackground(props: { meteor?: () => boolean } = {}) {
         const peak = isHot ? Math.min(1, (b - HOT_THRESHOLD) / (1 - HOT_THRESHOLD)) : 0
         const char = isHot ? HOT_CHAR : charSet[idx % (charSet.length - 1)]
         const baseColor = dark
-          ? tint(theme.background, RGBA.fromInts(237, 220, 170), Math.min(1, b * 1.05))
-          : tint(theme.background, RGBA.fromInts(117, 92, 47), Math.min(1, b * 0.95))
+          ? tint(theme.background, RGBA.fromInts(208, 191, 255), Math.min(1, b * 1.05))
+          : tint(theme.background, RGBA.fromInts(121, 80, 242), Math.min(1, b * 0.95))
         const starColor =
           peak > 0
-            ? tint(baseColor, dark ? RGBA.fromInts(255, 255, 255) : RGBA.fromInts(60, 30, 0), peak * (dark ? 0.65 : 0.5))
+            ? tint(
+                baseColor,
+                dark ? RGBA.fromInts(255, 255, 255) : RGBA.fromInts(80, 45, 175),
+                peak * (dark ? 0.65 : 0.5),
+              )
             : baseColor
         appendChunk(chunks, char, starColor)
       })

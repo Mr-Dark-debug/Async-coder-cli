@@ -905,7 +905,7 @@ export function Logo(props: { shape?: LogoShape; ink?: RGBA; idle?: boolean; swe
   }
 
   const ASYNC_CODER_LAVENDER = RGBA.fromInts(177, 151, 252)
-  const ASYNC_CODER_GRAY = RGBA.fromInts(160, 160, 160)
+  const ASYNC_CODER_TEXT = RGBA.fromInts(238, 238, 238)
 
   return (
     <box ref={(item: BoxRenderable) => (box = item)}>
@@ -924,8 +924,8 @@ export function Logo(props: { shape?: LogoShape; ink?: RGBA; idle?: boolean; swe
           if (labelRow) {
             return (
               <box flexDirection="row" gap={1}>
-                <text fg={ASYNC_CODER_GRAY} selectable={false}>{line}</text>
-                <text fg={ASYNC_CODER_GRAY} selectable={false}>{ctx.shape.right[index()]}</text>
+                <text fg={ASYNC_CODER_LAVENDER} selectable={false}>{line}</text>
+                <text fg={ASYNC_CODER_TEXT} selectable={false}>{ctx.shape.right[index()]}</text>
               </box>
             )
           }
@@ -938,7 +938,7 @@ export function Logo(props: { shape?: LogoShape; ink?: RGBA; idle?: boolean; swe
                 {renderLine(
                   ctx.shape.right[index()],
                   index(),
-                  props.ink ?? ASYNC_CODER_GRAY,
+                  props.ink ?? ASYNC_CODER_TEXT,
                   true,
                   ctx.LEFT + GAP,
                   frame(),

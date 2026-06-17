@@ -1359,8 +1359,6 @@ export function Prompt(props: PromptProps) {
   }
 
   const highlight = createMemo(() => {
-    if (keybind.leader) return theme.border
-    if (store.mode === "shell") return theme.primary
     return theme.primary
   })
 
