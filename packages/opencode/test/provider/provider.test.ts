@@ -1947,6 +1947,241 @@ test("custom model inherits api.url from models.dev provider", async () => {
   })
 })
 
+test("provider loads models discovered from OpenAI-compatible models endpoint", async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toBe("https://api.groq.com/openai/v1/models")
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-groq-key")
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: "provider-live-model",
+              owned_by: "groq",
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    )
+  }) as typeof fetch
+
+  try {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(
+          path.join(dir, "async-coder.json"),
+          JSON.stringify({
+            $schema: "https://opencode.ai/config.json",
+          }),
+        )
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => {
+        set("GROQ_API_KEY", "test-groq-key")
+      },
+      fn: async () => {
+        const providers = await list()
+        const model = providers[ProviderID.make("groq")].models["provider-live-model"]
+        expect(model).toBeDefined()
+        expect(model.api.id).toBe("provider-live-model")
+        expect(model.api.url).toBe("https://api.groq.com/openai/v1")
+        expect(model.api.npm).toBe("@ai-sdk/groq")
+      },
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test("provider loads models discovered from Anthropic models endpoint", async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toBe("https://api.anthropic.com/v1/models")
+    const headers = new Headers(init?.headers)
+    expect(headers.get("x-api-key")).toBe("test-anthropic-key")
+    expect(headers.get("anthropic-version")).toBe("2023-06-01")
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: "claude-live-model",
+              display_name: "Claude Live Model",
+              created_at: "2026-06-01T00:00:00Z",
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    )
+  }) as typeof fetch
+
+  try {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(
+          path.join(dir, "async-coder.json"),
+          JSON.stringify({
+            $schema: "https://opencode.ai/config.json",
+          }),
+        )
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => {
+        set("ANTHROPIC_API_KEY", "test-anthropic-key")
+      },
+      fn: async () => {
+        const providers = await list()
+        const model = providers[ProviderID.anthropic].models["claude-live-model"]
+        expect(model).toBeDefined()
+        expect(model.name).toBe("Claude Live Model")
+        expect(model.api.id).toBe("claude-live-model")
+        expect(model.api.url).toBe("https://api.anthropic.com/v1")
+        expect(model.api.npm).toBe("@ai-sdk/anthropic")
+        expect(model.release_date).toBe("2026-06-01")
+      },
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test("provider loads OpenRouter model metadata from remote discovery", async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toBe("https://openrouter.ai/api/v1/models")
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-openrouter-key")
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: "remote/provider-model",
+              name: "Remote Provider Model",
+              created: 1780272000,
+              architecture: {
+                input_modalities: ["text", "image"],
+                output_modalities: ["text"],
+              },
+              pricing: {
+                prompt: "0.000002",
+                completion: "0.000008",
+              },
+              supported_parameters: ["temperature", "tools"],
+              top_provider: {
+                context_length: 256000,
+                max_completion_tokens: 32000,
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    )
+  }) as typeof fetch
+
+  try {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(
+          path.join(dir, "async-coder.json"),
+          JSON.stringify({
+            $schema: "https://opencode.ai/config.json",
+          }),
+        )
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => {
+        set("OPENROUTER_API_KEY", "test-openrouter-key")
+      },
+      fn: async () => {
+        const providers = await list()
+        const model = providers[ProviderID.openrouter].models["remote/provider-model"]
+        expect(model).toBeDefined()
+        expect(model.name).toBe("Remote Provider Model")
+        expect(model.api.url).toBe("https://openrouter.ai/api/v1")
+        expect(model.limit.context).toBe(256000)
+        expect(model.limit.output).toBe(32000)
+        expect(model.capabilities.attachment).toBe(true)
+        expect(model.cost.input).toBe(2)
+        expect(model.cost.output).toBe(8)
+      },
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test("provider loads Kilo models from gateway discovery", async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toBe("https://api.kilo.ai/api/gateway/models")
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-kilo-key")
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: "kilo-live-model",
+              display_name: "Kilo Live Model",
+              context_length: 128000,
+              max_completion_tokens: 16000,
+              input_modalities: ["text"],
+              output_modalities: ["text"],
+              cost: {
+                input: 0.5,
+                output: 1.5,
+              },
+              reasoning: true,
+              tool_call: true,
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    )
+  }) as typeof fetch
+
+  try {
+    await using tmp = await tmpdir({
+      init: async (dir) => {
+        await Bun.write(
+          path.join(dir, "async-coder.json"),
+          JSON.stringify({
+            $schema: "https://opencode.ai/config.json",
+          }),
+        )
+      },
+    })
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => {
+        set("KILO_API_KEY", "test-kilo-key")
+      },
+      fn: async () => {
+        const providers = await list()
+        const model = providers[ProviderID.make("kilo")].models["kilo-live-model"]
+        expect(model).toBeDefined()
+        expect(model.name).toBe("Kilo Live Model")
+        expect(model.api.url).toBe("https://api.kilo.ai/api/gateway")
+        expect(model.limit.context).toBe(128000)
+        expect(model.limit.output).toBe(16000)
+        expect(model.capabilities.reasoning).toBe(true)
+      },
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test("mode cost preserves over-200k pricing from base model", () => {
   const provider = {
     id: "openai",

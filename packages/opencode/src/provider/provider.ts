@@ -152,17 +152,207 @@ function useLanguageModel(sdk: any) {
   return sdk.responses === undefined && sdk.chat === undefined
 }
 
+function parseRemotePrice(value: unknown) {
+  if (typeof value === "number") return value < 1 ? value * 1_000_000 : value
+  if (typeof value !== "string" || value.trim() === "") return 0
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return 0
+  return parsed < 1 ? parsed * 1_000_000 : parsed
+}
+
+function remoteDate(value: unknown) {
+  if (typeof value === "number") return new Date(value * 1000).toISOString().slice(0, 10)
+  if (typeof value !== "string") return ""
+  return value.includes("T") ? value.slice(0, 10) : value
+}
+
+function remoteModalities(value: unknown) {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter(
+      (item): item is string =>
+        item === "text" ||
+        item === "audio" ||
+        item === "image" ||
+        item === "video" ||
+        item === "pdf" ||
+        item === "file",
+    )
+    .map((item) => (item === "file" ? "pdf" : item))
+}
+
+function discoveredModel(
+  provider: Info,
+  input: {
+    id: string
+    name?: string
+    apiID?: string
+    apiURL?: string
+    context?: number
+    output?: number
+    input?: string[]
+    outputModalities?: string[]
+    release_date?: string
+    cost?: { input?: number; output?: number }
+    temperature?: boolean
+    reasoning?: boolean
+    attachment?: boolean
+    toolcall?: boolean
+  },
+): Model {
+  const inputModalities = remoteModalities(input.input)
+  const outputModalities = remoteModalities(input.outputModalities)
+  const model: Model = {
+    id: ModelID.make(input.id),
+    providerID: provider.id,
+    name: input.name ?? input.id,
+    family: input.id.split(/[/:.-]/)[0] ?? "",
+    api: {
+      id: input.apiID ?? input.id,
+      url:
+        input.apiURL ??
+        (typeof provider.options.baseURL === "string"
+          ? provider.options.baseURL
+          : (Object.values(provider.models)[0]?.api.url ?? "")),
+      npm: Object.values(provider.models)[0]?.api.npm ?? "@ai-sdk/openai-compatible",
+    },
+    status: "active",
+    headers: {},
+    options: {},
+    cost: {
+      input: input.cost?.input ?? 0,
+      output: input.cost?.output ?? 0,
+      cache: {
+        read: 0,
+        write: 0,
+      },
+    },
+    limit: {
+      context: input.context ?? DEFAULT_CONTEXT_WINDOW,
+      output: input.output ?? 0,
+    },
+    capabilities: {
+      temperature: input.temperature ?? true,
+      reasoning: input.reasoning ?? false,
+      attachment: input.attachment ?? (inputModalities.includes("image") || inputModalities.includes("pdf")),
+      toolcall: input.toolcall ?? true,
+      input: {
+        text: inputModalities.length === 0 || inputModalities.includes("text"),
+        audio: inputModalities.includes("audio"),
+        image: inputModalities.includes("image"),
+        video: inputModalities.includes("video"),
+        pdf: inputModalities.includes("pdf"),
+      },
+      output: {
+        text: outputModalities.length === 0 || outputModalities.includes("text"),
+        audio: outputModalities.includes("audio"),
+        image: outputModalities.includes("image"),
+        video: outputModalities.includes("video"),
+        pdf: outputModalities.includes("pdf"),
+      },
+      interleaved: false,
+    },
+    release_date: input.release_date ?? "",
+    variants: {},
+  }
+  model.variants = mapValues(ProviderTransform.variants(model), (v) => v)
+  return model
+}
+
+async function fetchModels(input: {
+  provider: Info
+  url: string
+  headers?: Record<string, string>
+  map: (item: Record<string, unknown>) => Parameters<typeof discoveredModel>[1] | undefined
+}) {
+  const result = await fetch(input.url, {
+    headers: input.headers,
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!result.ok) return {}
+  const body = await result.json()
+  const data = isRecord(body) && Array.isArray(body.data) ? body.data : Array.isArray(body) ? body : []
+  return Object.fromEntries(
+    data.flatMap((item) => {
+      if (!isRecord(item)) return []
+      const model = input.map(item)
+      if (!model?.id) return []
+      return [[model.id, discoveredModel(input.provider, model)]]
+    }),
+  )
+}
+
+function openAICompatibleDiscovery(input: { provider: Info; key?: string; url: string; apiURL: string }) {
+  return fetchModels({
+    provider: input.provider,
+    url: input.url,
+    headers: input.key
+      ? {
+          Authorization: `Bearer ${input.key}`,
+          "Content-Type": "application/json",
+        }
+      : {
+          "Content-Type": "application/json",
+        },
+    map: (item) =>
+      typeof item.id === "string"
+        ? {
+            id: item.id,
+            name: typeof item.name === "string" ? item.name : item.id,
+            apiURL: input.apiURL,
+            release_date: remoteDate(item.created),
+          }
+        : undefined,
+  })
+}
+
 function custom(dep: CustomDep): Record<string, CustomLoader> {
+  const key = Effect.fnUntraced(function* (id: string, provider: Info) {
+    const auth = yield* dep.auth(id)
+    if (auth?.type === "api") return auth.key
+    const configured = (yield* dep.config()).provider?.[id]?.options?.apiKey
+    if (typeof configured === "string" && configured.trim()) return configured
+    const env = yield* dep.env()
+    return provider.env.map((item) => env[item]).find(Boolean)
+  })
+
   return {
-    anthropic: () =>
-      Effect.succeed({
+    anthropic: Effect.fnUntraced(function* (provider: Info) {
+      const apiKey = yield* key("anthropic", provider)
+      return {
         autoload: false,
         options: {
           headers: {
             "anthropic-beta": "interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
           },
         },
-      }),
+        discoverModels: apiKey
+          ? () =>
+              fetchModels({
+                provider,
+                url: "https://api.anthropic.com/v1/models",
+                headers: {
+                  "x-api-key": apiKey,
+                  "anthropic-version": "2023-06-01",
+                  "Content-Type": "application/json",
+                },
+                map: (item) =>
+                  typeof item.id === "string"
+                    ? {
+                        id: item.id,
+                        name: typeof item.display_name === "string" ? item.display_name : item.id,
+                        apiID: item.id,
+                        apiURL: "https://api.anthropic.com/v1",
+                        release_date: remoteDate(item.created_at),
+                        reasoning:
+                          item.id.includes("thinking") || item.id.includes("opus") || item.id.includes("sonnet"),
+                        temperature: true,
+                      }
+                    : undefined,
+              })
+          : undefined,
+      }
+    }),
     opencode: Effect.fnUntraced(function* (input: Info) {
       const env = yield* dep.env()
       const hasKey = iife(() => {
@@ -186,14 +376,25 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         options: ok ? {} : { apiKey: "public" },
       }
     }),
-    openai: () =>
-      Effect.succeed({
+    openai: Effect.fnUntraced(function* (provider: Info) {
+      const apiKey = yield* key("openai", provider)
+      return {
         autoload: false,
         async getModel(sdk: any, modelID: string, _options?: Record<string, any>) {
           return sdk.responses(modelID)
         },
         options: {},
-      }),
+        discoverModels: apiKey
+          ? () =>
+              openAICompatibleDiscovery({
+                provider,
+                key: apiKey,
+                url: "https://api.openai.com/v1/models",
+                apiURL: "https://api.openai.com/v1",
+              })
+          : undefined,
+      }
+    }),
     xai: () =>
       Effect.succeed({
         autoload: false,
@@ -413,8 +614,9 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           },
         },
       }),
-    groq: () =>
-      Effect.succeed({
+    groq: Effect.fnUntraced(function* (provider: Info) {
+      const apiKey = yield* key("groq", provider)
+      return {
         autoload: true,
         options: {
           headers: {
@@ -422,9 +624,20 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             "X-Title": "async-coder",
           },
         },
-      }),
-    openrouter: () =>
-      Effect.succeed({
+        discoverModels: apiKey
+          ? () =>
+              openAICompatibleDiscovery({
+                provider,
+                key: apiKey,
+                url: "https://api.groq.com/openai/v1/models",
+                apiURL: "https://api.groq.com/openai/v1",
+              })
+          : undefined,
+      }
+    }),
+    openrouter: Effect.fnUntraced(function* (provider: Info) {
+      const apiKey = yield* key("openrouter", provider)
+      return {
         autoload: false,
         options: {
           headers: {
@@ -433,7 +646,48 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             "X-OpenRouter-Categories": "programming,programming-app,cli-agent",
           },
         },
-      }),
+        discoverModels: apiKey
+          ? () =>
+              fetchModels({
+                provider,
+                url: "https://openrouter.ai/api/v1/models",
+                headers: {
+                  Authorization: `Bearer ${apiKey}`,
+                  "Content-Type": "application/json",
+                },
+                map: (item) => {
+                  if (typeof item.id !== "string") return
+                  const top = isRecord(item.top_provider) ? item.top_provider : {}
+                  const architecture = isRecord(item.architecture) ? item.architecture : {}
+                  const pricing = isRecord(item.pricing) ? item.pricing : {}
+                  return {
+                    id: item.id,
+                    name: typeof item.name === "string" ? item.name : item.id,
+                    apiID: item.id,
+                    apiURL: "https://openrouter.ai/api/v1",
+                    context:
+                      typeof top.context_length === "number"
+                        ? top.context_length
+                        : typeof item.context_length === "number"
+                          ? item.context_length
+                          : undefined,
+                    output: typeof top.max_completion_tokens === "number" ? top.max_completion_tokens : undefined,
+                    input: remoteModalities(architecture.input_modalities),
+                    outputModalities: remoteModalities(architecture.output_modalities),
+                    cost: {
+                      input: parseRemotePrice(pricing.prompt),
+                      output: parseRemotePrice(pricing.completion),
+                    },
+                    release_date: remoteDate(item.created),
+                    temperature: Array.isArray(item.supported_parameters)
+                      ? item.supported_parameters.includes("temperature")
+                      : true,
+                  }
+                },
+              })
+          : undefined,
+      }
+    }),
     nvidia: () =>
       Effect.succeed({
         autoload: false,
@@ -827,8 +1081,9 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
           },
         },
       }),
-    kilo: () =>
-      Effect.succeed({
+    kilo: Effect.fnUntraced(function* (provider: Info) {
+      const apiKey = yield* key("kilo", provider)
+      return {
         autoload: false,
         options: {
           headers: {
@@ -836,7 +1091,58 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
             "X-Title": "async-coder",
           },
         },
-      }),
+        discoverModels: () =>
+          fetchModels({
+            provider,
+            url: "https://api.kilo.ai/api/gateway/models",
+            headers: apiKey
+              ? {
+                  Authorization: `Bearer ${apiKey}`,
+                  "Content-Type": "application/json",
+                }
+              : {
+                  "Content-Type": "application/json",
+                },
+            map: (item) => {
+              if (typeof item.id !== "string") return
+              const pricing = isRecord(item.pricing) ? item.pricing : isRecord(item.cost) ? item.cost : {}
+              return {
+                id: item.id,
+                name:
+                  typeof item.name === "string"
+                    ? item.name
+                    : typeof item.display_name === "string"
+                      ? item.display_name
+                      : item.id,
+                apiID: item.id,
+                apiURL: "https://api.kilo.ai/api/gateway",
+                context:
+                  typeof item.context_length === "number"
+                    ? item.context_length
+                    : isRecord(item.limit) && typeof item.limit.context === "number"
+                      ? item.limit.context
+                      : undefined,
+                output:
+                  typeof item.max_completion_tokens === "number"
+                    ? item.max_completion_tokens
+                    : isRecord(item.limit) && typeof item.limit.output === "number"
+                      ? item.limit.output
+                      : undefined,
+                input: remoteModalities(item.input_modalities),
+                outputModalities: remoteModalities(item.output_modalities),
+                cost: {
+                  input: parseRemotePrice(pricing.input ?? pricing.prompt),
+                  output: parseRemotePrice(pricing.output ?? pricing.completion),
+                },
+                release_date: remoteDate(item.created ?? item.created_at ?? item.release_date),
+                reasoning: typeof item.reasoning === "boolean" ? item.reasoning : undefined,
+                attachment: typeof item.attachment === "boolean" ? item.attachment : undefined,
+                toolcall: typeof item.tool_call === "boolean" ? item.tool_call : undefined,
+              }
+            },
+          }),
+      }
+    }),
   }
 }
 
@@ -1335,18 +1641,19 @@ const layer: Layer.Layer<
           mergeProvider(providerID, partial)
         }
 
-        const gitlab = ProviderID.make("gitlab")
-        if (discoveryLoaders[gitlab] && providers[gitlab] && isProviderAllowed(gitlab)) {
+        for (const [id, discoverModels] of Object.entries(discoveryLoaders)) {
+          const providerID = ProviderID.make(id)
+          if (!providers[providerID] || !isProviderAllowed(providerID)) continue
           yield* Effect.promise(async () => {
             try {
-              const discovered = await discoveryLoaders[gitlab]()
+              const discovered = await discoverModels()
               for (const [modelID, model] of Object.entries(discovered)) {
-                if (!providers[gitlab].models[modelID]) {
-                  providers[gitlab].models[modelID] = model
+                if (!providers[providerID].models[modelID]) {
+                  providers[providerID].models[modelID] = model
                 }
               }
             } catch (e) {
-              log.warn("state discovery error", { id: "gitlab", error: e })
+              log.warn("state discovery error", { id, error: e })
             }
           })
         }
@@ -1394,7 +1701,8 @@ const layer: Layer.Layer<
               (providerID === ProviderID.openrouter && modelID === "openai/gpt-5-chat")
             )
               delete provider.models[modelID]
-            if (model.status === "alpha" && !Flag.ASYNC_CODER_ENABLE_EXPERIMENTAL_MODELS) delete provider.models[modelID]
+            if (model.status === "alpha" && !Flag.ASYNC_CODER_ENABLE_EXPERIMENTAL_MODELS)
+              delete provider.models[modelID]
             if (model.status === "deprecated") delete provider.models[modelID]
             if (
               (configProvider?.blacklist && configProvider.blacklist.includes(modelID)) ||
@@ -1493,7 +1801,7 @@ const layer: Layer.Layer<
         const userChunkTimeout = options["chunkTimeout"]
         const chunkTimeout =
           typeof userChunkTimeout === "number"
-            ? userChunkTimeout  // user-set value (incl. 0 / negative to disable)
+            ? userChunkTimeout // user-set value (incl. 0 / negative to disable)
             : DEFAULT_CHUNK_TIMEOUT
         delete options["chunkTimeout"]
 
@@ -1741,7 +2049,16 @@ const layer: Layer.Layer<
       }
     })
 
-    return Service.of({ list, getProvider, getModel, getLanguage, closest, getSmallModel, defaultModel, resolveModelRef })
+    return Service.of({
+      list,
+      getProvider,
+      getModel,
+      getLanguage,
+      closest,
+      getSmallModel,
+      defaultModel,
+      resolveModelRef,
+    })
   }),
 )
 
