@@ -38,6 +38,14 @@ export const dict: Record<string, string> = {
   "tui.prompt.hint.switch_mode": "switch mode",
   "tui.prompt.hint.settings": "settings",
 
+  "tui.command.advisor.model.title": "Configure Sage advisor model",
+  "tui.dialog.advisor.provider.title": "Select Sage provider",
+  "tui.dialog.advisor.provider.description": "Consultation context will be sent to this provider",
+  "tui.dialog.advisor.model.title": "Select Sage model · {{provider}}",
+  "tui.dialog.advisor.variant.title": "Select Sage reasoning · {{model}}",
+  "tui.dialog.advisor.variant.default": "Default",
+  "tui.dialog.advisor.variant.unsupported": "This model does not advertise configurable reasoning levels",
+
   // Tips
   "tui.tips.label": "Tip",
   "tui.tips.plain_terminal": "We recommend using iTerm or the VS Code terminal",
@@ -50,8 +58,7 @@ export const dict: Record<string, string> = {
     "Run {highlight}/dark{/highlight} for dark mode or {highlight}/light{/highlight} for light mode",
   "tui.tips.doc": "Run {highlight}/doc{/highlight} to open the user documentation",
   "tui.tips.free_models": "Free models are available for a limited time — try them now!",
-  "tui.tips.background":
-    "Run {highlight}/background{/highlight} to set a custom image as your home background",
+  "tui.tips.background": "Run {highlight}/background{/highlight} to set a custom image as your home background",
   "tui.tips.undo": "Use {highlight}/undo{/highlight} to revert the last message and file changes",
   "tui.tips.redo": "Use {highlight}/redo{/highlight} to restore previously undone messages and file changes",
   "tui.tips.share": "Run {highlight}/share{/highlight} to create a public link to your conversation at opencode.ai",
@@ -84,18 +91,22 @@ export const dict: Record<string, string> = {
     "Press {highlight}Ctrl+G{/highlight} or {highlight}Home{/highlight} to jump to the beginning of the conversation",
   "tui.tips.jump_last":
     "Press {highlight}Ctrl+Alt+G{/highlight} or {highlight}End{/highlight} to jump to the most recent message",
-  "tui.tips.newline": "Press {highlight}Shift+Enter{/highlight} or {highlight}Ctrl+J{/highlight} to add newlines in your prompt",
+  "tui.tips.newline":
+    "Press {highlight}Shift+Enter{/highlight} or {highlight}Ctrl+J{/highlight} to add newlines in your prompt",
   "tui.tips.clear_input": "Press {highlight}Ctrl+C{/highlight} when typing to clear the input field",
   "tui.tips.escape": "Press {highlight}Escape{/highlight} to stop the AI mid-response",
   "tui.tips.plan_agent": "Switch to {highlight}Plan{/highlight} agent to get suggestions without making actual changes",
   "tui.tips.subagent": "Use {highlight}@agent-name{/highlight} in prompts to invoke specialized subagents",
-  "tui.tips.cycle_sessions": "Press {highlight}Ctrl+X Right/Left{/highlight} to cycle through parent and child sessions",
+  "tui.tips.cycle_sessions":
+    "Press {highlight}Ctrl+X Right/Left{/highlight} to cycle through parent and child sessions",
   "tui.tips.config_files":
     "Create {highlight}async-coder.json{/highlight} for server settings and {highlight}tui.json{/highlight} for TUI settings",
-  "tui.tips.global_config": "Place TUI settings in {highlight}~/.config/async-coder/tui.json{/highlight} for global config",
+  "tui.tips.global_config":
+    "Place TUI settings in {highlight}~/.config/async-coder/tui.json{/highlight} for global config",
   "tui.tips.schema": "Add {highlight}$schema{/highlight} to your config for autocomplete in your editor",
   "tui.tips.default_model": "Configure {highlight}model{/highlight} in config to set your default model",
-  "tui.tips.keybinds": "Override any keybind in {highlight}tui.json{/highlight} via the {highlight}keybinds{/highlight} section",
+  "tui.tips.keybinds":
+    "Override any keybind in {highlight}tui.json{/highlight} via the {highlight}keybinds{/highlight} section",
   "tui.tips.disable_keybind": "Set any keybind to {highlight}none{/highlight} to disable it completely",
   "tui.tips.mcp_config": "Configure local or remote MCP servers in the {highlight}mcp{/highlight} config section",
   "tui.tips.mcp_oauth": "async-coder auto-handles OAuth for remote MCP servers requiring auth",
@@ -103,7 +114,8 @@ export const dict: Record<string, string> = {
     "Add {highlight}.md{/highlight} files to {highlight}.async-coder/command/{/highlight} to define reusable custom prompts",
   "tui.tips.command_args":
     "Use {highlight}$ARGUMENTS{/highlight}, {highlight}$1{/highlight}, {highlight}$2{/highlight} in custom commands for dynamic input",
-  "tui.tips.command_backticks": "Use backticks in commands to inject shell output (e.g., {highlight}`git status`{/highlight})",
+  "tui.tips.command_backticks":
+    "Use backticks in commands to inject shell output (e.g., {highlight}`git status`{/highlight})",
   "tui.tips.custom_agent":
     "Add {highlight}.md{/highlight} files to {highlight}.async-coder/agent/{/highlight} for specialized AI personas",
   "tui.tips.agent_perms":
@@ -112,7 +124,8 @@ export const dict: Record<string, string> = {
   "tui.tips.bash_deny": 'Set {highlight}"rm -rf *": "deny"{/highlight} to block destructive commands',
   "tui.tips.bash_ask": 'Configure {highlight}"git push": "ask"{/highlight} to require approval before pushing',
   "tui.tips.formatter": "async-coder auto-formats files using prettier, gofmt, ruff, and more",
-  "tui.tips.disable_formatter": 'Set {highlight}"formatter": false{/highlight} in config to disable all auto-formatting',
+  "tui.tips.disable_formatter":
+    'Set {highlight}"formatter": false{/highlight} in config to disable all auto-formatting',
   "tui.tips.custom_formatter": "Define custom formatter commands with file extensions in config",
   "tui.tips.lsp": "async-coder uses LSP servers for intelligent code analysis",
   "tui.tips.custom_tool":
@@ -271,9 +284,11 @@ export const dict: Record<string, string> = {
   "tui.toast.update_available.confirm": "A new release v{{version}} is available. Would you like to update now?",
   "tui.toast.update_available.updating": "Updating to v{{version}}...",
   "tui.toast.update_available.failed": "Update failed",
-  "tui.toast.update_available.success": "Successfully updated to async-coder v{{version}}. Please restart the application.",
+  "tui.toast.update_available.success":
+    "Successfully updated to async-coder v{{version}}. Please restart the application.",
   "tui.toast.updated.title": "Auto-updated",
-  "tui.toast.updated.message": "Patch update applied: v{{version}}. Restart to use the new version. Disable via autoupdate: false in config.",
+  "tui.toast.updated.message":
+    "Patch update applied: v{{version}}. Restart to use the new version. Disable via autoupdate: false in config.",
   "tui.sidebar.instructions": "Instructions",
   "tui.sidebar.cwd": "Working Directory",
   "tui.toast.unknown_error": "An unknown error has occurred",
@@ -348,7 +363,7 @@ export const dict: Record<string, string> = {
   "tui.command.voice.send.title_off": "Voice send: OFF — click to turn on",
   "tui.voice.enabled": "Voice input on (Chinese/English) — click [Voice] to record",
   "tui.voice.disabled": "Voice input disabled",
-  "tui.voice.send.enabled": "Voice send enabled — after a pause, clearly say \"send it\" to submit",
+  "tui.voice.send.enabled": 'Voice send enabled — after a pause, clearly say "send it" to submit',
   "tui.voice.send.disabled": "Voice send disabled",
   "tui.voice.control.enabled": "Voice control enabled — using multimodal model for intelligent editing (slower)",
   "tui.voice.control.disabled": "Voice control disabled — using fast ASR transcription",
@@ -360,7 +375,7 @@ export const dict: Record<string, string> = {
   "tui.voice.error.too_short": "Recording too short",
   "tui.voice.error.network": "Transcription failed, please check your network",
   "tui.voice.error.empty_send": "Nothing to send",
-  "tui.voice.error.unknown_agent": "Agent \"{{name}}\" not found",
+  "tui.voice.error.unknown_agent": 'Agent "{{name}}" not found',
   "tui.command.prompt.stash.title": "Stash prompt",
   "tui.command.prompt.stash.pop.title": "Stash pop",
   "tui.command.prompt.stash.list.title": "Stash list",
@@ -385,7 +400,8 @@ export const dict: Record<string, string> = {
   "cli.providers.legacy_free.ready": "Legacy Free channel ready",
   "cli.providers.legacy_free.failed": "Legacy Free verification failed",
   "cli.providers.legacy_free.default_set": "Default model set to legacy free model (1M context, free)",
-  "cli.providers.legacy_free.usage_hint": "No login required — just run async-coder. For paid/premium models, choose provider login instead.",
+  "cli.providers.legacy_free.usage_hint":
+    "No login required — just run async-coder. For paid/premium models, choose provider login instead.",
   "cli.providers.legacy_login.decrypt_retry": "Decryption failed, please retry ({remaining} attempts left)",
   "cli.providers.legacy_login.decrypt_exhausted": "Decryption failed, max retries reached",
   "tui.dialog.login.import_claude": "Import from Claude Code",
@@ -403,7 +419,8 @@ export const dict: Record<string, string> = {
   "tui.dialog.login.flow.copied": "Copied",
 
   // Question i18n — plan_exit
-  "tui.question.plan_exit.question": "Plan at {{plan}} is complete. Would you like to switch to the build agent and start implementing?",
+  "tui.question.plan_exit.question":
+    "Plan at {{plan}} is complete. Would you like to switch to the build agent and start implementing?",
   "tui.question.plan_exit.header": "Plan",
   "tui.question.plan_exit.option.0.label": "Yes",
   "tui.question.plan_exit.option.0.description": "Switch to build agent and start implementing the plan",
@@ -415,15 +432,19 @@ export const dict: Record<string, string> = {
 
   // Workspace trust
   "trust.title": "Accessing workspace:",
-  "trust.safety_check": "Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source project, or work from your team). If not, take a moment to review what's in this folder first.",
+  "trust.safety_check":
+    "Quick safety check: Is this a project you created or one you trust? (Like your own code, a well-known open source project, or work from your team). If not, take a moment to review what's in this folder first.",
   "trust.capabilities": "async-coder will be able to read, edit, and execute files here.",
-  "trust.plugin_warn": "If malicious plugins exist in this directory, they can execute arbitrary code, read, modify, or exfiltrate your files.",
+  "trust.plugin_warn":
+    "If malicious plugins exist in this directory, they can execute arbitrary code, read, modify, or exfiltrate your files.",
   "trust.option.yes": "Yes, I trust this folder",
   "trust.option.no": "No, exit",
   "trust.dangerous.title_home": "WARNING: You are about to open your HOME DIRECTORY.",
   "trust.dangerous.title_root": "WARNING: You are about to open the FILESYSTEM ROOT.",
-  "trust.dangerous.body_home": "The model will have access to ALL your personal files — SSH keys, credentials, browser profiles, and everything else under your home folder.",
-  "trust.dangerous.body_root": "The model will have access to the ENTIRE filesystem — system files, all user data, credentials, and everything on this machine.",
+  "trust.dangerous.body_home":
+    "The model will have access to ALL your personal files — SSH keys, credentials, browser profiles, and everything else under your home folder.",
+  "trust.dangerous.body_root":
+    "The model will have access to the ENTIRE filesystem — system files, all user data, credentials, and everything on this machine.",
   "trust.dangerous.advice_home": "Unless you have a very specific reason, DO NOT trust your entire home directory.",
   "trust.dangerous.advice_root": "Unless you have a very specific reason, DO NOT trust the filesystem root.",
   "trust.dangerous.option.yes": "I understand the risks, trust for this session",

@@ -37,6 +37,16 @@ const log = Log.create({ service: "llm" })
 export const OUTPUT_TOKEN_MAX = ProviderTransform.OUTPUT_TOKEN_MAX
 type Result = Awaited<ReturnType<typeof streamText>>
 
+export function advisorSystemInstruction(advisor: Config.Info["advisor"], agent: string, mode?: Agent.Info["mode"]) {
+  if (!advisor || agent === "advisor" || mode === "subagent") return
+  return [
+    "# Sage consultation",
+    "The consult tool is available for genuinely uncertain decisions, conflicting evidence, unfamiliar architecture, or high-impact tradeoffs.",
+    "Use it proactively only when an independent view could materially improve the result; do not use it for routine work or to echo your conclusion.",
+    "Ask a narrow question, include only minimal relevant context, never include secrets, verify the advice when possible, and retain responsibility for the final answer.",
+  ].join("\n")
+}
+
 /**
  * Match transient errors that the PERSISTENT_RETRY layer should retry.
  *
@@ -187,7 +197,7 @@ export type StreamInput = {
   agent: Agent.Info
   permission?: Permission.Ruleset
   system: string[]
-  prebuiltSystem?: string[]      // when set, skip buildSystemArray and use this verbatim
+  prebuiltSystem?: string[] // when set, skip buildSystemArray and use this verbatim
   messages: ModelMessage[]
   small?: boolean
   tools: Record<string, Tool>
@@ -219,7 +229,13 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/LL
 const live: Layer.Layer<
   Service,
   never,
-  Auth.Service | Config.Service | Provider.Service | Plugin.Service | Permission.Service | ActorRegistry.Service | Memory.Service
+  | Auth.Service
+  | Config.Service
+  | Provider.Service
+  | Plugin.Service
+  | Permission.Service
+  | ActorRegistry.Service
+  | Memory.Service
 > = Layer.effect(
   Service,
   Effect.gen(function* () {
@@ -278,6 +294,13 @@ const live: Layer.Layer<
         yield* Effect.promise(() => migrateProjectMemory(projectID)).pipe(Effect.ignore)
         system.push(buildMemoryInstructions(SessionID.make(input.sessionID), projectID, yield* memory.root()))
       }
+
+      const advisorInstruction = advisorSystemInstruction(
+        (yield* config.get()).advisor,
+        input.agent.name,
+        input.agent.mode,
+      )
+      if (advisorInstruction) system.push(advisorInstruction)
 
       const header = system[0]
       yield* plugin.trigger(
@@ -670,7 +693,7 @@ const live: Layer.Layer<
                     maxAttempts: 10,
                     reason: error instanceof Error ? error.message : String(error),
                     nextDelayMs: delayMs,
-                  })
+                  }),
                 )
               })
 
@@ -678,9 +701,9 @@ const live: Layer.Layer<
               Effect.tapError((error) => {
                 if (!isTransientCapacityError(error)) return Effect.void
                 return Ref.updateAndGet(attemptRef, (n) => n + 1).pipe(
-                  Effect.flatMap((nextAttempt) => publishRetryEvent(error, nextAttempt))
+                  Effect.flatMap((nextAttempt) => publishRetryEvent(error, nextAttempt)),
                 )
-              })
+              }),
             )
 
             const result = yield* streamWithTelemetry.pipe(

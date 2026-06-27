@@ -7,6 +7,8 @@ import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
 import { ToolRegistry } from "../../src/tool"
 import { provideTmpdirInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
+import { ModelID, ProviderID } from "../../src/provider/schema"
+import type { Agent } from "../../src/agent/agent"
 
 const node = CrossSpawnSpawner.defaultLayer
 
@@ -17,6 +19,34 @@ afterEach(async () => {
 })
 
 describe("tool.registry", () => {
+  const toolsFor = (registry: ToolRegistry.Interface) =>
+    registry.tools({
+      providerID: ProviderID.make("test"),
+      modelID: ModelID.make("test-model"),
+      agent: {
+        name: "build",
+        mode: "primary",
+        options: {},
+        permission: [],
+      } satisfies Agent.Info,
+    })
+
+  it.live(
+    "exposes consult only when Sage is configured",
+    () =>
+      Effect.gen(function* () {
+        const registry = yield* ToolRegistry.Service
+        const unavailable = yield* provideTmpdirInstance(() => toolsFor(registry))
+        expect(unavailable.map((tool) => tool.id)).not.toContain("consult")
+
+        const available = yield* provideTmpdirInstance(() => toolsFor(registry), {
+          config: { advisor: { model: "test/advisor" } },
+        })
+        expect(available.map((tool) => tool.id)).toContain("consult")
+      }),
+    15_000,
+  )
+
   it.live("loads tools from .async-coder/tool (singular)", () =>
     provideTmpdirInstance((dir) =>
       Effect.gen(function* () {

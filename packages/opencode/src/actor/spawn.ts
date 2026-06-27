@@ -132,6 +132,7 @@ export interface SpawnInput {
   tools: ToolWhitelist
   model?: { providerID: ProviderID; modelID: ModelID }
   background: boolean
+  notify?: boolean
   parentActorID?: string
   task_id?: string // Spec ②: bound user-task ID for postStop progress.md validation
   cwd?: string
@@ -245,6 +246,7 @@ export const layer = Layer.effect(
       task: string
       description?: string
       background: boolean
+      notify?: boolean
       model?: { providerID: ProviderID; modelID: ModelID }
       lifecycle: "ephemeral" | "persistent"
       task_id?: string
@@ -275,7 +277,7 @@ export const layer = Layer.effect(
           status: "completed" | "failed" | "cancelled",
           extra: { result?: string; error?: string; reportedStatus?: ReturnStatus; reportedSummary?: string },
         ) =>
-          input.background && input.agentType !== "checkpoint-writer"
+          input.background && input.notify !== false && input.agentType !== "checkpoint-writer"
             ? inbox
                 .send({
                   receiverSessionID: input.parentSessionID,
@@ -616,6 +618,7 @@ export const layer = Layer.effect(
         task: input.task,
         description: input.description,
         background: input.background,
+        notify: input.notify,
         model: input.model,
         lifecycle: input.lifecycle ?? "persistent",
         task_id: input.task_id,
@@ -671,6 +674,7 @@ export const layer = Layer.effect(
         task: taskWithFormat,
         description: input.description,
         background: input.background,
+        notify: input.notify,
         model: input.model,
         lifecycle: input.lifecycle ?? "ephemeral",
         task_id: input.task_id,

@@ -332,18 +332,24 @@ You can manage the tools an LLM can use through the `tools` option.
 
 ### Models
 
-You can configure the providers and models you want to use in your OpenCode config through the `provider`, `model` and `small_model` options.
+You can configure the providers and models you want to use in your OpenCode config through the `provider`, `model`, `small_model`, and `advisor` options.
 
 ```json title="opencode.json"
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {},
   "model": "anthropic/claude-sonnet-4-5",
-  "small_model": "anthropic/claude-haiku-4-5"
+  "small_model": "anthropic/claude-haiku-4-5",
+  "advisor": {
+    "model": "anthropic/claude-opus-4-6",
+    "variant": "high"
+  }
 }
 ```
 
 The `small_model` option configures a separate model for lightweight tasks like title generation. By default, OpenCode tries to use a cheaper model if one is available from your provider, otherwise it falls back to your main model.
+
+The `advisor` option configures the **Sage** second-opinion model used by the `consult` tool and `/consult` command. `variant` is optional and must be a reasoning level advertised by the selected model. Run `/sage-model` to configure or change these values interactively.
 
 Provider options can include `timeout`, `chunkTimeout`, and `setCacheKey`:
 

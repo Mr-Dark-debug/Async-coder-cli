@@ -65,7 +65,17 @@ export const Default = {
   DISTILL: "distill",
   GOAL: "goal",
   DEEP_RESEARCH: "deep-research",
+  CONSULT: "consult",
 } as const
+
+export function consultTemplate() {
+  return [
+    "Use the consult tool exactly once before answering or continuing the task.",
+    "Question from the user (empty means choose the most consequential unresolved uncertainty):",
+    "$ARGUMENTS",
+    "Provide concise relevant context, evaluate the returned advice, and retain responsibility for the final decision.",
+  ].join("\n\n")
+}
 
 export function deepResearchTemplate(): string {
   return [
@@ -172,6 +182,16 @@ export const layer = Layer.effect(
         subtask: false,
         get template() {
           return "$ARGUMENTS"
+        },
+        hints: ["$ARGUMENTS"],
+      }
+      commands[Default.CONSULT] = {
+        name: Default.CONSULT,
+        description: "ask the configured Sage model for a second opinion",
+        source: "command",
+        subtask: false,
+        get template() {
+          return consultTemplate()
         },
         hints: ["$ARGUMENTS"],
       }

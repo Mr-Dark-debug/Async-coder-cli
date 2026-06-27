@@ -38,6 +38,15 @@ Subagents are specialized assistants that primary agents can invoke for specific
 
 OpenCode comes with two built-in subagents, **General** and **Explore**. We'll look at this below.
 
+### Sage consultations
+
+Sage is a hidden, tool-free advisor that gives the working model one independent second opinion without taking over the conversation. Configure its provider, model, and reasoning level with `/sage-model`, then use it in either of these ways:
+
+- Run `/consult <question>` to require one consultation for the current turn.
+- Let the working model call the `consult` tool proactively when an uncertain or high-impact decision would materially benefit from another model's view.
+
+Only a concise question and context summary are sent to the selected provider. Sage cannot edit files or call tools, and the working model remains responsible for verifying and applying its advice.
+
 ---
 
 ## Built-in
