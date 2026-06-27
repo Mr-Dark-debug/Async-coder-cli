@@ -74,6 +74,11 @@ export type PromptRef = {
   paste(): void
 }
 
+export function findClientSlash<T extends { display: string }>(input: string, slashes: T[]) {
+  if (!input.startsWith("/")) return
+  return slashes.find((slash) => slash.display === input.trim())
+}
+
 function randomIndex(count: number) {
   if (count <= 0) return 0
   return Math.floor(Math.random() * count)
@@ -999,13 +1004,22 @@ export function Prompt(props: PromptProps) {
     if (props.disabled) return false
     if (autocomplete?.visible) return false
     if (!store.prompt.input) return false
-    const agent = local.agent.current()
-    if (!agent) return false
     const trimmed = store.prompt.input.trim()
     if (trimmed === "exit" || trimmed === "quit" || trimmed === ":q") {
       void exit()
       return true
     }
+    const clientSlash = findClientSlash(store.prompt.input, command.slashes())
+    if (clientSlash) {
+      clientSlash.onSelect?.()
+      input.extmarks.clear()
+      setStore("prompt", { input: "", parts: [] })
+      setStore("extmarkToPartIndex", new Map())
+      input.clear()
+      return true
+    }
+    const agent = local.agent.current()
+    if (!agent) return false
     const selectedModel = local.model.current()
     if (!selectedModel) {
       void promptModelWarning()
@@ -1103,10 +1117,6 @@ export function Prompt(props: PromptProps) {
     const currentMode = store.mode
     const variant = local.model.variant.current()
 
-    const clientSlash = inputText.startsWith("/")
-      ? command.slashes().find((s) => s.display === inputText.trim())
-      : undefined
-
     if (store.mode === "shell") {
       void sdk.client.session.shell({
         sessionID,
@@ -1118,8 +1128,6 @@ export function Prompt(props: PromptProps) {
         command: inputText,
       })
       setStore("mode", "normal")
-    } else if (clientSlash) {
-      clientSlash.onSelect?.()
     } else if (
       inputText.startsWith("/") &&
       iife(() => {
