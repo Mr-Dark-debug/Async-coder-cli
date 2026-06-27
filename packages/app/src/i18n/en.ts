@@ -19,9 +19,13 @@ export const dict = {
   "command.advisor.model": "Configure Sage advisor model",
   "command.advisor.model.description": "Choose the provider, model, and reasoning level used by /consult",
   "dialog.advisor.provider.title": "Select Sage provider",
-  "dialog.advisor.provider.search": "Search connected providers",
-  "dialog.advisor.provider.empty": "No connected providers",
+  "dialog.advisor.provider.search": "Search providers",
+  "dialog.advisor.provider.empty": "No providers available",
   "dialog.advisor.provider.description": "Consultation context will be sent to this provider",
+  "dialog.advisor.provider.connected": "Connected",
+  "dialog.advisor.provider.setupRequired": "Setup required",
+  "dialog.advisor.provider.local": "Local or custom endpoint",
+  "dialog.advisor.provider.ollama": "Ollama / local",
   "dialog.advisor.model.title": "Select Sage model · {{provider}}",
   "dialog.advisor.model.search": "Search models",
   "dialog.advisor.model.empty": "No available models",
@@ -148,6 +152,7 @@ export const dict = {
   "provider.connect.apiKey.label": "{{provider}} API key",
   "provider.connect.apiKey.placeholder": "API key",
   "provider.connect.apiKey.required": "API key is required",
+  "provider.connect.apiKey.invalid": "The provider rejected this API key. Check the key and try again.",
   "provider.connect.opencodeZen.line1":
     "OpenCode Zen gives you access to a curated set of reliable optimized models for coding agents.",
   "provider.connect.opencodeZen.line2":
@@ -172,6 +177,7 @@ export const dict = {
   "provider.connect.toast.connected.description": "{{provider}} models are now available to use.",
 
   "provider.custom.title": "Custom provider",
+  "provider.custom.error.discovery": "Could not fetch models from this provider. Check the URL and credentials.",
   "provider.custom.description.prefix": "Configure an OpenAI-compatible provider. See the ",
   "provider.custom.description.link": "provider config docs",
   "provider.custom.description.suffix": ".",

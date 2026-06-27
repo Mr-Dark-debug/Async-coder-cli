@@ -6,11 +6,23 @@ import { Provider } from "@/provider"
 import { ModelsDev } from "@/provider"
 import { ProviderAuth } from "@/provider"
 import { ProviderID } from "@/provider/schema"
+import { ProviderDiscovery } from "@/provider"
+import { Auth } from "@/auth"
 import { mapValues } from "remeda"
 import { errors } from "../../error"
 import { lazy } from "@/util/lazy"
 import { Effect } from "effect"
-import { jsonRequest } from "./trace"
+import { jsonRequest, runRequest } from "./trace"
+
+const discoveryErrors = Object.fromEntries(
+  [400, 401, 403, 404, 429, 502, 504].map((status) => [
+    status,
+    {
+      description: "Provider discovery failed",
+      content: { "application/json": { schema: resolver(ProviderDiscovery.ErrorSchema) } },
+    },
+  ]),
+)
 
 export const ProviderRoutes = lazy(() =>
   new Hono()
@@ -56,6 +68,74 @@ export const ProviderRoutes = lazy(() =>
             connected: Object.keys(connected),
           }
         }),
+    )
+    .post(
+      "/:providerID/discover",
+      describeRoute({
+        summary: "Discover provider models",
+        description: "Validate candidate provider credentials and fetch available models without persisting them.",
+        operationId: "provider.discover",
+        responses: {
+          200: {
+            description: "Provider discovery result",
+            content: { "application/json": { schema: resolver(ProviderDiscovery.ResultSchema) } },
+          },
+          ...discoveryErrors,
+        },
+      }),
+      validator("param", z.object({ providerID: ProviderID.zod })),
+      validator("json", ProviderDiscovery.InputSchema),
+      async (c) => {
+        const providerID = c.req.valid("param").providerID
+        const input = c.req.valid("json")
+        try {
+          const resolved = await runRequest(
+            "ProviderRoutes.discover",
+            c,
+            Effect.gen(function* () {
+              const auth = yield* Auth.Service
+              const config = yield* Config.Service
+              const provider = yield* Provider.Service
+              const stored = yield* auth.get(providerID)
+              const info = (yield* provider.list())[providerID]
+              const configured = (yield* config.get()).provider?.[providerID]
+              return {
+                key: stored?.type === "api" ? stored.key : stored?.type === "oauth" ? stored.access : undefined,
+                configuredBaseURL:
+                  (typeof configured?.options?.baseURL === "string" ? configured.options.baseURL : undefined) ??
+                  (typeof info?.options.baseURL === "string" ? info.options.baseURL : undefined),
+                baseURL:
+                  (typeof configured?.options?.baseURL === "string" ? configured.options.baseURL : undefined) ??
+                  (typeof info?.options.baseURL === "string" ? info.options.baseURL : undefined) ??
+                  Object.values(info?.models ?? {})[0]?.api.url,
+              }
+            }),
+          )
+          return c.json(
+            await ProviderDiscovery.discover({
+              providerID,
+              key: input.baseURL ? input.key : (input.key ?? resolved.key),
+              baseURL: input.baseURL ?? (input.key ? resolved.configuredBaseURL : resolved.baseURL),
+              signal: c.req.raw.signal,
+            }),
+          )
+        } catch (error) {
+          if (!(error instanceof ProviderDiscovery.DiscoveryError)) throw error
+          const status = {
+            invalid_credentials: 401,
+            permission_denied: 403,
+            not_found: 404,
+            rate_limited: 429,
+            timeout: 504,
+            cancelled: 400,
+            network: 502,
+            provider_unavailable: 502,
+            invalid_response: 502,
+            empty_models: 400,
+          }[error.code] as 400 | 401 | 403 | 404 | 429 | 502 | 504
+          return c.json({ code: error.code, message: error.message, retryable: error.retryable }, status)
+        }
+      },
     )
     .get(
       "/auth",

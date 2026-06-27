@@ -47,6 +47,10 @@ Sage is a hidden, tool-free advisor that gives the working model one independent
 
 Only a concise question and context summary are sent to the selected provider. Sage cannot edit files or call tools, and the working model remains responsible for verifying and applying its advice.
 
+`/sage-model` lists both connected and unconfigured providers. Choosing an unconfigured provider opens its normal connection flow for an API key, OAuth, IAM, or provider-specific settings, then returns automatically to Sage's searchable model list. Supported providers validate the candidate credential against their model catalogue before saving it, so an invalid key stays in the form with an actionable error.
+
+For local inference, choose **Ollama / local** to discover installed models from Ollama, or **Custom / local provider** for an OpenAI-compatible endpoint. Sage reports unreachable local servers and empty model catalogues without changing the current advisor.
+
 ---
 
 ## Built-in

@@ -1997,6 +1997,31 @@ test("provider loads models discovered from OpenAI-compatible models endpoint", 
   }
 })
 
+test("provider refreshes connected provider models through shared discovery", async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toBe("https://api.x.ai/v1/models")
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-xai-key")
+    return Promise.resolve(Response.json({ data: [{ id: "grok-live-model" }] }))
+  }) as typeof fetch
+
+  try {
+    await using tmp = await tmpdir()
+    await Instance.provide({
+      directory: tmp.path,
+      init: async () => set("XAI_API_KEY", "test-xai-key"),
+      fn: async () => {
+        const model = (await list())[ProviderID.make("xai")].models["grok-live-model"]
+        expect(model).toBeDefined()
+        expect(model.api.id).toBe("grok-live-model")
+        expect(model.api.url).toBe("https://api.x.ai/v1")
+      },
+    })
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
 test("provider loads models discovered from Anthropic models endpoint", async () => {
   const originalFetch = globalThis.fetch
   globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {

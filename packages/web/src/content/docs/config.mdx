@@ -349,7 +349,9 @@ You can configure the providers and models you want to use in your OpenCode conf
 
 The `small_model` option configures a separate model for lightweight tasks like title generation. By default, OpenCode tries to use a cheaper model if one is available from your provider, otherwise it falls back to your main model.
 
-The `advisor` option configures the **Sage** second-opinion model used by the `consult` tool and `/consult` command. `variant` is optional and must be a reasoning level advertised by the selected model. Run `/sage-model` to configure or change these values interactively.
+The `advisor` option configures the **Sage** second-opinion model used by the `consult` tool and `/consult` command. `variant` is optional and must be a reasoning level advertised by the selected model. Run `/sage-model` to configure or change these values interactively. The picker can connect an unconfigured provider through its existing setup flow, validate and refresh supported model catalogues, and resume model selection automatically. Ollama and custom OpenAI-compatible endpoints are available through the local provider choices.
+
+Sage stores only the selected provider/model identifier and optional reasoning variant. Provider API keys and OAuth credentials continue to use the normal provider credential store.
 
 Provider options can include `timeout`, `chunkTimeout`, and `setCacheKey`:
 

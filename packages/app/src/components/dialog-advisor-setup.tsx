@@ -5,24 +5,93 @@ import { ProviderIcon } from "@async-coder/ui/provider-icon"
 import { showToast } from "@async-coder/ui/toast"
 import { useDialog } from "@async-coder/ui/context/dialog"
 import { useGlobalSync } from "@/context/global-sync"
-import { useModels } from "@/context/models"
 import { useProviders } from "@/hooks/use-providers"
-import { advisorConfig, advisorVariantOptions } from "./dialog-advisor-setup-state"
+import { advisorConfig, advisorProviders, advisorVariantOptions } from "./dialog-advisor-setup-state"
 import { useLanguage } from "@/context/language"
+import { DialogConnectProvider } from "./dialog-connect-provider"
+import { DialogCustomProvider } from "./dialog-custom-provider"
 
-export function DialogAdvisorSetup(props: { onConfigured?: () => void }) {
+export function DialogAdvisorSetup(props: {
+  onConfigured?: () => void
+  initialProviderID?: string
+  initialStep?: "provider" | "model"
+}) {
   const dialog = useDialog()
   const globalSync = useGlobalSync()
   const providers = useProviders()
-  const models = useModels()
   const language = useLanguage()
-  const [step, setStep] = createSignal<"provider" | "model" | "variant">("provider")
-  const [providerID, setProviderID] = createSignal("")
+  const [step, setStep] = createSignal<"provider" | "model" | "variant">(props.initialStep ?? "provider")
+  const [providerID, setProviderID] = createSignal(props.initialProviderID ?? "")
   const [modelID, setModelID] = createSignal("")
-  const provider = createMemo(() => providers.connected().find((item) => item.id === providerID()))
-  const model = createMemo(() =>
-    models.list().find((item) => item.provider.id === providerID() && item.id === modelID()),
+  const providerCatalog = createMemo(() => {
+    const catalog = new Map(providers.all().map((item) => [item.id, item]))
+    const connected = new Set(globalSync.data.provider.connected)
+    globalSync.data.provider.all.forEach((item) => {
+      if (connected.has(item.id) || !catalog.has(item.id)) catalog.set(item.id, item)
+    })
+    return [...catalog.values()]
+  })
+  const provider = createMemo(() => providerCatalog().find((item) => item.id === providerID()))
+  const models = createMemo(() =>
+    Object.values(provider()?.models ?? {}).map((item) => ({ ...item, provider: provider()! })),
   )
+  const model = createMemo(() => models().find((item) => item.id === modelID()))
+  const connected = createMemo(
+    () => new Set([...providers.connected().map((item) => item.id), ...globalSync.data.provider.connected]),
+  )
+  const rows = createMemo(() => [
+    ...advisorProviders(providerCatalog(), [...connected()]).map((item) => ({
+      kind: "provider" as const,
+      id: item.id,
+      name: item.name,
+      status: item.status,
+    })),
+    {
+      kind: "ollama" as const,
+      id: "__ollama__",
+      name: language.t("dialog.advisor.provider.ollama"),
+      status: "local" as const,
+    },
+    {
+      kind: "custom" as const,
+      id: "__custom__",
+      name: language.t("provider.custom.title"),
+      status: "local" as const,
+    },
+  ])
+
+  const reopen = (next: "provider" | "model", selected?: string) => {
+    dialog.show(() => (
+      <DialogAdvisorSetup onConfigured={props.onConfigured} initialStep={next} initialProviderID={selected} />
+    ))
+  }
+
+  const connect = (selected: string) => {
+    dialog.show(
+      () => (
+        <DialogConnectProvider
+          provider={selected}
+          onConnected={(id) => reopen("model", id)}
+          onCancel={() => reopen("provider")}
+        />
+      ),
+      () => reopen("provider"),
+    )
+  }
+
+  const custom = (preset?: { providerID: string; name: string; baseURL: string }) => {
+    dialog.show(
+      () => (
+        <DialogCustomProvider
+          back="close"
+          preset={preset}
+          onConnected={(id) => reopen("model", id)}
+          onCancel={() => reopen("provider")}
+        />
+      ),
+      () => reopen("provider"),
+    )
+  }
   const title = createMemo(() => {
     if (step() === "provider") return language.t("dialog.advisor.provider.title")
     if (step() === "model")
@@ -54,22 +123,38 @@ export function DialogAdvisorSetup(props: { onConfigured?: () => void }) {
             search={{ placeholder: language.t("dialog.advisor.provider.search"), autofocus: true }}
             emptyMessage={language.t("dialog.advisor.provider.empty")}
             key={(item) => item?.id}
-            items={() => providers.connected().filter((item) => Object.keys(item.models).length > 0)}
+            items={rows}
             filterKeys={["id", "name"]}
             sortBy={(a, b) => a.name.localeCompare(b.name)}
             onSelect={(item) => {
               if (!item) return
+              if (item.kind === "ollama") {
+                custom({ providerID: "ollama", name: "Ollama", baseURL: "http://localhost:11434/v1" })
+                return
+              }
+              if (item.kind === "custom") {
+                custom()
+                return
+              }
+              if (item.status === "setup_required") {
+                connect(item.id)
+                return
+              }
               setProviderID(item.id)
               setStep("model")
             }}
           >
             {(item) => (
               <div class="px-1.25 w-full flex items-center gap-x-3">
-                <ProviderIcon id={item.id} />
+                <ProviderIcon id={item.kind === "custom" ? "synthetic" : item.kind === "ollama" ? "ollama" : item.id} />
                 <div class="min-w-0 flex-1">
                   <div class="text-14-medium text-text-strong truncate">{item.name}</div>
                   <div class="text-12-regular text-text-weak truncate">
-                    {language.t("dialog.advisor.provider.description")}
+                    {item.status === "connected"
+                      ? language.t("dialog.advisor.provider.connected")
+                      : item.status === "local"
+                        ? language.t("dialog.advisor.provider.local")
+                        : language.t("dialog.advisor.provider.setupRequired")}
                   </div>
                 </div>
               </div>
@@ -82,10 +167,9 @@ export function DialogAdvisorSetup(props: { onConfigured?: () => void }) {
             emptyMessage={language.t("dialog.advisor.model.empty")}
             key={(item) => `${item?.provider.id}:${item?.id}`}
             items={() =>
-              models
-                .list()
-                .filter((item) => item.provider.id === providerID())
+              models()
                 .filter((item) => item.status !== "deprecated")
+                .filter((item) => item.capabilities.output.text)
             }
             filterKeys={["name", "id"]}
             sortBy={(a, b) => a.name.localeCompare(b.name)}

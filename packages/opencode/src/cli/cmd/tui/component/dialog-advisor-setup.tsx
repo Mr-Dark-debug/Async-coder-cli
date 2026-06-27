@@ -5,6 +5,7 @@ import { useSDK } from "@tui/context/sdk"
 import { useSync } from "@tui/context/sync"
 import { useToast } from "@tui/ui/toast"
 import { useLanguage } from "@tui/context/language"
+import { DialogProvider, runCustomProviderWizard } from "./dialog-provider"
 
 type Advisor = { model: string; variant?: string }
 
@@ -25,16 +26,37 @@ export function advisorVariantOptions(variants: Record<string, unknown> | undefi
   return ["default", ...Object.keys(variants ?? {}).sort()]
 }
 
-export function DialogAdvisorSetup(props: { onConfigured?: () => void }) {
+export function advisorProviderOptions(providers: { id: string; name: string }[], connected: string[]) {
+  return providers.map((provider) => ({
+    id: provider.id,
+    name: provider.name,
+    status: connected.includes(provider.id) ? ("connected" as const) : ("setup_required" as const),
+  }))
+}
+
+export function advisorResume(providerID: string, result: "connected" | "cancelled") {
+  if (result === "connected") return { providerID, step: "model" as const }
+  return { step: "provider" as const }
+}
+
+export function advisorOllamaPreset() {
+  return {
+    providerID: "ollama",
+    name: "Ollama",
+    baseURL: "http://localhost:11434/v1",
+  }
+}
+
+export function DialogAdvisorSetup(props: { onConfigured?: () => void; providerID?: string }) {
   const dialog = useDialog()
   const sdk = useSDK()
   const sync = useSync()
   const toast = useToast()
   const t = useLanguage().t
-  const [step, setStep] = createSignal<"provider" | "model" | "variant">("provider")
-  const [providerID, setProviderID] = createSignal("")
+  const [step, setStep] = createSignal<"provider" | "model" | "variant">(props.providerID ? "model" : "provider")
+  const [providerID, setProviderID] = createSignal(props.providerID ?? "")
   const [modelID, setModelID] = createSignal("")
-  const provider = createMemo(() => sync.data.provider.find((item) => item.id === providerID()))
+  const provider = createMemo(() => sync.data.provider_next.all.find((item) => item.id === providerID()))
   const model = createMemo(() => provider()?.models[modelID()])
 
   const save = async (variant: string) => {
@@ -51,22 +73,66 @@ export function DialogAdvisorSetup(props: { onConfigured?: () => void }) {
     props.onConfigured?.()
   }
 
+  const resume = (nextProviderID: string) => {
+    dialog.replace(() => <DialogAdvisorSetup providerID={nextProviderID} onConfigured={props.onConfigured} />)
+  }
+
+  const cancel = () => {
+    dialog.replace(() => <DialogAdvisorSetup onConfigured={props.onConfigured} />)
+  }
+
+  const connect = (nextProviderID: string) => {
+    dialog.replace(() => <DialogProvider providerID={nextProviderID} onConnected={resume} onCancel={cancel} />)
+  }
+
   return (
     <Switch>
       <Match when={step() === "provider"}>
         <DialogSelect
           title={t("tui.dialog.advisor.provider.title")}
-          options={sync.data.provider
-            .filter((item) => Object.values(item.models).some((candidate) => candidate.status !== "deprecated"))
+          options={advisorProviderOptions(sync.data.provider_next.all, sync.data.provider_next.connected)
             .map((item) => ({
               title: item.name,
               value: item.id,
-              description: t("tui.dialog.advisor.provider.description"),
+              description:
+                item.status === "connected"
+                  ? t("tui.dialog.advisor.provider.connected")
+                  : t("tui.dialog.advisor.provider.setup_required"),
               onSelect: () => {
                 setProviderID(item.id)
+                if (item.status === "setup_required") return connect(item.id)
                 setStep("model")
               },
-            }))}
+            }))
+            .concat([
+              {
+                title: t("tui.dialog.advisor.provider.ollama"),
+                value: "__ollama__",
+                description: t("tui.dialog.advisor.provider.ollama.description"),
+                onSelect: () =>
+                  void runCustomProviderWizard({
+                    dialog,
+                    sdk,
+                    sync,
+                    toast,
+                    destination: { onConnected: resume, onCancel: cancel },
+                    preset: advisorOllamaPreset(),
+                  }),
+              },
+              {
+                title: t("tui.dialog.advisor.provider.custom"),
+                value: "__custom__",
+                description: t("tui.dialog.advisor.provider.custom.description"),
+                onSelect: () =>
+                  void runCustomProviderWizard({
+                    dialog,
+                    sdk,
+                    sync,
+                    toast,
+                    destination: { onConnected: resume, onCancel: cancel },
+                  }),
+              },
+            ])}
         />
       </Match>
       <Match when={step() === "model"}>
