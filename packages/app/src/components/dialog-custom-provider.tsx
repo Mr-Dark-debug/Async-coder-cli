@@ -6,7 +6,7 @@ import { ProviderIcon } from "@async-coder/ui/provider-icon"
 import { useMutation } from "@tanstack/solid-query"
 import { TextField } from "@async-coder/ui/text-field"
 import { showToast } from "@async-coder/ui/toast"
-import { batch, For } from "solid-js"
+import { batch, createSignal, For, onCleanup } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { Link } from "@/components/link"
 import { useGlobalSDK } from "@/context/global-sdk"
@@ -14,9 +14,13 @@ import { useGlobalSync } from "@/context/global-sync"
 import { useLanguage } from "@/context/language"
 import { type FormState, headerRow, modelRow, validateCustomProvider } from "./dialog-custom-provider-form"
 import { DialogSelectProvider } from "./dialog-select-provider"
+import { providerCandidateKey, providerSetupError, shouldDiscoverProvider } from "./dialog-advisor-setup-state"
 
 type Props = {
   back?: "providers" | "close"
+  preset?: { providerID: string; name: string; baseURL: string }
+  onConnected?: (providerID: string) => void | Promise<void>
+  onCancel?: () => void
 }
 
 export function DialogCustomProvider(props: Props) {
@@ -24,11 +28,19 @@ export function DialogCustomProvider(props: Props) {
   const globalSync = useGlobalSync()
   const globalSDK = useGlobalSDK()
   const language = useLanguage()
+  const request = new AbortController()
+  const alive = { value: true }
+  const [discovering, setDiscovering] = createSignal(false)
+
+  onCleanup(() => {
+    alive.value = false
+    request.abort()
+  })
 
   const [form, setForm] = createStore<FormState>({
-    providerID: "",
-    name: "",
-    baseURL: "",
+    providerID: props.preset?.providerID ?? "",
+    name: props.preset?.name ?? "",
+    baseURL: props.preset?.baseURL ?? "",
     apiKey: "",
     models: [modelRow()],
     headers: [headerRow()],
@@ -36,6 +48,10 @@ export function DialogCustomProvider(props: Props) {
   })
 
   const goBack = () => {
+    if (props.onCancel) {
+      props.onCancel()
+      return
+    }
     if (props.back === "close") {
       dialog.close()
       return
@@ -122,22 +138,32 @@ export function DialogCustomProvider(props: Props) {
       const nextDisabled = disabledProviders.filter((id) => id !== result.providerID)
 
       if (result.key) {
-        await globalSDK.client.auth.set({
-          providerID: result.providerID,
-          auth: {
-            type: "api",
-            key: result.key,
+        const response = await globalSDK.client.auth.set(
+          {
+            providerID: result.providerID,
+            auth: {
+              type: "api",
+              key: result.key,
+            },
           },
-        })
+          { signal: request.signal },
+        )
+        if (response.error) throw new Error(providerSetupError(response.error, language.t("common.requestFailed")))
       }
 
+      if (!alive.value) throw new DOMException("Provider setup was cancelled.", "AbortError")
       await globalSync.updateConfig({
         provider: { [result.providerID]: result.config },
         disabled_providers: nextDisabled,
       })
       return result
     },
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
+      if (!alive.value) return
+      if (props.onConnected) {
+        await props.onConnected(result.providerID)
+        return
+      }
       dialog.close()
       showToast({
         variant: "success",
@@ -147,14 +173,46 @@ export function DialogCustomProvider(props: Props) {
       })
     },
     onError: (err) => {
+      if (!alive.value) return
       const message = err instanceof Error ? err.message : String(err)
       showToast({ title: language.t("common.requestFailed"), description: message })
     },
   }))
 
-  const save = (e: SubmitEvent) => {
+  const save = async (e: SubmitEvent) => {
     e.preventDefault()
-    if (saveMutation.isPending) return
+    if (saveMutation.isPending || discovering()) return
+
+    if (shouldDiscoverProvider(props.onConnected) && form.providerID.trim() && form.baseURL.trim()) {
+      setDiscovering(true)
+      const key = providerCandidateKey(form.apiKey)
+      const discovered = await globalSDK.client.provider
+        .discover(
+          {
+            providerID: form.providerID.trim(),
+            baseURL: form.baseURL.trim(),
+            ...(key ? { key } : {}),
+          },
+          { signal: request.signal },
+        )
+        .then((value) => (value.error ? { ok: false as const, error: value.error } : { ok: true as const, value }))
+        .catch((error) => ({ ok: false as const, error }))
+      if (!alive.value) return
+      if (!discovered.ok) {
+        setDiscovering(false)
+        const message = providerSetupError(discovered.error, language.t("provider.custom.error.discovery"))
+        showToast({ title: language.t("common.requestFailed"), description: message })
+        return
+      }
+      const models = discovered.value.data?.models ?? []
+      if (models.length && form.models.every((model) => !model.id.trim())) {
+        setForm(
+          "models",
+          models.map((model) => ({ ...modelRow(), id: model.id, name: model.name })),
+        )
+      }
+      setDiscovering(false)
+    }
 
     const result = validate()
     if (!result) return
@@ -318,9 +376,9 @@ export function DialogCustomProvider(props: Props) {
             type="submit"
             size="large"
             variant="primary"
-            disabled={saveMutation.isPending}
+            disabled={saveMutation.isPending || discovering()}
           >
-            {saveMutation.isPending ? language.t("common.saving") : language.t("common.submit")}
+            {saveMutation.isPending || discovering() ? language.t("common.saving") : language.t("common.submit")}
           </Button>
         </form>
       </div>

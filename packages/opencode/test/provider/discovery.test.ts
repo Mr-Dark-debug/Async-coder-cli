@@ -16,6 +16,8 @@ function serve(fetch: (request: Request) => Response | Promise<Response>) {
 describe("provider discovery", () => {
   test("maps provider response statuses to actionable errors", () => {
     expect(ProviderDiscovery.classifyResponse(401)).toEqual({ code: "invalid_credentials", retryable: false })
+    expect(ProviderDiscovery.classifyResponse(400)).toEqual({ code: "invalid_credentials", retryable: false })
+    expect(ProviderDiscovery.classifyResponse(498)).toEqual({ code: "invalid_credentials", retryable: false })
     expect(ProviderDiscovery.classifyResponse(403)).toEqual({ code: "permission_denied", retryable: false })
     expect(ProviderDiscovery.classifyResponse(404)).toEqual({ code: "not_found", retryable: false })
     expect(ProviderDiscovery.classifyResponse(429)).toEqual({ code: "rate_limited", retryable: true })
@@ -24,6 +26,15 @@ describe("provider discovery", () => {
 
   test("redacts candidate credentials from provider messages", () => {
     expect(ProviderDiscovery.redactMessage("invalid sk-secret-value", "sk-secret-value")).toBe("invalid [redacted]")
+  })
+
+  test("distinguishes an overall deadline from caller cancellation", () => {
+    expect(ProviderDiscovery.abortCode(AbortSignal.abort(new DOMException("timed out", "TimeoutError")))).toBe(
+      "timeout",
+    )
+    expect(ProviderDiscovery.abortCode(AbortSignal.abort(new DOMException("cancelled", "AbortError")))).toBe(
+      "cancelled",
+    )
   })
 
   test("normalizes Ollama and OpenAI-compatible model endpoints", () => {
@@ -75,9 +86,55 @@ describe("provider discovery", () => {
     const server = serve(() => Response.json({ models: [{ name: "qwen3:8b", details: { family: "qwen3" } }] }))
     const result = await ProviderDiscovery.discover({ providerID: "ollama", baseURL: server.url.href })
 
-    expect(result.models).toEqual([
-      expect.objectContaining({ id: "qwen3:8b", name: "qwen3:8b", family: "qwen3" }),
+    expect(result.models).toEqual([expect.objectContaining({ id: "qwen3:8b", name: "qwen3:8b", family: "qwen3" })])
+  })
+
+  test("parses provider-specific model list shapes", async () => {
+    const cohere = serve(() => Response.json({ models: [{ name: "command-r", context_length: 128_000 }] }))
+    const cohereResult = await ProviderDiscovery.discover({
+      providerID: "cohere",
+      key: "candidate",
+      baseURL: `${cohere.url}v1`,
+    })
+    expect(cohereResult.models).toEqual([
+      expect.objectContaining({ id: "command-r", name: "command-r", context: 128_000 }),
     ])
+
+    const together = serve(() => Response.json([{ id: "meta/llama", display_name: "Llama", type: "chat" }]))
+    const togetherResult = await ProviderDiscovery.discover({
+      providerID: "togetherai",
+      key: "candidate",
+      baseURL: `${together.url}v1`,
+    })
+    expect(togetherResult.models).toEqual([expect.objectContaining({ id: "meta/llama", name: "Llama" })])
+  })
+
+  test("paginates Google models and rejects repeated page tokens", async () => {
+    const pages: string[] = []
+    const server = serve((request) => {
+      const token = new URL(request.url).searchParams.get("pageToken") ?? ""
+      pages.push(token)
+      if (!token) {
+        return Response.json({
+          models: [{ name: "models/gemini-one", supportedGenerationMethods: ["generateContent"] }],
+          nextPageToken: "next",
+        })
+      }
+      return Response.json({ models: [{ name: "models/gemini-two" }] })
+    })
+
+    const result = await ProviderDiscovery.discover({
+      providerID: "google",
+      key: "candidate",
+      baseURL: `${server.url}v1beta`,
+    })
+    expect(pages).toEqual(["", "next"])
+    expect(result.models.map((model) => model.id)).toEqual(["gemini-one", "gemini-two"])
+
+    const repeated = serve(() => Response.json({ models: [{ name: "models/gemini" }], nextPageToken: "same" }))
+    await expect(
+      ProviderDiscovery.discover({ providerID: "google", baseURL: `${repeated.url}v1beta` }),
+    ).rejects.toMatchObject({ code: "invalid_response" })
   })
 
   test("does not leak rejected credentials", async () => {

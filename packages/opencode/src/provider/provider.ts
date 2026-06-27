@@ -28,6 +28,7 @@ import { isRecord } from "@/util/record"
 import { withStatics } from "@/util/schema"
 
 import * as ProviderTransform from "./transform"
+import * as ProviderDiscovery from "./discovery"
 import { ModelID, ProviderID } from "./schema"
 
 const log = Log.create({ service: "provider" })
@@ -37,6 +38,16 @@ const DEFAULT_CONTEXT_WINDOW = 1_000_000
 const BUILTIN_TIERS = new Set(["ultra", "standard", "lite"])
 // F41: warn once per (providerID, modelID) when limit.context falls back to default
 const warnedContextDefaults = new Set<string>()
+const SHARED_DISCOVERY_PROVIDERS = new Set([
+  "cerebras",
+  "cohere",
+  "deepseek",
+  "fireworks-ai",
+  "google",
+  "mistral",
+  "togetherai",
+  "xai",
+])
 
 export const DEFAULT_CHUNK_TIMEOUT = 480_000 // 8 minutes — bounds single-attempt SSE stall.
 // Tuned for long-context routed models whose cold-path TTFT after context
@@ -192,6 +203,7 @@ function discoveredModel(
     output?: number
     input?: string[]
     outputModalities?: string[]
+    family?: string
     release_date?: string
     cost?: { input?: number; output?: number }
     temperature?: boolean
@@ -206,7 +218,7 @@ function discoveredModel(
     id: ModelID.make(input.id),
     providerID: provider.id,
     name: input.name ?? input.id,
-    family: input.id.split(/[/:.-]/)[0] ?? "",
+    family: input.family ?? input.id.split(/[/:.-]/)[0] ?? "",
     api: {
       id: input.apiID ?? input.id,
       url:
@@ -1639,6 +1651,35 @@ const layer: Layer.Layer<
           if (provider.name) partial.name = provider.name
           if (provider.options) partial.options = provider.options
           mergeProvider(providerID, partial)
+        }
+
+        for (const id of SHARED_DISCOVERY_PROVIDERS) {
+          if (discoveryLoaders[id]) continue
+          const provider = providers[ProviderID.make(id)]
+          if (!provider) continue
+          const apiKey =
+            provider.key ?? (typeof provider.options.apiKey === "string" ? provider.options.apiKey : undefined)
+          if (!apiKey) continue
+          discoveryLoaders[id] = async () => {
+            const result = await ProviderDiscovery.discover({
+              providerID: id,
+              key: apiKey,
+              baseURL: typeof provider.options.baseURL === "string" ? provider.options.baseURL : undefined,
+            })
+            return Object.fromEntries(
+              result.models.map((model) => [
+                model.id,
+                discoveredModel(provider, {
+                  ...model,
+                  release_date: model.created,
+                  apiURL:
+                    typeof provider.options.baseURL === "string"
+                      ? provider.options.baseURL
+                      : Object.values(provider.models)[0]?.api.url || ProviderDiscovery.defaultBaseURL(id),
+                }),
+              ]),
+            )
+          }
         }
 
         for (const [id, discoverModels] of Object.entries(discoveryLoaders)) {

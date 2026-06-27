@@ -7,6 +7,7 @@ export const ErrorCode = z.enum([
   "not_found",
   "rate_limited",
   "timeout",
+  "cancelled",
   "network",
   "provider_unavailable",
   "invalid_response",
@@ -87,14 +88,27 @@ export const ErrorSchema = z.strictObject({
 
 const defaults: Record<string, string> = {
   anthropic: "https://api.anthropic.com/v1",
+  cerebras: "https://api.cerebras.ai/v1",
+  cohere: "https://api.cohere.com/v1",
+  deepseek: "https://api.deepseek.com",
+  "fireworks-ai": "https://api.fireworks.ai/inference/v1",
   google: "https://generativelanguage.googleapis.com/v1beta",
   groq: "https://api.groq.com/openai/v1",
+  mistral: "https://api.mistral.ai/v1",
   openai: "https://api.openai.com/v1",
   openrouter: "https://openrouter.ai/api/v1",
+  togetherai: "https://api.together.xyz/v1",
+  xai: "https://api.x.ai/v1",
+}
+
+export function defaultBaseURL(providerID: string) {
+  return defaults[providerID]
 }
 
 export function classifyResponse(status: number) {
-  if (status === 401) return { code: "invalid_credentials" as const, retryable: false }
+  if (status === 400 || status === 401 || status === 498) {
+    return { code: "invalid_credentials" as const, retryable: false }
+  }
   if (status === 403) return { code: "permission_denied" as const, retryable: false }
   if (status === 404) return { code: "not_found" as const, retryable: false }
   if (status === 429) return { code: "rate_limited" as const, retryable: true }
@@ -104,6 +118,12 @@ export function classifyResponse(status: number) {
 export function redactMessage(message: string, secret?: string) {
   if (!secret) return message
   return message.split(secret).join("[redacted]")
+}
+
+export function abortCode(signal: AbortSignal) {
+  const reason = signal.reason
+  if (reason && typeof reason === "object" && "name" in reason && reason.name === "TimeoutError") return "timeout"
+  return "cancelled"
 }
 
 export function modelEndpoint(providerID: string, baseURL: string) {
@@ -161,6 +181,25 @@ function openRouterModel(item: unknown): Model | undefined {
   }
 }
 
+function cohereModel(item: unknown): Model | undefined {
+  if (!isRecord(item) || typeof item.name !== "string") return
+  return {
+    id: item.name,
+    name: item.name,
+    context: number(item.context_length),
+  }
+}
+
+function togetherModel(item: unknown): Model | undefined {
+  const model = genericModel(item)
+  if (!model || !isRecord(item)) return model
+  return {
+    ...model,
+    name: typeof item.display_name === "string" ? item.display_name : model.name,
+    context: number(item.context_length),
+  }
+}
+
 function anthropicModel(item: unknown): Model | undefined {
   if (!isRecord(item) || typeof item.id !== "string") return
   return {
@@ -183,7 +222,7 @@ function ollamaModel(item: unknown): Model | undefined {
 }
 
 function errorMessage(providerID: string, status: number) {
-  if (status === 401) return `${providerID} rejected the API key or access token.`
+  if (status === 400 || status === 401 || status === 498) return `${providerID} rejected the API key or access token.`
   if (status === 403) return `${providerID} accepted the credentials but denied model access.`
   if (status === 404) return `${providerID} model catalogue was not found. Check the provider or base URL.`
   if (status === 429) return `${providerID} rate limited model discovery. Try again later.`
@@ -195,10 +234,29 @@ async function request(input: Input, url: string, headers: HeadersInit) {
     ? AbortSignal.any([input.signal, AbortSignal.timeout(10_000)])
     : AbortSignal.timeout(10_000)
   const response = await fetch(url, { headers, signal }).catch((cause) => {
-    if (cause instanceof DOMException && (cause.name === "TimeoutError" || cause.name === "AbortError")) {
-      throw new DiscoveryError("timeout", `${input.providerID} model discovery timed out.`, true, { cause })
+    if (input.signal?.aborted) {
+      const code = abortCode(input.signal)
+      throw new DiscoveryError(
+        code,
+        code === "timeout"
+          ? `${input.providerID} model discovery timed out.`
+          : `${input.providerID} model discovery was cancelled.`,
+        code === "timeout",
+        { cause },
+      )
     }
-    throw new DiscoveryError("network", `${input.providerID} could not be reached.`, true, { cause })
+    if (cause instanceof DOMException && (cause.name === "TimeoutError" || cause.name === "AbortError")) {
+      const message =
+        input.providerID === "ollama"
+          ? "Ollama did not respond. Start Ollama and check the configured base URL."
+          : `${input.providerID} model discovery timed out.`
+      throw new DiscoveryError("timeout", message, true, { cause })
+    }
+    const message =
+      input.providerID === "ollama"
+        ? "Ollama could not be reached. Start Ollama and check the configured base URL."
+        : `${input.providerID} could not be reached.`
+    throw new DiscoveryError("network", message, true, { cause })
   })
   if (response.ok) return response
   const classified = classifyResponse(response.status)
@@ -220,13 +278,17 @@ async function json(input: Input, url: string, headers: HeadersInit) {
 
 async function gemini(input: Input, baseURL: string) {
   const models: Model[] = []
+  const tokens = new Set<string>()
+  const signal = input.signal
+    ? AbortSignal.any([input.signal, AbortSignal.timeout(10_000)])
+    : AbortSignal.timeout(10_000)
   let pageToken: string | undefined
   do {
     const url = new URL(`${baseURL.replace(/\/+$/, "")}/models`)
     if (input.key) url.searchParams.set("key", input.key)
     url.searchParams.set("pageSize", "1000")
     if (pageToken) url.searchParams.set("pageToken", pageToken)
-    const body = await json(input, url.href, { "Content-Type": "application/json" })
+    const body = await json({ ...input, signal }, url.href, { "Content-Type": "application/json" })
     if (!isRecord(body) || !Array.isArray(body.models)) {
       throw new DiscoveryError("invalid_response", "google returned an invalid model catalogue.", false)
     }
@@ -249,12 +311,16 @@ async function gemini(input: Input, baseURL: string) {
       }),
     )
     pageToken = typeof body.nextPageToken === "string" ? body.nextPageToken : undefined
+    if (pageToken && tokens.has(pageToken)) {
+      throw new DiscoveryError("invalid_response", "google returned a repeated model page token.", false)
+    }
+    if (pageToken) tokens.add(pageToken)
   } while (pageToken)
   return models
 }
 
 export async function discover(input: Input): Promise<Result> {
-  const baseURL = input.baseURL ?? defaults[input.providerID]
+  const baseURL = input.baseURL ?? defaultBaseURL(input.providerID)
   if (!baseURL) {
     return {
       verified: false,
@@ -279,13 +345,17 @@ export async function discover(input: Input): Promise<Result> {
   }
 
   const body = await json(input, modelEndpoint(input.providerID, baseURL), headers)
-  const items = input.providerID === "ollama" && isRecord(body) ? body.models : isRecord(body) ? body.data : undefined
+  const items = Array.isArray(body)
+    ? body
+    : input.providerID === "ollama" && isRecord(body)
+      ? body.models
+      : input.providerID === "cohere" && isRecord(body)
+        ? body.models
+        : isRecord(body)
+          ? body.data
+          : undefined
   if (!Array.isArray(items)) {
-    throw new DiscoveryError(
-      "invalid_response",
-      `${input.providerID} returned an invalid model catalogue.`,
-      false,
-    )
+    throw new DiscoveryError("invalid_response", `${input.providerID} returned an invalid model catalogue.`, false)
   }
   const map =
     input.providerID === "ollama"
@@ -294,7 +364,11 @@ export async function discover(input: Input): Promise<Result> {
         ? anthropicModel
         : input.providerID === "openrouter"
           ? openRouterModel
-          : genericModel
+          : input.providerID === "cohere"
+            ? cohereModel
+            : input.providerID === "togetherai"
+              ? togetherModel
+              : genericModel
   const models = items.map(map).filter((model): model is Model => !!model)
   if (!models.length) {
     const message =

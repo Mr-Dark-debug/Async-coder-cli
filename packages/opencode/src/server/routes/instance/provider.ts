@@ -101,6 +101,9 @@ export const ProviderRoutes = lazy(() =>
               const configured = (yield* config.get()).provider?.[providerID]
               return {
                 key: stored?.type === "api" ? stored.key : stored?.type === "oauth" ? stored.access : undefined,
+                configuredBaseURL:
+                  (typeof configured?.options?.baseURL === "string" ? configured.options.baseURL : undefined) ??
+                  (typeof info?.options.baseURL === "string" ? info.options.baseURL : undefined),
                 baseURL:
                   (typeof configured?.options?.baseURL === "string" ? configured.options.baseURL : undefined) ??
                   (typeof info?.options.baseURL === "string" ? info.options.baseURL : undefined) ??
@@ -111,8 +114,9 @@ export const ProviderRoutes = lazy(() =>
           return c.json(
             await ProviderDiscovery.discover({
               providerID,
-              key: input.key ?? resolved.key,
-              baseURL: input.baseURL ?? resolved.baseURL,
+              key: input.baseURL ? input.key : (input.key ?? resolved.key),
+              baseURL: input.baseURL ?? (input.key ? resolved.configuredBaseURL : resolved.baseURL),
+              signal: c.req.raw.signal,
             }),
           )
         } catch (error) {
@@ -123,6 +127,7 @@ export const ProviderRoutes = lazy(() =>
             not_found: 404,
             rate_limited: 429,
             timeout: 504,
+            cancelled: 400,
             network: 502,
             provider_unavailable: 502,
             invalid_response: 502,

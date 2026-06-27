@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onMount, Show } from "solid-js"
+import { createMemo, createSignal, onCleanup, onMount, Show } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { map, pipe, sortBy } from "remeda"
 import { DialogSelect } from "@tui/ui/dialog-select"
@@ -26,7 +26,52 @@ const PROVIDER_PRIORITY: Record<string, number> = {
 }
 const HIDDEN_PROVIDER_IDS = ["xi" + "ao" + "mi", "mi" + "mo", "opencode", "opencode-go"]
 
-export function createDialogProviderOptions() {
+export type ProviderDestination = {
+  onConnected?: (providerID: string) => void
+  onCancel?: () => void
+}
+
+type ProviderSetupOptions = ProviderDestination & { providerID?: string; onStart?: () => void }
+
+export function providerDestination(props: ProviderDestination & { providerID?: string } = {}, onStart?: () => void) {
+  if (!props.providerID && !props.onConnected && !props.onCancel) return
+  return { ...props, onStart }
+}
+
+export function shouldDiscoverProvider(destination?: ProviderSetupOptions) {
+  return !!(destination?.providerID || destination?.onConnected || destination?.onCancel)
+}
+
+export function showProviderExtras(providerID?: string) {
+  return !providerID
+}
+
+export function showInferenceProvider(providerID: string, scopedProviderID?: string) {
+  if (scopedProviderID) return providerID === scopedProviderID
+  return !HIDDEN_PROVIDER_IDS.includes(providerID)
+}
+
+export function discoveredModelIDs(result: { models: { id: string }[] }) {
+  return result.models.map((model) => model.id).join(", ")
+}
+
+export function cancelProviderFailure(destination?: ProviderDestination) {
+  return !!destination
+}
+
+export function providerSetupError(error: unknown) {
+  if (typeof error !== "object" || !error) return "Could not verify this provider. Check your key and try again."
+  if ("message" in error && typeof error.message === "string") return error.message
+  if (!("data" in error) || typeof error.data !== "object" || !error.data) {
+    return "Could not verify this provider. Check your key and try again."
+  }
+  if (!("message" in error.data) || typeof error.data.message !== "string") {
+    return "Could not verify this provider. Check your key and try again."
+  }
+  return error.data.message
+}
+
+export function createDialogProviderOptions(destination?: ProviderSetupOptions) {
   const sync = useSync()
   const dialog = useDialog()
   const sdk = useSDK()
@@ -34,7 +79,7 @@ export function createDialogProviderOptions() {
   const { theme } = useTheme()
   const options = createMemo(() => {
     const list = pipe(
-      sync.data.provider_next.all.filter((provider) => !HIDDEN_PROVIDER_IDS.includes(provider.id)),
+      sync.data.provider_next.all.filter((provider) => showInferenceProvider(provider.id, destination?.providerID)),
       sortBy((x) => PROVIDER_PRIORITY[x.id] ?? 99),
       map((provider) => {
         const consoleManaged = isConsoleManagedProvider(sync.data.console_state.consoleManagedProviders, provider.id)
@@ -57,6 +102,7 @@ export function createDialogProviderOptions() {
           gutter: connected ? <text fg={theme.success}>✓</text> : undefined,
           async onSelect() {
             if (consoleManaged) return
+            destination?.onStart?.()
 
             const methods = sync.data.provider_auth[provider.id] ?? [
               {
@@ -66,6 +112,7 @@ export function createDialogProviderOptions() {
             ]
             let index: number | null = 0
             if (methods.length > 1) {
+              let selected = false
               index = await new Promise<number | null>((resolve) => {
                 dialog.replace(
                   () => (
@@ -75,10 +122,16 @@ export function createDialogProviderOptions() {
                         title: x.label,
                         value: index,
                       }))}
-                      onSelect={(option) => resolve(option.value)}
+                      onSelect={(option) => {
+                        selected = true
+                        resolve(option.value)
+                      }}
                     />
                   ),
-                  () => resolve(null),
+                  () => {
+                    resolve(null)
+                    if (!selected) destination?.onCancel?.()
+                  },
                 )
               })
             }
@@ -91,7 +144,7 @@ export function createDialogProviderOptions() {
                   dialog,
                   prompts: method.prompts,
                 })
-                if (!value) return
+                if (!value) return destination?.onCancel?.()
                 inputs = value
               }
 
@@ -106,6 +159,7 @@ export function createDialogProviderOptions() {
                   message: JSON.stringify(result.error),
                 })
                 dialog.clear()
+                destination?.onCancel?.()
                 return
               }
               if (result.data?.method === "code") {
@@ -115,6 +169,7 @@ export function createDialogProviderOptions() {
                     title={method.label}
                     index={index}
                     authorization={result.data!}
+                    destination={destination}
                   />
                 ))
               }
@@ -125,6 +180,7 @@ export function createDialogProviderOptions() {
                     title={method.label}
                     index={index}
                     authorization={result.data!}
+                    destination={destination}
                   />
                 ))
               }
@@ -133,17 +189,23 @@ export function createDialogProviderOptions() {
               let metadata: Record<string, string> | undefined
               if (method.prompts?.length) {
                 const value = await PromptsMethod({ dialog, prompts: method.prompts })
-                if (!value) return
+                if (!value) return destination?.onCancel?.()
                 metadata = value
               }
               return dialog.replace(() => (
-                <ApiMethod providerID={provider.id} title={method.label} metadata={metadata} />
+                <ApiMethod
+                  providerID={provider.id}
+                  title={method.label}
+                  metadata={metadata}
+                  destination={destination}
+                />
               ))
             }
           },
         }
       }),
     )
+    if (!showProviderExtras(destination?.providerID)) return list
     return [
       ...list,
       {
@@ -187,7 +249,8 @@ export function createDialogProviderOptions() {
         category: "Other",
         gutter: undefined,
         async onSelect() {
-          await runCustomProviderWizard({ dialog, sdk, sync, toast })
+          destination?.onStart?.()
+          await runCustomProviderWizard({ dialog, sdk, sync, toast, destination })
         },
       },
     ]
@@ -195,8 +258,12 @@ export function createDialogProviderOptions() {
   return options
 }
 
-export function DialogProvider() {
-  const options = createDialogProviderOptions()
+export function DialogProvider(props: ProviderDestination & { providerID?: string } = {}) {
+  let started = false
+  onCleanup(() => {
+    if (!started) props.onCancel?.()
+  })
+  const options = createDialogProviderOptions(providerDestination(props, () => (started = true)))
   return <DialogSelect title="Connect a provider" options={options()} />
 }
 
@@ -205,48 +272,91 @@ export async function runCustomProviderWizard(opts: {
   sdk: ReturnType<typeof useSDK>
   sync: ReturnType<typeof useSync>
   toast: ToastContext
+  destination?: ProviderDestination
+  preset?: {
+    providerID: string
+    name: string
+    baseURL: string
+  }
 }) {
   const { dialog, sdk, sync, toast } = opts
+  const request = new AbortController()
+  let finished = false
+
+  const cancel = () => {
+    if (finished) return
+    finished = true
+    request.abort()
+    opts.destination?.onCancel?.()
+  }
 
   function step(n: number, total: number, title: string, placeholder?: string, value?: string) {
     return DialogPrompt.show(dialog, `${title} (${n}/${total})`, { placeholder, value })
   }
 
   const total = 9
-  const providerIDRaw = await step(1, total, "Provider id", "e.g. my-local-llama")
-  if (providerIDRaw === null) return
+  const providerIDRaw = await step(1, total, "Provider id", "e.g. my-local-llama", opts.preset?.providerID)
+  if (providerIDRaw === null) return cancel()
   const providerID = providerIDRaw.trim()
-  if (!providerID) return
+  if (!providerID) return cancel()
 
-  const nameRaw = await step(2, total, "Display name", "e.g. My Local Llama", providerID)
-  if (nameRaw === null) return
+  const nameRaw = await step(2, total, "Display name", "e.g. My Local Llama", opts.preset?.name ?? providerID)
+  if (nameRaw === null) return cancel()
   const name = nameRaw.trim() || providerID
 
-  const baseURLRaw = await step(3, total, "Base URL", "http://localhost:11434/v1")
-  if (baseURLRaw === null) return
+  const baseURLRaw = await step(3, total, "Base URL", "http://localhost:11434/v1", opts.preset?.baseURL)
+  if (baseURLRaw === null) return cancel()
   const baseURL = baseURLRaw.trim()
-  if (!baseURL) return
+  if (!baseURL) return cancel()
 
   const apiKeyRaw = await step(4, total, "API key", "optional")
-  if (apiKeyRaw === null) return
+  if (apiKeyRaw === null) return cancel()
   const apiKey = apiKeyRaw.trim()
 
-  const modelIDsRaw = await step(5, total, "Model IDs", "llama3.1:70b, qwen2.5:32b")
-  if (modelIDsRaw === null) return
+  let discovering = !!opts.destination
+  if (discovering) {
+    dialog.replace(
+      () => <DialogPrompt title="Discovering models" busy busyText="Checking provider credentials..." />,
+      () => {
+        if (discovering) cancel()
+      },
+    )
+  }
+  const discovery = opts.destination
+    ? await sdk.client.provider.discover(
+        { providerID, baseURL, ...(apiKey ? { key: apiKey } : {}) },
+        { signal: request.signal },
+      )
+    : undefined
+  discovering = false
+  if (request.signal.aborted) return
+  if (discovery?.error) {
+    toast.show({ variant: "error", message: providerSetupError(discovery.error) })
+    return cancel()
+  }
+
+  const modelIDsRaw = await step(
+    5,
+    total,
+    "Model IDs",
+    "llama3.1:70b, qwen2.5:32b",
+    discovery?.data ? discoveredModelIDs(discovery.data) : undefined,
+  )
+  if (modelIDsRaw === null) return cancel()
   const modelIDs = modelIDsRaw
     .split(",")
     .map((item) => item.trim())
     .filter((item) => item.length > 0)
-  if (!modelIDs.length) return
+  if (!modelIDs.length) return cancel()
 
   const inputCostRaw = await step(6, total, "Cost input USD / 1M", "blank for free")
-  if (inputCostRaw === null) return
+  if (inputCostRaw === null) return cancel()
   const outputCostRaw = await step(7, total, "Cost output USD / 1M", "blank for free")
-  if (outputCostRaw === null) return
+  if (outputCostRaw === null) return cancel()
   const cacheReadCostRaw = await step(8, total, "Cost cache read USD / 1M", "blank for free")
-  if (cacheReadCostRaw === null) return
+  if (cacheReadCostRaw === null) return cancel()
   const cacheWriteCostRaw = await step(9, total, "Cost cache write USD / 1M", "blank for free")
-  if (cacheWriteCostRaw === null) return
+  if (cacheWriteCostRaw === null) return cancel()
 
   const cost = {
     input: Number(inputCostRaw.trim() || 0),
@@ -280,25 +390,42 @@ export async function runCustomProviderWizard(opts: {
     },
   } as const
 
-  const updateRes = await sdk.client.global.config.update({ config: patch as any })
+  let saving = true
+  dialog.replace(
+    () => <DialogPrompt title="Saving provider" busy busyText="Saving provider configuration..." />,
+    () => {
+      if (saving) cancel()
+    },
+  )
+  const updateRes = await sdk.client.global.config.update({ config: patch as any }, { signal: request.signal })
+  if (request.signal.aborted) return
   if (updateRes.error) {
     toast.show({ variant: "error", message: JSON.stringify(updateRes.error) })
+    if (cancelProviderFailure(opts.destination)) return cancel()
     return
   }
 
   if (apiKey) {
-    const authRes = await sdk.client.auth.set({
-      providerID,
-      auth: { type: "api", key: apiKey },
-    })
+    const authRes = await sdk.client.auth.set(
+      {
+        providerID,
+        auth: { type: "api", key: apiKey },
+      },
+      { signal: request.signal },
+    )
+    if (request.signal.aborted) return
     if (authRes.error) {
       toast.show({ variant: "error", message: JSON.stringify(authRes.error) })
+      if (cancelProviderFailure(opts.destination)) return cancel()
       return
     }
   }
 
   await sdk.client.instance.dispose()
   await sync.bootstrap()
+  saving = false
+  finished = true
+  if (opts.destination?.onConnected) return opts.destination.onConnected(providerID)
   dialog.replace(() => <DialogModel providerID={providerID} />)
 }
 
@@ -361,6 +488,7 @@ interface AutoMethodProps {
   providerID: string
   title: string
   authorization: ProviderAuthAuthorization
+  destination?: ProviderDestination
 }
 function AutoMethod(props: AutoMethodProps) {
   const { theme } = useTheme()
@@ -368,6 +496,13 @@ function AutoMethod(props: AutoMethodProps) {
   const dialog = useDialog()
   const sync = useSync()
   const toast = useToast()
+  const request = new AbortController()
+  let completed = false
+
+  onCleanup(() => {
+    request.abort()
+    if (!completed) props.destination?.onCancel?.()
+  })
 
   useKeyboard((evt) => {
     if (evt.name === "c" && !evt.ctrl && !evt.meta) {
@@ -379,16 +514,24 @@ function AutoMethod(props: AutoMethodProps) {
   })
 
   onMount(async () => {
-    const result = await sdk.client.provider.oauth.callback({
-      providerID: props.providerID,
-      method: props.index,
-    })
+    const result = await sdk.client.provider.oauth.callback(
+      {
+        providerID: props.providerID,
+        method: props.index,
+      },
+      { signal: request.signal },
+    )
+    if (request.signal.aborted) return
     if (result.error) {
       dialog.clear()
       return
     }
-    await sdk.client.instance.dispose()
+    await sdk.client.instance.dispose(undefined, { signal: request.signal })
+    if (request.signal.aborted) return
     await sync.bootstrap()
+    if (request.signal.aborted) return
+    completed = true
+    if (props.destination?.onConnected) return props.destination.onConnected(props.providerID)
     dialog.replace(() => <DialogModel providerID={props.providerID} />)
   })
 
@@ -419,6 +562,7 @@ interface CodeMethodProps {
   title: string
   providerID: string
   authorization: ProviderAuthAuthorization
+  destination?: ProviderDestination
 }
 function CodeMethod(props: CodeMethodProps) {
   const { theme } = useTheme()
@@ -426,23 +570,43 @@ function CodeMethod(props: CodeMethodProps) {
   const sync = useSync()
   const dialog = useDialog()
   const [error, setError] = createSignal(false)
+  const [pending, setPending] = createSignal(false)
+  const request = new AbortController()
+  let completed = false
+
+  onCleanup(() => {
+    request.abort()
+    if (!completed) props.destination?.onCancel?.()
+  })
 
   return (
     <DialogPrompt
       title={props.title}
       placeholder="Authorization code"
+      busy={pending()}
       onConfirm={async (value) => {
-        const { error } = await sdk.client.provider.oauth.callback({
-          providerID: props.providerID,
-          method: props.index,
-          code: value,
-        })
+        if (pending()) return
+        setPending(true)
+        const { error } = await sdk.client.provider.oauth.callback(
+          {
+            providerID: props.providerID,
+            method: props.index,
+            code: value,
+          },
+          { signal: request.signal },
+        )
+        if (request.signal.aborted) return
         if (!error) {
-          await sdk.client.instance.dispose()
+          await sdk.client.instance.dispose(undefined, { signal: request.signal })
+          if (request.signal.aborted) return
           await sync.bootstrap()
+          if (request.signal.aborted) return
+          completed = true
+          if (props.destination?.onConnected) return props.destination.onConnected(props.providerID)
           dialog.replace(() => <DialogModel providerID={props.providerID} />)
           return
         }
+        setPending(false)
         setError(true)
       }}
       description={() => (
@@ -462,30 +626,68 @@ interface ApiMethodProps {
   providerID: string
   title: string
   metadata?: Record<string, string>
+  destination?: ProviderDestination
 }
 function ApiMethod(props: ApiMethodProps) {
   const dialog = useDialog()
   const sdk = useSDK()
   const sync = useSync()
+  const { theme } = useTheme()
+  const [error, setError] = createSignal<string>()
+  const [pending, setPending] = createSignal(false)
+  const request = new AbortController()
+  let completed = false
+
+  onCleanup(() => {
+    request.abort()
+    if (!completed) props.destination?.onCancel?.()
+  })
 
   return (
     <DialogPrompt
       title={props.title}
       placeholder="API key"
+      busy={pending()}
       onConfirm={async (value) => {
-        if (!value) return
-        await sdk.client.auth.set({
-          providerID: props.providerID,
-          auth: {
-            type: "api",
-            key: value,
-            ...(props.metadata ? { metadata: props.metadata } : {}),
+        if (!value || pending()) return
+        setPending(true)
+        setError()
+        if (shouldDiscoverProvider(props.destination)) {
+          const discovery = await sdk.client.provider.discover(
+            { providerID: props.providerID, key: value },
+            { signal: request.signal },
+          )
+          if (request.signal.aborted) return
+          if (discovery.error) {
+            setPending(false)
+            setError(providerSetupError(discovery.error))
+            return
+          }
+        }
+        const auth = await sdk.client.auth.set(
+          {
+            providerID: props.providerID,
+            auth: {
+              type: "api",
+              key: value,
+              ...(props.metadata ? { metadata: props.metadata } : {}),
+            },
           },
-        })
+          { signal: request.signal },
+        )
+        if (request.signal.aborted) return
+        if (auth.error) {
+          setPending(false)
+          setError(providerSetupError(auth.error))
+          return
+        }
         await sdk.client.instance.dispose()
         await sync.bootstrap()
+        completed = true
+        if (props.destination?.onConnected) return props.destination.onConnected(props.providerID)
         dialog.replace(() => <DialogModel providerID={props.providerID} />)
       }}
+      description={() => <Show when={error()}>{(message) => <text fg={theme.error}>{message()}</text>}</Show>}
     />
   )
 }

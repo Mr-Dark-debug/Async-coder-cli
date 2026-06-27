@@ -16,13 +16,20 @@ import { useGlobalSDK } from "@/context/global-sdk"
 import { useGlobalSync } from "@/context/global-sync"
 import { useLanguage } from "@/context/language"
 import { useProviders } from "@/hooks/use-providers"
+import { providerSetupError, shouldDiscoverProvider } from "./dialog-advisor-setup-state"
 
-export function DialogConnectProvider(props: { provider: string }) {
+export function DialogConnectProvider(props: {
+  provider: string
+  onConnected?: (providerID: string) => void | Promise<void>
+  onCancel?: () => void
+}) {
   const dialog = useDialog()
   const globalSync = useGlobalSync()
   const globalSDK = useGlobalSDK()
   const language = useLanguage()
   const providers = useProviders()
+  const request = new AbortController()
+  let completing = false
 
   const all = () => {
     void import("./dialog-select-provider").then((x) => {
@@ -35,6 +42,7 @@ export function DialogConnectProvider(props: { provider: string }) {
 
   onCleanup(() => {
     alive.value = false
+    request.abort()
     if (timer.current === undefined) return
     clearTimeout(timer.current)
     timer.current = undefined
@@ -126,24 +134,6 @@ export function DialogConnectProvider(props: { provider: string }) {
     return value.label ?? ""
   }
 
-  function formatError(value: unknown, fallback: string): string {
-    if (value && typeof value === "object" && "data" in value) {
-      const data = (value as { data?: { message?: unknown } }).data
-      if (typeof data?.message === "string" && data.message) return data.message
-    }
-    if (value && typeof value === "object" && "error" in value) {
-      const nested = formatError((value as { error?: unknown }).error, "")
-      if (nested) return nested
-    }
-    if (value && typeof value === "object" && "message" in value) {
-      const message = (value as { message?: unknown }).message
-      if (typeof message === "string" && message) return message
-    }
-    if (value instanceof Error && value.message) return value.message
-    if (typeof value === "string" && value) return value
-    return fallback
-  }
-
   async function selectMethod(index: number, inputs?: Record<string, string>) {
     if (timer.current !== undefined) {
       clearTimeout(timer.current)
@@ -187,7 +177,7 @@ export function DialogConnectProvider(props: { provider: string }) {
         })
         .catch((e) => {
           if (!alive.value) return
-          dispatch({ type: "auth.error", error: formatError(e, language.t("common.requestFailed")) })
+          dispatch({ type: "auth.error", error: providerSetupError(e, language.t("common.requestFailed")) })
         })
     }
   }
@@ -332,7 +322,15 @@ export function DialogConnectProvider(props: { provider: string }) {
   })
 
   async function complete() {
+    if (!alive.value || completing) return
+    completing = true
     await globalSDK.client.global.dispose()
+    if (!alive.value) return
+    if (props.onConnected) {
+      await globalSync.bootstrap()
+      await props.onConnected(props.provider)
+      return
+    }
     dialog.close()
     showToast({
       variant: "success",
@@ -343,6 +341,10 @@ export function DialogConnectProvider(props: { provider: string }) {
   }
 
   function goBack() {
+    if (props.onCancel) {
+      props.onCancel()
+      return
+    }
     if (methods().length === 1) {
       all()
       return
@@ -394,10 +396,12 @@ export function DialogConnectProvider(props: { provider: string }) {
     const [formStore, setFormStore] = createStore({
       value: "",
       error: undefined as string | undefined,
+      pending: false,
     })
 
     async function handleSubmit(e: SubmitEvent) {
       e.preventDefault()
+      if (formStore.pending) return
 
       const form = e.currentTarget as HTMLFormElement
       const formData = new FormData(form)
@@ -409,14 +413,43 @@ export function DialogConnectProvider(props: { provider: string }) {
       }
 
       setFormStore("error", undefined)
-      await globalSDK.client.auth.set({
-        providerID: props.provider,
-        auth: {
-          type: "api",
-          key: apiKey,
-        },
+      setFormStore("pending", true)
+      if (shouldDiscoverProvider(props.onConnected)) {
+        const validation = await globalSDK.client.provider
+          .discover({ providerID: props.provider, key: apiKey.trim() }, { signal: request.signal })
+          .then((value) => (value.error ? { ok: false as const, error: value.error } : { ok: true as const }))
+          .catch((error) => ({ ok: false as const, error }))
+        if (!alive.value) return
+        if (!validation.ok) {
+          setFormStore("pending", false)
+          setFormStore("error", providerSetupError(validation.error, language.t("provider.connect.apiKey.invalid")))
+          return
+        }
+      }
+      const connected = await globalSDK.client.auth
+        .set(
+          {
+            providerID: props.provider,
+            auth: {
+              type: "api",
+              key: apiKey,
+            },
+          },
+          { signal: request.signal },
+        )
+        .then((value) => (value.error ? { ok: false as const, error: value.error } : { ok: true as const }))
+        .catch((error) => ({ ok: false as const, error }))
+      if (!alive.value) return
+      if (!connected.ok) {
+        setFormStore("pending", false)
+        setFormStore("error", providerSetupError(connected.error, language.t("common.requestFailed")))
+        return
+      }
+      await complete().catch((error) => {
+        if (!alive.value) return
+        setFormStore("pending", false)
+        setFormStore("error", providerSetupError(error, language.t("common.requestFailed")))
       })
-      await complete()
     }
 
     return (
@@ -453,7 +486,7 @@ export function DialogConnectProvider(props: { provider: string }) {
             validationState={formStore.error ? "invalid" : undefined}
             error={formStore.error}
           />
-          <Button class="w-auto" type="submit" size="large" variant="primary">
+          <Button class="w-auto" type="submit" size="large" variant="primary" disabled={formStore.pending}>
             {language.t("common.continue")}
           </Button>
         </form>
@@ -489,10 +522,12 @@ export function DialogConnectProvider(props: { provider: string }) {
         .then((value) => (value.error ? { ok: false as const, error: value.error } : { ok: true as const }))
         .catch((error) => ({ ok: false as const, error }))
       if (result.ok) {
-        await complete()
+        await complete().catch((error) => {
+          setFormStore("error", providerSetupError(error, language.t("common.requestFailed")))
+        })
         return
       }
-      setFormStore("error", formatError(result.error, language.t("provider.connect.oauth.code.invalid")))
+      setFormStore("error", providerSetupError(result.error, language.t("provider.connect.oauth.code.invalid")))
     }
 
     return (
@@ -544,12 +579,14 @@ export function DialogConnectProvider(props: { provider: string }) {
         if (!alive.value) return
 
         if (!result.ok) {
-          const message = formatError(result.error, language.t("common.requestFailed"))
+          const message = providerSetupError(result.error, language.t("common.requestFailed"))
           dispatch({ type: "auth.error", error: message })
           return
         }
 
-        await complete()
+        await complete().catch((error) => {
+          dispatch({ type: "auth.error", error: providerSetupError(error, language.t("common.requestFailed")) })
+        })
       })()
     })
 
