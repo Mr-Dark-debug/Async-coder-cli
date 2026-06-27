@@ -262,6 +262,12 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
     })
   }
 
+  const chooseAdvisorModel = () => {
+    void import("@/components/dialog-advisor-setup").then((x) => {
+      dialog.show(() => <x.DialogAdvisorSetup />)
+    })
+  }
+
   const chooseMcp = () => {
     void import("@/components/dialog-select-mcp").then((x) => {
       dialog.show(() => <x.DialogSelectMcp />)
@@ -520,6 +526,13 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       keybind: "mod+'",
       slash: "model",
       onSelect: chooseModel,
+    }),
+    modelCommand({
+      id: "advisor.model",
+      title: language.t("command.advisor.model"),
+      description: language.t("command.advisor.model.description"),
+      slash: "sage-model",
+      onSelect: chooseAdvisorModel,
     }),
     modelCommand({
       id: "model.variant.cycle",

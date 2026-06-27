@@ -9,6 +9,7 @@ import { HistoryTool } from "./history"
 import { MemoryTool } from "./memory"
 import { ReadTool } from "./read"
 import { ActorTool } from "./actor"
+import { ConsultTool } from "./consult"
 import { TaskTool } from "./task"
 import { WorkflowTool } from "./workflow"
 import { WebFetchTool } from "./webfetch"
@@ -121,6 +122,7 @@ export const layer = Layer.effect(
 
     const invalid = yield* InvalidTool
     const actor = yield* ActorTool
+    const consult = yield* ConsultTool
     const read = yield* ReadTool
     const question = yield* QuestionTool
     const lsptool = yield* LspTool
@@ -212,6 +214,7 @@ export const layer = Layer.effect(
           edit: Tool.init(edit),
           write: Tool.init(writetool),
           actor: Tool.init(actor),
+          consult: Tool.init(consult),
           fetch: Tool.init(webfetch),
           search: Tool.init(websearch),
           code: Tool.init(codesearch),
@@ -239,6 +242,7 @@ export const layer = Layer.effect(
             tool.edit,
             tool.write,
             tool.actor,
+            tool.consult,
             tool.fetch,
             tool.search,
             tool.code,
@@ -293,9 +297,7 @@ export const layer = Layer.effect(
     })
 
     const describeTask = Effect.fn("ToolRegistry.describeTask")(function* (agent: Agent.Info) {
-      const items = (yield* agents.list()).filter(
-        (item) => item.mode !== "primary" && !item.hidden,
-      )
+      const items = (yield* agents.list()).filter((item) => item.mode !== "primary" && !item.hidden)
       const filtered = items.filter(
         (item) => Permission.evaluate("task", item.name, agent.permission).action !== "deny",
       )
@@ -332,6 +334,7 @@ export const layer = Layer.effect(
       }
 
       const cfg = yield* config.get()
+      filtered = filtered.filter((tool) => tool.id !== ConsultTool.id || cfg.advisor !== undefined)
       const resolveStyle = (toolId: string): "json" | "shell" => resolveInvocationStyle(cfg.tool, toolId)
 
       return yield* Effect.forEach(

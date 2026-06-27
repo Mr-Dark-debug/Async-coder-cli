@@ -18,6 +18,7 @@ import { Worktree as WorktreeState } from "@/utils/worktree"
 import { buildRequestParts } from "./build-request-parts"
 import { setCursorPosition } from "./editor-dom"
 import { formatServerError } from "@/utils/server-errors"
+import { needsAdvisorSetup } from "@/components/dialog-advisor-setup-state"
 
 type PendingPrompt = {
   abort: AbortController
@@ -190,6 +191,7 @@ type PromptSubmitInput = {
   onQueue?: (draft: FollowupDraft) => void
   onAbort?: () => void
   onSubmit?: () => void
+  configureAdvisor?: (callbacks: { onConfigured: () => void; onClose: () => void }) => void
 }
 
 type CommentItem = {
@@ -212,6 +214,8 @@ export function createPromptSubmit(input: PromptSubmitInput) {
   const layout = useLayout()
   const language = useLanguage()
   const params = useParams()
+  let advisorSetupPending = false
+  let advisorSetupResume = false
 
   const errorMessage = (err: unknown) => {
     if (err && typeof err === "object" && "data" in err) {
@@ -298,6 +302,24 @@ export function createPromptSubmit(input: PromptSubmitInput) {
       if (input.working()) void abort()
       return
     }
+
+    if (!advisorSetupResume && needsAdvisorSetup(text, sync.data.config?.advisor)) {
+      if (advisorSetupPending) return
+      if (!input.configureAdvisor) return
+      advisorSetupPending = true
+      input.configureAdvisor({
+        onConfigured: () => {
+          advisorSetupPending = false
+          advisorSetupResume = true
+          queueMicrotask(() => void handleSubmit(new Event("submit")))
+        },
+        onClose: () => {
+          advisorSetupPending = false
+        },
+      })
+      return
+    }
+    advisorSetupResume = false
 
     const currentModel = local.model.current()
     const currentAgent = local.agent.current()

@@ -1971,6 +1971,13 @@ export type Config = {
    */
   small_model?: string
   /**
+   * Sage advisor model and optional reasoning variant
+   */
+  advisor?: {
+    model: string
+    variant?: string
+  }
+  /**
    * Named model groups (capability tiers, e.g. ultra/standard/lite). Each group has a default model and optional member models. A group name can be used anywhere a provider/model string is accepted.
    */
   model_groups?: {

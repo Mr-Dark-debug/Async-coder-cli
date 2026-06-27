@@ -46,6 +46,7 @@ import { DialogWorkspaceUnavailable } from "../dialog-workspace-unavailable"
 import { DialogAgreement, FREE_AGREEMENT_KEY, FREE_MODEL_IDS } from "../dialog-agreement"
 import { useArgs } from "@tui/context/args"
 import { formatCost, formatTokens } from "../../feature-plugins/sidebar/usage-data"
+import { DialogAdvisorSetup, needsAdvisorSetup } from "../dialog-advisor-setup"
 
 export type PromptProps = {
   sessionID?: string
@@ -74,6 +75,11 @@ export type PromptRef = {
   paste(): void
 }
 
+export function findClientSlash<T extends { display: string }>(input: string, slashes: T[]) {
+  if (!input.startsWith("/")) return
+  return slashes.find((slash) => slash.display === input.trim())
+}
+
 function randomIndex(count: number) {
   if (count <= 0) return 0
   return Math.floor(Math.random() * count)
@@ -86,17 +92,19 @@ function fadeColor(color: RGBA, alpha: number) {
 let stashed: { prompt: PromptInfo; cursor: number } | undefined
 
 // Module-level voice state: survives component remounts and route changes
-let activeVoice: {
-  handle: Voice.StreamingHandle
-  pending: number
-  appendText: (text: string) => void
-  setText: (text: string) => void
-  getPlainText: () => string
-  switchAgent: (name: string) => void
-  submit: () => Promise<unknown>
-  setState: (type: "listening" | "speaking" | "processing" | "finishing" | "idle") => void
-  showError: (msg: string) => void
-} | undefined
+let activeVoice:
+  | {
+      handle: Voice.StreamingHandle
+      pending: number
+      appendText: (text: string) => void
+      setText: (text: string) => void
+      getPlainText: () => string
+      switchAgent: (name: string) => void
+      submit: () => Promise<unknown>
+      setState: (type: "listening" | "speaking" | "processing" | "finishing" | "idle") => void
+      showError: (msg: string) => void
+    }
+  | undefined
 
 export function Prompt(props: PromptProps) {
   let input: TextareaRenderable
@@ -254,69 +262,73 @@ export function Prompt(props: PromptProps) {
         av.setState("processing")
 
         if (voiceControlEnabled()) {
-          voiceControlChain = voiceControlChain.then(async () => {
-            try {
-              if (!activeVoice) return
-              av.setState("processing")
-              const currentText = av.getPlainText()
-              const currentAgent = local.agent.current()?.name ?? ""
-              const availableAgents = local.agent.list().map((x) => x.name)
+          voiceControlChain = voiceControlChain
+            .then(async () => {
+              try {
+                if (!activeVoice) return
+                av.setState("processing")
+                const currentText = av.getPlainText()
+                const currentAgent = local.agent.current()?.name ?? ""
+                const availableAgents = local.agent.list().map((x) => x.name)
 
-              const ctrl = await Voice.processVoiceControl({
-                audio: segment.audio,
-                apiKey,
-                baseUrl,
-                currentText,
-                currentAgent,
-                availableAgents,
-                sendEnabled: voiceSendEnabled(),
-              })
+                const ctrl = await Voice.processVoiceControl({
+                  audio: segment.audio,
+                  apiKey,
+                  baseUrl,
+                  currentText,
+                  currentAgent,
+                  availableAgents,
+                  sendEnabled: voiceSendEnabled(),
+                })
 
-              if (ctrl) {
-                for (const action of ctrl.actions) {
-                  if (action.action === "edit") av.setText(action.text)
-                  else if (action.action === "send") {
-                    if (voiceSendEnabled() && av.getPlainText().trim()) await av.submit()
-                    else if (!av.getPlainText().trim()) av.showError(t("tui.voice.error.empty_send"))
-                  } else if (action.action === "agent") {
-                    av.switchAgent(action.agent)
+                if (ctrl) {
+                  for (const action of ctrl.actions) {
+                    if (action.action === "edit") av.setText(action.text)
+                    else if (action.action === "send") {
+                      if (voiceSendEnabled() && av.getPlainText().trim()) await av.submit()
+                      else if (!av.getPlainText().trim()) av.showError(t("tui.voice.error.empty_send"))
+                    } else if (action.action === "agent") {
+                      av.switchAgent(action.agent)
+                    }
                   }
+                } else {
+                  av.showError(t("tui.voice.error.network"))
                 }
-              } else {
-                av.showError(t("tui.voice.error.network"))
+              } finally {
+                av.pending--
+                if (activeVoice === av && voiceState() !== "speaking")
+                  av.setState(av.pending > 0 ? "processing" : "listening")
+                if (!activeVoice && av.pending <= 0) av.setState("idle")
               }
-            } finally {
-              av.pending--
-              if (activeVoice === av && voiceState() !== "speaking")
-                av.setState(av.pending > 0 ? "processing" : "listening")
-              if (!activeVoice && av.pending <= 0) av.setState("idle")
-            }
-          }).catch(() => {})
+            })
+            .catch(() => {})
         } else {
           Voice.transcribeAudio({
             audio: segment.audio,
             apiKey,
             baseUrl,
-          }).then((text) => {
-            if (text) {
-              if (voiceSendEnabled() && Voice.SEND_RE.test(text.replace(/[\s。.!！？?，,]+$/g, "").trim())) {
-                av.submit()
-              } else {
-                av.appendText(text.trim())
-              }
-            } else {
-              av.showError(t("tui.voice.error.network"))
-            }
-            av.pending--
-            if (activeVoice === av && voiceState() !== "speaking")
-              av.setState(av.pending > 0 ? "processing" : "listening")
-            if (!activeVoice && av.pending <= 0) av.setState("idle")
-          }).catch(() => {
-            av.pending--
-            if (activeVoice === av && voiceState() !== "speaking")
-              av.setState(av.pending > 0 ? "processing" : "listening")
-            if (!activeVoice && av.pending <= 0) av.setState("idle")
           })
+            .then((text) => {
+              if (text) {
+                if (voiceSendEnabled() && Voice.SEND_RE.test(text.replace(/[\s。.!！？?，,]+$/g, "").trim())) {
+                  av.submit()
+                } else {
+                  av.appendText(text.trim())
+                }
+              } else {
+                av.showError(t("tui.voice.error.network"))
+              }
+              av.pending--
+              if (activeVoice === av && voiceState() !== "speaking")
+                av.setState(av.pending > 0 ? "processing" : "listening")
+              if (!activeVoice && av.pending <= 0) av.setState("idle")
+            })
+            .catch(() => {
+              av.pending--
+              if (activeVoice === av && voiceState() !== "speaking")
+                av.setState(av.pending > 0 ? "processing" : "listening")
+              if (!activeVoice && av.pending <= 0) av.setState("idle")
+            })
         }
       },
       onActiveChange: (active) => {
@@ -747,7 +759,9 @@ export function Prompt(props: PromptProps) {
         },
       },
       {
-        title: voiceControlEnabled() ? t("tui.command.voice.control.title_on") : t("tui.command.voice.control.title_off"),
+        title: voiceControlEnabled()
+          ? t("tui.command.voice.control.title_on")
+          : t("tui.command.voice.control.title_off"),
         value: "voice.control",
         category: "prompt",
         slash: {
@@ -986,6 +1000,7 @@ export function Prompt(props: PromptProps) {
   // textarea's deferred onSubmit), and without this guard the deferred call can
   // interleave with the post-accept re-submit and drop the user's message.
   let agreementPending = false
+  let advisorSetupPending = false
   async function submit() {
     if (agreementPending) return false
     setGhost("")
@@ -999,13 +1014,40 @@ export function Prompt(props: PromptProps) {
     if (props.disabled) return false
     if (autocomplete?.visible) return false
     if (!store.prompt.input) return false
-    const agent = local.agent.current()
-    if (!agent) return false
     const trimmed = store.prompt.input.trim()
     if (trimmed === "exit" || trimmed === "quit" || trimmed === ":q") {
       void exit()
       return true
     }
+    if (needsAdvisorSetup(store.prompt.input, sync.data.config.advisor)) {
+      if (advisorSetupPending) return false
+      advisorSetupPending = true
+      dialog.replace(
+        () => (
+          <DialogAdvisorSetup
+            onConfigured={() => {
+              advisorSetupPending = false
+              setTimeout(() => void submit(), 0)
+            }}
+          />
+        ),
+        () => {
+          advisorSetupPending = false
+        },
+      )
+      return false
+    }
+    const clientSlash = findClientSlash(store.prompt.input, command.slashes())
+    if (clientSlash) {
+      clientSlash.onSelect?.()
+      input.extmarks.clear()
+      setStore("prompt", { input: "", parts: [] })
+      setStore("extmarkToPartIndex", new Map())
+      input.clear()
+      return true
+    }
+    const agent = local.agent.current()
+    if (!agent) return false
     const selectedModel = local.model.current()
     if (!selectedModel) {
       void promptModelWarning()
@@ -1103,10 +1145,6 @@ export function Prompt(props: PromptProps) {
     const currentMode = store.mode
     const variant = local.model.variant.current()
 
-    const clientSlash = inputText.startsWith("/")
-      ? command.slashes().find((s) => s.display === inputText.trim())
-      : undefined
-
     if (store.mode === "shell") {
       void sdk.client.session.shell({
         sessionID,
@@ -1118,8 +1156,6 @@ export function Prompt(props: PromptProps) {
         command: inputText,
       })
       setStore("mode", "normal")
-    } else if (clientSlash) {
-      clientSlash.onSelect?.()
     } else if (
       inputText.startsWith("/") &&
       iife(() => {
@@ -1651,9 +1687,7 @@ export function Prompt(props: PromptProps) {
                 </Show>
               </box>
               <box flexDirection="row" gap={1} alignItems="center">
-                <Show when={hasRightContent()}>
-                  {props.right}
-                </Show>
+                <Show when={hasRightContent()}>{props.right}</Show>
                 <Show when={voiceEnabled()}>
                   <Switch>
                     <Match when={voiceState() === "idle"}>
@@ -1677,7 +1711,9 @@ export function Prompt(props: PromptProps) {
                       </text>
                     </Match>
                     <Match when={voiceState() === "finishing"}>
-                      <text fg={theme.textMuted} selectable={false}>{"[ 🎙  .... ]"}</text>
+                      <text fg={theme.textMuted} selectable={false}>
+                        {"[ 🎙  .... ]"}
+                      </text>
                     </Match>
                   </Switch>
                 </Show>
@@ -1816,7 +1852,8 @@ export function Prompt(props: PromptProps) {
                       )}
                     </Show>
                     <text fg={theme.text}>
-                      {keybind.print("agent_cycle")} <span style={{ fg: theme.textMuted }}>{t("tui.prompt.hint.switch_mode")}</span>
+                      {keybind.print("agent_cycle")}{" "}
+                      <span style={{ fg: theme.textMuted }}>{t("tui.prompt.hint.switch_mode")}</span>
                     </text>
                     <text fg={theme.text}>
                       {keybind.print("command_list")}{" "}

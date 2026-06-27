@@ -3,17 +3,7 @@ import * as Clipboard from "@tui/util/clipboard"
 import * as Selection from "@tui/util/selection"
 import { createCliRenderer, MouseButton, type CliRendererConfig } from "@opentui/core"
 import { RouteProvider, useRoute } from "@tui/context/route"
-import {
-  Switch,
-  Match,
-  createEffect,
-  createMemo,
-  ErrorBoundary,
-  createSignal,
-  onMount,
-  batch,
-  Show,
-} from "solid-js"
+import { Switch, Match, createEffect, createMemo, ErrorBoundary, createSignal, onMount, batch, Show } from "solid-js"
 import { win32DisableProcessedInput, win32InstallCtrlCGuard } from "./win32"
 import { Flag } from "@/flag/flag"
 import semver from "semver"
@@ -33,6 +23,7 @@ import { DialogStatus } from "@tui/component/dialog-status"
 import { DialogWorktree } from "@tui/component/dialog-worktree"
 import { DialogThemeList } from "@tui/component/dialog-theme-list"
 import { DialogImageList } from "@tui/component/dialog-image-list"
+import { DialogAdvisorSetup } from "@tui/component/dialog-advisor-setup"
 import { DialogLogoDesign } from "@tui/component/dialog-logo-design"
 import { DialogHelp } from "./ui/dialog-help"
 import { CommandProvider, useCommandDialog } from "@tui/component/dialog-command"
@@ -165,52 +156,52 @@ export function tui(input: {
               <KVProvider>
                 <LanguageProvider>
                   <UiI18nBridge>
-                <ToastProvider>
-                  <RouteProvider
-                    initialRoute={
-                      input.args.continue
-                        ? {
-                            type: "session",
-                            sessionID: "dummy",
-                          }
-                        : undefined
-                    }
-                  >
-                    <TuiConfigProvider config={input.config}>
-                      <SDKProvider
-                        url={input.url}
-                        directory={input.directory}
-                        fetch={input.fetch}
-                        headers={input.headers}
-                        events={input.events}
+                    <ToastProvider>
+                      <RouteProvider
+                        initialRoute={
+                          input.args.continue
+                            ? {
+                                type: "session",
+                                sessionID: "dummy",
+                              }
+                            : undefined
+                        }
                       >
-                        <ProjectProvider>
-                          <SyncProvider>
-                            <ThemeProvider mode={mode} plain={plainTerminal}>
-                              <LocalProvider>
-                                <KeybindProvider>
-                                  <PromptStashProvider>
-                                    <DialogProvider>
-                                      <CommandProvider>
-                                        <FrecencyProvider>
-                                          <PromptHistoryProvider>
-                                            <PromptRefProvider>
-                                              <App onSnapshot={input.onSnapshot} />
-                                            </PromptRefProvider>
-                                          </PromptHistoryProvider>
-                                        </FrecencyProvider>
-                                      </CommandProvider>
-                                    </DialogProvider>
-                                  </PromptStashProvider>
-                                </KeybindProvider>
-                              </LocalProvider>
-                            </ThemeProvider>
-                          </SyncProvider>
-                        </ProjectProvider>
-                      </SDKProvider>
-                    </TuiConfigProvider>
-                  </RouteProvider>
-                </ToastProvider>
+                        <TuiConfigProvider config={input.config}>
+                          <SDKProvider
+                            url={input.url}
+                            directory={input.directory}
+                            fetch={input.fetch}
+                            headers={input.headers}
+                            events={input.events}
+                          >
+                            <ProjectProvider>
+                              <SyncProvider>
+                                <ThemeProvider mode={mode} plain={plainTerminal}>
+                                  <LocalProvider>
+                                    <KeybindProvider>
+                                      <PromptStashProvider>
+                                        <DialogProvider>
+                                          <CommandProvider>
+                                            <FrecencyProvider>
+                                              <PromptHistoryProvider>
+                                                <PromptRefProvider>
+                                                  <App onSnapshot={input.onSnapshot} />
+                                                </PromptRefProvider>
+                                              </PromptHistoryProvider>
+                                            </FrecencyProvider>
+                                          </CommandProvider>
+                                        </DialogProvider>
+                                      </PromptStashProvider>
+                                    </KeybindProvider>
+                                  </LocalProvider>
+                                </ThemeProvider>
+                              </SyncProvider>
+                            </ProjectProvider>
+                          </SDKProvider>
+                        </TuiConfigProvider>
+                      </RouteProvider>
+                    </ToastProvider>
                   </UiI18nBridge>
                 </LanguageProvider>
               </KVProvider>
@@ -413,7 +404,6 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     })
   })
 
-
   const connected = useConnected()
 
   // Seed never-ask from the launch flag once connected (the server starts with
@@ -483,6 +473,17 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
       },
     },
     {
+      title: t("tui.command.advisor.model.title"),
+      value: "advisor.model",
+      category: "agent",
+      slash: {
+        name: "sage-model",
+      },
+      onSelect: () => {
+        dialog.replace(() => <DialogAdvisorSetup />)
+      },
+    },
+    {
       title: t("tui.command.model.cycle_recent.title"),
       value: "model.cycle_recent",
       keybind: "model_cycle_recent",
@@ -535,9 +536,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
       },
     },
     {
-      title: local.neverAsk.current()
-        ? t("tui.command.never_ask.title_on")
-        : t("tui.command.never_ask.title_off"),
+      title: local.neverAsk.current() ? t("tui.command.never_ask.title_on") : t("tui.command.never_ask.title_off"),
       value: "question.never_ask.toggle",
       category: "agent",
       slash: {

@@ -1101,6 +1101,11 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     onQueue: props.onQueue,
     onAbort: props.onAbort,
     onSubmit: props.onSubmit,
+    configureAdvisor: (callbacks) => {
+      void import("./dialog-advisor-setup").then((advisor) => {
+        dialog.show(() => <advisor.DialogAdvisorSetup onConfigured={callbacks.onConfigured} />, callbacks.onClose)
+      })
+    },
   })
 
   const handleKeyDown = (event: KeyboardEvent) => {

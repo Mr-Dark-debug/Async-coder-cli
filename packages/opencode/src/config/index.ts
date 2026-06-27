@@ -1,5 +1,6 @@
 export * as Config from "./config"
 export * as ConfigAgent from "./agent"
+export * as ConfigAdvisor from "./advisor"
 export * as ConfigCommand from "./command"
 export * as ConfigError from "./error"
 export * as ConfigFormatter from "./formatter"

@@ -26,6 +26,7 @@ import { EffectFlock } from "@async-coder/shared/util/effect-flock"
 import { InstanceRef } from "@/effect/instance-ref"
 import { zod, ZodOverride } from "@/util/effect-zod"
 import { ConfigAgent } from "./agent"
+import { ConfigAdvisor } from "./advisor"
 import { ConfigCommand } from "./command"
 import { ConfigFormatter } from "./formatter"
 import { ConfigHistory } from "./history"
@@ -138,6 +139,9 @@ const InfoSchema = Schema.Struct({
   }),
   small_model: Schema.optional(ConfigModelID).annotate({
     description: "Small model to use for tasks like title generation in the format of provider/model",
+  }),
+  advisor: Schema.optional(ConfigAdvisor.Info).annotate({
+    description: "Sage advisor model and optional reasoning variant",
   }),
   model_groups: Schema.optional(
     Schema.Record(
@@ -269,7 +273,7 @@ const InfoSchema = Schema.Struct({
     Schema.Struct({
       thresholds: Schema.optional(Schema.Array(Schema.String)).annotate({
         description:
-          "Context fill thresholds that trigger checkpoint writes. Strings may be percentages (\"40%\"), absolute tokens (\"100K\", \"1.5M\"), or mixed (\"100K\", \"50%\"). Each threshold must be <= window - 20K reserved. Default: [\"40%\", \"60%\", \"80%\"].",
+          'Context fill thresholds that trigger checkpoint writes. Strings may be percentages ("40%"), absolute tokens ("100K", "1.5M"), or mixed ("100K", "50%"). Each threshold must be <= window - 20K reserved. Default: ["40%", "60%", "80%"].',
       }),
       reserved: Schema.optional(NonNegativeInt).annotate({
         description: "Token buffer reserved for checkpoint operations. Default: 20000.",
@@ -311,10 +315,12 @@ const InfoSchema = Schema.Struct({
             description: "Token cap for the session notes (notes.md) of rebuild context. Default: 6000.",
           }),
           design_decisions: Schema.optional(PositiveInt).annotate({
-            description: "Token cap for §10 Design decisions section of checkpoint.md (writer-side budget validation). Default: 3000.",
+            description:
+              "Token cap for §10 Design decisions section of checkpoint.md (writer-side budget validation). Default: 3000.",
           }),
           open_notes: Schema.optional(PositiveInt).annotate({
-            description: "Token cap for §11 Open notes section of checkpoint.md (writer-side budget validation). Default: 800.",
+            description:
+              "Token cap for §11 Open notes section of checkpoint.md (writer-side budget validation). Default: 800.",
           }),
         }),
       ).annotate({
@@ -322,7 +328,8 @@ const InfoSchema = Schema.Struct({
           "Per-section token caps for rebuild context (renderRebuildContext). Each section is loaded up to its cap so the rebuild stays within a predictable budget.",
       }),
       task_archive_days: Schema.optional(PositiveInt).annotate({
-        description: "Number of days after task done/abandoned before it's filtered out of `list({include_archived: false})`. Rows are NOT deleted — see v9 for true GC. Default: 7.",
+        description:
+          "Number of days after task done/abandoned before it's filtered out of `list({include_archived: false})`. Rows are NOT deleted — see v9 for true GC. Default: 7.",
       }),
       task_cleanup_days: Schema.optional(PositiveInt).annotate({
         description: "[deprecated] Alias for task_archive_days. Will be removed in v9.",
@@ -350,8 +357,7 @@ const InfoSchema = Schema.Struct({
   dream: Schema.optional(
     Schema.Struct({
       auto: Schema.optional(Schema.Boolean).annotate({
-        description:
-          "Auto-trigger dream memory consolidation on new session start. Default: true.",
+        description: "Auto-trigger dream memory consolidation on new session start. Default: true.",
       }),
       interval_days: Schema.optional(NonNegativeInt).annotate({
         description: "Minimum days between automatic dream runs. Set to 0 to trigger on every new session. Default: 7.",
@@ -361,8 +367,7 @@ const InfoSchema = Schema.Struct({
   distill: Schema.optional(
     Schema.Struct({
       auto: Schema.optional(Schema.Boolean).annotate({
-        description:
-          "Auto-trigger distill workflow packaging on new session start. Default: true.",
+        description: "Auto-trigger distill workflow packaging on new session start. Default: true.",
       }),
       interval_days: Schema.optional(NonNegativeInt).annotate({
         description: "Minimum days between automatic distill runs. Default: 30.",

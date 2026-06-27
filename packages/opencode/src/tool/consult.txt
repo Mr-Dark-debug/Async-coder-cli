@@ -1,0 +1,3 @@
+Ask the configured Sage advisor model for one independent second opinion.
+
+Use this only when uncertainty, conflicting evidence, an unfamiliar architecture, or a high-impact tradeoff could materially benefit from another model's view. Ask a narrow question and provide only concise relevant context. Do not include secrets or irrelevant conversation history. Evaluate and verify the advice yourself; you remain responsible for the final decision.

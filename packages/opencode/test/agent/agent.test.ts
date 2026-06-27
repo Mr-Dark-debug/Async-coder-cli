@@ -10,9 +10,7 @@ import { ModelID, ProviderID } from "../../src/provider/schema"
 import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
 import { testEffect } from "../lib/effect"
 
-const itTool = testEffect(
-  Layer.mergeAll(ToolRegistry.defaultLayer, Agent.defaultLayer, CrossSpawnSpawner.defaultLayer),
-)
+const itTool = testEffect(Layer.mergeAll(ToolRegistry.defaultLayer, Agent.defaultLayer, CrossSpawnSpawner.defaultLayer))
 
 // Helper to evaluate permission for a tool with wildcard pattern
 function evalPerm(agent: Agent.Info | undefined, permission: string): Permission.Action | undefined {
@@ -41,6 +39,31 @@ test("returns default native agents when no config", async () => {
       expect(names).toContain("explore")
       expect(names).toContain("title")
       expect(names).toContain("summary")
+    },
+  })
+})
+
+test("configured advisor is hidden, tool-free, and uses its saved variant", async () => {
+  await using tmp = await tmpdir({
+    config: {
+      advisor: {
+        model: "anthropic/claude-opus",
+        variant: "high",
+      },
+    },
+  })
+  await Instance.provide({
+    directory: tmp.path,
+    fn: async () => {
+      const advisor = await load(tmp.path, (svc) => svc.get("advisor"))
+      expect(advisor?.mode).toBe("subagent")
+      expect(advisor?.hidden).toBe(true)
+      expect(advisor?.native).toBe(true)
+      expect(advisor?.toolAllowlist).toEqual([])
+      expect(String(advisor?.model?.providerID)).toBe("anthropic")
+      expect(String(advisor?.model?.modelID)).toBe("claude-opus")
+      expect(advisor?.variant).toBe("high")
+      expect(evalPerm(advisor, "*")).toBe("deny")
     },
   })
 })
