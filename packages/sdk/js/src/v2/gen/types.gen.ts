@@ -5484,6 +5484,173 @@ export type ProviderListResponses = {
 
 export type ProviderListResponse = ProviderListResponses[keyof ProviderListResponses]
 
+export type ProviderDiscoverData = {
+  body?: {
+    key?: string
+    baseURL?: string
+  }
+  path: {
+    providerID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/provider/{providerID}/discover"
+}
+
+export type ProviderDiscoverErrors = {
+  /**
+   * Provider discovery failed
+   */
+  400: {
+    code:
+      | "invalid_credentials"
+      | "permission_denied"
+      | "not_found"
+      | "rate_limited"
+      | "timeout"
+      | "network"
+      | "provider_unavailable"
+      | "invalid_response"
+      | "empty_models"
+    message: string
+    retryable: boolean
+  }
+  /**
+   * Provider discovery failed
+   */
+  401: {
+    code:
+      | "invalid_credentials"
+      | "permission_denied"
+      | "not_found"
+      | "rate_limited"
+      | "timeout"
+      | "network"
+      | "provider_unavailable"
+      | "invalid_response"
+      | "empty_models"
+    message: string
+    retryable: boolean
+  }
+  /**
+   * Provider discovery failed
+   */
+  403: {
+    code:
+      | "invalid_credentials"
+      | "permission_denied"
+      | "not_found"
+      | "rate_limited"
+      | "timeout"
+      | "network"
+      | "provider_unavailable"
+      | "invalid_response"
+      | "empty_models"
+    message: string
+    retryable: boolean
+  }
+  /**
+   * Provider discovery failed
+   */
+  404: {
+    code:
+      | "invalid_credentials"
+      | "permission_denied"
+      | "not_found"
+      | "rate_limited"
+      | "timeout"
+      | "network"
+      | "provider_unavailable"
+      | "invalid_response"
+      | "empty_models"
+    message: string
+    retryable: boolean
+  }
+  /**
+   * Provider discovery failed
+   */
+  429: {
+    code:
+      | "invalid_credentials"
+      | "permission_denied"
+      | "not_found"
+      | "rate_limited"
+      | "timeout"
+      | "network"
+      | "provider_unavailable"
+      | "invalid_response"
+      | "empty_models"
+    message: string
+    retryable: boolean
+  }
+  /**
+   * Provider discovery failed
+   */
+  502: {
+    code:
+      | "invalid_credentials"
+      | "permission_denied"
+      | "not_found"
+      | "rate_limited"
+      | "timeout"
+      | "network"
+      | "provider_unavailable"
+      | "invalid_response"
+      | "empty_models"
+    message: string
+    retryable: boolean
+  }
+  /**
+   * Provider discovery failed
+   */
+  504: {
+    code:
+      | "invalid_credentials"
+      | "permission_denied"
+      | "not_found"
+      | "rate_limited"
+      | "timeout"
+      | "network"
+      | "provider_unavailable"
+      | "invalid_response"
+      | "empty_models"
+    message: string
+    retryable: boolean
+  }
+}
+
+export type ProviderDiscoverError = ProviderDiscoverErrors[keyof ProviderDiscoverErrors]
+
+export type ProviderDiscoverResponses = {
+  /**
+   * Provider discovery result
+   */
+  200: {
+    verified: boolean
+    source: "live" | "configured"
+    models: Array<{
+      id: string
+      name: string
+      family?: string
+      created?: string
+      context?: number
+      output?: number
+      input?: Array<string>
+      outputModalities?: Array<string>
+      cost?: {
+        input?: number
+        output?: number
+      }
+      supportedParameters?: Array<string>
+    }>
+    warning?: string
+  }
+}
+
+export type ProviderDiscoverResponse = ProviderDiscoverResponses[keyof ProviderDiscoverResponses]
+
 export type ProviderAuthData = {
   body?: never
   path?: never

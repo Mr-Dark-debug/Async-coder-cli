@@ -99,6 +99,8 @@ import type {
   ProjectUpdateResponses,
   Provenance,
   ProviderAuthResponses,
+  ProviderDiscoverErrors,
+  ProviderDiscoverResponses,
   ProviderListResponses,
   ProviderOauthAuthorizeErrors,
   ProviderOauthAuthorizeResponses,
@@ -3422,6 +3424,47 @@ export class Provider extends HeyApiClient {
       url: "/provider",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Discover provider models
+   *
+   * Validate candidate provider credentials and fetch available models without persisting them.
+   */
+  public discover<ThrowOnError extends boolean = false>(
+    parameters: {
+      providerID: string
+      directory?: string
+      workspace?: string
+      key?: string
+      baseURL?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "providerID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "key" },
+            { in: "body", key: "baseURL" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ProviderDiscoverResponses, ProviderDiscoverErrors, ThrowOnError>({
+      url: "/provider/{providerID}/discover",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 

@@ -54,6 +54,37 @@ export type Result = {
   warning?: string
 }
 
+export const InputSchema = z.strictObject({
+  key: z.string().min(1).optional(),
+  baseURL: z.url().optional(),
+})
+
+export const ModelSchema = z.strictObject({
+  id: z.string(),
+  name: z.string(),
+  family: z.string().optional(),
+  created: z.string().optional(),
+  context: z.number().optional(),
+  output: z.number().optional(),
+  input: z.array(z.string()).optional(),
+  outputModalities: z.array(z.string()).optional(),
+  cost: z.strictObject({ input: z.number().optional(), output: z.number().optional() }).optional(),
+  supportedParameters: z.array(z.string()).optional(),
+})
+
+export const ResultSchema = z.strictObject({
+  verified: z.boolean(),
+  source: z.enum(["live", "configured"]),
+  models: z.array(ModelSchema),
+  warning: z.string().optional(),
+})
+
+export const ErrorSchema = z.strictObject({
+  code: ErrorCode,
+  message: z.string(),
+  retryable: z.boolean(),
+})
+
 const defaults: Record<string, string> = {
   anthropic: "https://api.anthropic.com/v1",
   google: "https://generativelanguage.googleapis.com/v1beta",
