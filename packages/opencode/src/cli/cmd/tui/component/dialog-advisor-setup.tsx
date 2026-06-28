@@ -39,6 +39,14 @@ export function advisorResume(providerID: string, result: "connected" | "cancell
   return { step: "provider" as const }
 }
 
+export function advisorProviderSelection(providerID: string, status: "connected" | "setup_required") {
+  return { providerID, action: status === "connected" ? ("model" as const) : ("connect" as const) }
+}
+
+export function advisorSelectedProvider<T extends { id: string }>(providerID: string, active: T[], catalogue: T[]) {
+  return active.find((item) => item.id === providerID) ?? catalogue.find((item) => item.id === providerID)
+}
+
 export function advisorOllamaPreset() {
   return {
     providerID: "ollama",
@@ -54,9 +62,11 @@ export function DialogAdvisorSetup(props: { onConfigured?: () => void; providerI
   const toast = useToast()
   const t = useLanguage().t
   const [step, setStep] = createSignal<"provider" | "model" | "variant">(props.providerID ? "model" : "provider")
-  const [providerID, setProviderID] = createSignal(props.providerID ?? "")
+  const providerID = () => props.providerID ?? ""
   const [modelID, setModelID] = createSignal("")
-  const provider = createMemo(() => sync.data.provider_next.all.find((item) => item.id === providerID()))
+  const provider = createMemo(() =>
+    advisorSelectedProvider(providerID(), sync.data.provider, sync.data.provider_next.all),
+  )
   const model = createMemo(() => provider()?.models[modelID()])
 
   const save = async (variant: string) => {
@@ -99,9 +109,9 @@ export function DialogAdvisorSetup(props: { onConfigured?: () => void; providerI
                   ? t("tui.dialog.advisor.provider.connected")
                   : t("tui.dialog.advisor.provider.setup_required"),
               onSelect: () => {
-                setProviderID(item.id)
-                if (item.status === "setup_required") return connect(item.id)
-                setStep("model")
+                const selection = advisorProviderSelection(item.id, item.status)
+                if (selection.action === "connect") return connect(selection.providerID)
+                resume(selection.providerID)
               },
             }))
             .concat([

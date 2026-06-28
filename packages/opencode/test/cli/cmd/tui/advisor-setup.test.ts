@@ -47,6 +47,20 @@ describe("TUI advisor setup", () => {
     expect(setup!.advisorResume("groq", "cancelled")).toEqual({ step: "provider" })
   })
 
+  test("opens model selection for an already connected provider", () => {
+    expect(setup!.advisorProviderSelection("groq", "connected")).toEqual({ providerID: "groq", action: "model" })
+    expect(setup!.advisorProviderSelection("groq", "setup_required")).toEqual({
+      providerID: "groq",
+      action: "connect",
+    })
+  })
+
+  test("uses the active provider model inventory after selection", () => {
+    const catalogue = [{ id: "groq", models: {} }]
+    const active = [{ id: "groq", models: { "llama-3": { id: "llama-3" } } }]
+    expect(setup!.advisorSelectedProvider("groq", active, catalogue)).toBe(active[0])
+  })
+
   test("uses the sanitized discovery message for provider setup errors", () => {
     expect(provider).toBeDefined()
     expect(provider!.providerSetupError({ message: "The provider rejected this API key." })).toBe(
