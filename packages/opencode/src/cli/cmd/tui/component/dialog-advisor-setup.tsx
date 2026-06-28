@@ -1,4 +1,4 @@
-import { createMemo, createSignal, Match, Switch } from "solid-js"
+import { createMemo, Match, Switch } from "solid-js"
 import { useDialog } from "@tui/ui/dialog"
 import { DialogSelect } from "@tui/ui/dialog-select"
 import { useSDK } from "@tui/context/sdk"
@@ -47,6 +47,16 @@ export function advisorSelectedProvider<T extends { id: string }>(providerID: st
   return active.find((item) => item.id === providerID) ?? catalogue.find((item) => item.id === providerID)
 }
 
+export function advisorSetupStep(providerID?: string, modelID?: string) {
+  if (modelID) return "variant" as const
+  if (providerID) return "model" as const
+  return "provider" as const
+}
+
+export function advisorModelSelection(providerID: string, modelID: string) {
+  return { providerID, modelID, action: "variant" as const }
+}
+
 export function advisorOllamaPreset() {
   return {
     providerID: "ollama",
@@ -55,15 +65,15 @@ export function advisorOllamaPreset() {
   }
 }
 
-export function DialogAdvisorSetup(props: { onConfigured?: () => void; providerID?: string }) {
+export function DialogAdvisorSetup(props: { onConfigured?: () => void; providerID?: string; modelID?: string }) {
   const dialog = useDialog()
   const sdk = useSDK()
   const sync = useSync()
   const toast = useToast()
   const t = useLanguage().t
-  const [step, setStep] = createSignal<"provider" | "model" | "variant">(props.providerID ? "model" : "provider")
+  const step = () => advisorSetupStep(props.providerID, props.modelID)
   const providerID = () => props.providerID ?? ""
-  const [modelID, setModelID] = createSignal("")
+  const modelID = () => props.modelID ?? ""
   const provider = createMemo(() =>
     advisorSelectedProvider(providerID(), sync.data.provider, sync.data.provider_next.all),
   )
@@ -85,6 +95,17 @@ export function DialogAdvisorSetup(props: { onConfigured?: () => void; providerI
 
   const resume = (nextProviderID: string) => {
     dialog.replace(() => <DialogAdvisorSetup providerID={nextProviderID} onConfigured={props.onConfigured} />)
+  }
+
+  const selectModel = (nextModelID: string) => {
+    const selection = advisorModelSelection(providerID(), nextModelID)
+    dialog.replace(() => (
+      <DialogAdvisorSetup
+        providerID={selection.providerID}
+        modelID={selection.modelID}
+        onConfigured={props.onConfigured}
+      />
+    ))
   }
 
   const cancel = () => {
@@ -154,10 +175,7 @@ export function DialogAdvisorSetup(props: { onConfigured?: () => void; providerI
             .map((item) => ({
               title: item.name ?? item.id,
               value: item.id,
-              onSelect: () => {
-                setModelID(item.id)
-                setStep("variant")
-              },
+              onSelect: () => selectModel(item.id),
             }))}
         />
       </Match>

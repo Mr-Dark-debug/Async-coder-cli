@@ -61,6 +61,17 @@ describe("TUI advisor setup", () => {
     expect(setup!.advisorSelectedProvider("groq", active, catalogue)).toBe(active[0])
   })
 
+  test("advances from model selection to reasoning selection", () => {
+    expect(setup!.advisorSetupStep()).toBe("provider")
+    expect(setup!.advisorSetupStep("groq")).toBe("model")
+    expect(setup!.advisorSetupStep("groq", "compound-mini")).toBe("variant")
+    expect(setup!.advisorModelSelection("groq", "compound-mini")).toEqual({
+      providerID: "groq",
+      modelID: "compound-mini",
+      action: "variant",
+    })
+  })
+
   test("uses the sanitized discovery message for provider setup errors", () => {
     expect(provider).toBeDefined()
     expect(provider!.providerSetupError({ message: "The provider rejected this API key." })).toBe(
