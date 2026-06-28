@@ -1401,6 +1401,12 @@ export NVIDIA_API_KEY=nvapi-your-key-here
 
 You can configure opencode to use local models through Ollama.
 
+1. Start Ollama and make sure at least one model is installed (`ollama list`).
+2. Run `/connect` and select **Ollama (local)**. OpenCode discovers installed models from the local Ollama API and saves the provider automatically.
+3. Select the model immediately, or run `/models` later to change it.
+
+If Ollama is installed but its local service is stopped, OpenCode shows an actionable connection error instead of adding an empty provider.
+
 :::tip
 Ollama can automatically configure itself for OpenCode. See the [Ollama integration docs](https://docs.ollama.com/integrations/opencode) for details.
 :::

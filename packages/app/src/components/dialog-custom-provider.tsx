@@ -14,13 +14,19 @@ import { useGlobalSync } from "@/context/global-sync"
 import { useLanguage } from "@/context/language"
 import { type FormState, headerRow, modelRow, validateCustomProvider } from "./dialog-custom-provider-form"
 import { DialogSelectProvider } from "./dialog-select-provider"
-import { providerCandidateKey, providerSetupError, shouldDiscoverProvider } from "./dialog-advisor-setup-state"
+import {
+  customProviderIDs,
+  providerCandidateKey,
+  providerSetupError,
+  shouldDiscoverCustomProvider,
+} from "./dialog-advisor-setup-state"
 
 type Props = {
   back?: "providers" | "close"
   preset?: { providerID: string; name: string; baseURL: string }
   onConnected?: (providerID: string) => void | Promise<void>
   onCancel?: () => void
+  discover?: boolean
 }
 
 export function DialogCustomProvider(props: Props) {
@@ -122,7 +128,10 @@ export function DialogCustomProvider(props: Props) {
       form,
       t: language.t,
       disabledProviders: globalSync.data.config.disabled_providers ?? [],
-      existingProviderIDs: new Set(globalSync.data.provider.all.map((p) => p.id)),
+      existingProviderIDs: customProviderIDs(
+        globalSync.data.provider.all.map((provider) => provider.id),
+        props.preset?.providerID,
+      ),
     })
     batch(() => {
       setForm("err", output.err)
@@ -183,7 +192,7 @@ export function DialogCustomProvider(props: Props) {
     e.preventDefault()
     if (saveMutation.isPending || discovering()) return
 
-    if (shouldDiscoverProvider(props.onConnected) && form.providerID.trim() && form.baseURL.trim()) {
+    if (shouldDiscoverCustomProvider(props) && form.providerID.trim() && form.baseURL.trim()) {
       setDiscovering(true)
       const key = providerCandidateKey(form.apiKey)
       const discovered = await globalSDK.client.provider

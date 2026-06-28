@@ -111,6 +111,21 @@ describe("TUI advisor setup", () => {
     expect(provider!.discoveredModelIDs({ models: [{ id: "qwen3:8b" }, { id: "llama3.2:3b" }] })).toBe(
       "qwen3:8b, llama3.2:3b",
     )
+    expect(provider!.ollamaLocalPreset()).toEqual({
+      providerID: "ollama",
+      name: "Ollama (local)",
+      baseURL: "http://localhost:11434/v1",
+    })
+    expect(provider!.ollamaLocalConfig([{ id: "qwen3:8b", name: "Qwen 3 8B" }])).toEqual({
+      provider: {
+        ollama: {
+          name: "Ollama (local)",
+          npm: "@ai-sdk/openai-compatible",
+          options: { baseURL: "http://localhost:11434/v1", setCacheKey: true },
+          models: { "qwen3:8b": { name: "Qwen 3 8B" } },
+        },
+      },
+    })
   })
 
   test("returns Sage setup failures to the provider picker without changing normal connect", () => {

@@ -6,7 +6,7 @@ import { showToast } from "@async-coder/ui/toast"
 import { useDialog } from "@async-coder/ui/context/dialog"
 import { useGlobalSync } from "@/context/global-sync"
 import { useProviders } from "@/hooks/use-providers"
-import { advisorConfig, advisorProviders, advisorVariantOptions } from "./dialog-advisor-setup-state"
+import { advisorConfig, advisorProviders, advisorVariantOptions, ollamaLocalPreset } from "./dialog-advisor-setup-state"
 import { useLanguage } from "@/context/language"
 import { DialogConnectProvider } from "./dialog-connect-provider"
 import { DialogCustomProvider } from "./dialog-custom-provider"
@@ -129,7 +129,7 @@ export function DialogAdvisorSetup(props: {
             onSelect={(item) => {
               if (!item) return
               if (item.kind === "ollama") {
-                custom({ providerID: "ollama", name: "Ollama", baseURL: "http://localhost:11434/v1" })
+                custom(ollamaLocalPreset())
                 return
               }
               if (item.kind === "custom") {

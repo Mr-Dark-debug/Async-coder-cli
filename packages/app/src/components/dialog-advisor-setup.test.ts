@@ -56,4 +56,14 @@ describe("desktop advisor setup", () => {
     expect(setup!.providerCandidateKey("  secret  ")).toBe("secret")
     expect(setup!.providerSetupError({ data: { message: "Invalid API key" } }, "fallback")).toBe("Invalid API key")
   })
+
+  test("provides local Ollama setup outside Sage", () => {
+    expect(setup!.ollamaLocalPreset()).toEqual({
+      providerID: "ollama",
+      name: "Ollama (local)",
+      baseURL: "http://localhost:11434/v1",
+    })
+    expect(setup!.shouldDiscoverCustomProvider({ discover: true })).toBe(true)
+    expect(setup!.customProviderIDs(["ollama", "groq"], "ollama")).toEqual(new Set(["groq"]))
+  })
 })

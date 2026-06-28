@@ -8,8 +8,10 @@ import { ProviderIcon } from "@async-coder/ui/provider-icon"
 import { DialogConnectProvider } from "./dialog-connect-provider"
 import { useLanguage } from "@/context/language"
 import { DialogCustomProvider } from "./dialog-custom-provider"
+import { ollamaLocalPreset } from "./dialog-advisor-setup-state"
 
 const CUSTOM_ID = "_custom"
+const OLLAMA_LOCAL_ID = "_ollama_local"
 
 export const DialogSelectProvider: Component = () => {
   const dialog = useDialog()
@@ -36,13 +38,19 @@ export const DialogSelectProvider: Component = () => {
         key={(x) => x?.id}
         items={() => {
           language.locale()
-          return [{ id: CUSTOM_ID, name: customLabel() }, ...providers.all()]
+          return [
+            { id: CUSTOM_ID, name: customLabel() },
+            { id: OLLAMA_LOCAL_ID, name: language.t("dialog.provider.ollamaLocal.name") },
+            ...providers.all(),
+          ]
         }}
         filterKeys={["id", "name"]}
         groupBy={(x) => (popularProviders.includes(x.id) ? popularGroup() : otherGroup())}
         sortBy={(a, b) => {
           if (a.id === CUSTOM_ID) return -1
           if (b.id === CUSTOM_ID) return 1
+          if (a.id === OLLAMA_LOCAL_ID) return -1
+          if (b.id === OLLAMA_LOCAL_ID) return 1
           if (popularProviders.includes(a.id) && popularProviders.includes(b.id))
             return popularProviders.indexOf(a.id) - popularProviders.indexOf(b.id)
           return a.name.localeCompare(b.name)
@@ -59,18 +67,25 @@ export const DialogSelectProvider: Component = () => {
             dialog.show(() => <DialogCustomProvider back="providers" />)
             return
           }
+          if (x.id === OLLAMA_LOCAL_ID) {
+            dialog.show(() => <DialogCustomProvider back="providers" preset={ollamaLocalPreset()} discover />)
+            return
+          }
           dialog.show(() => <DialogConnectProvider provider={x.id} />)
         }}
       >
         {(i) => (
           <div class="px-1.25 w-full flex items-center gap-x-3">
-            <ProviderIcon data-slot="list-item-extra-icon" id={i.id} />
+            <ProviderIcon data-slot="list-item-extra-icon" id={i.id === OLLAMA_LOCAL_ID ? "ollama" : i.id} />
             <span>{i.name}</span>
             <Show when={i.id === "opencode"}>
               <div class="text-14-regular text-text-weak">{language.t("dialog.provider.opencode.tagline")}</div>
             </Show>
             <Show when={i.id === CUSTOM_ID}>
               <Tag>{language.t("settings.providers.tag.custom")}</Tag>
+            </Show>
+            <Show when={i.id === OLLAMA_LOCAL_ID}>
+              <Tag>{language.t("dialog.provider.ollamaLocal.tag")}</Tag>
             </Show>
             <Show when={i.id === "opencode"}>
               <Tag>{language.t("dialog.provider.tag.recommended")}</Tag>

@@ -55,6 +55,24 @@ export function discoveredModelIDs(result: { models: { id: string }[] }) {
   return result.models.map((model) => model.id).join(", ")
 }
 
+export function ollamaLocalPreset() {
+  return { providerID: "ollama", name: "Ollama (local)", baseURL: "http://localhost:11434/v1" }
+}
+
+export function ollamaLocalConfig(models: { id: string; name: string }[]) {
+  const preset = ollamaLocalPreset()
+  return {
+    provider: {
+      [preset.providerID]: {
+        name: preset.name,
+        npm: "@ai-sdk/openai-compatible" as const,
+        options: { baseURL: preset.baseURL, setCacheKey: true },
+        models: Object.fromEntries(models.map((model) => [model.id, { name: model.name }])),
+      },
+    },
+  }
+}
+
 export function cancelProviderFailure(destination?: ProviderDestination) {
   return !!destination
 }
@@ -242,6 +260,17 @@ export function createDialogProviderOptions(destination?: ProviderSetupOptions) 
         },
       },
       {
+        title: "Ollama (local)",
+        value: "__ollama_local__",
+        description: "Discover installed models from Ollama on localhost",
+        footer: undefined,
+        category: "Other",
+        gutter: undefined,
+        async onSelect() {
+          await runOllamaLocalSetup({ dialog, sdk, sync, toast })
+        },
+      },
+      {
         title: "Custom Provider",
         value: "__custom__",
         description: "OpenAI-compatible endpoint",
@@ -256,6 +285,56 @@ export function createDialogProviderOptions(destination?: ProviderSetupOptions) 
     ]
   })
   return options
+}
+
+async function runOllamaLocalSetup(opts: {
+  dialog: DialogContext
+  sdk: ReturnType<typeof useSDK>
+  sync: ReturnType<typeof useSync>
+  toast: ToastContext
+}) {
+  const request = new AbortController()
+  let busy = true
+  const back = () => {
+    busy = false
+    opts.dialog.replace(() => <DialogProvider />)
+  }
+  opts.dialog.replace(
+    () => <DialogPrompt title="Connect Ollama (local)" busy busyText="Discovering installed models..." />,
+    () => {
+      if (busy) request.abort()
+    },
+  )
+
+  const preset = ollamaLocalPreset()
+  const discovery = await opts.sdk.client.provider.discover(
+    { providerID: preset.providerID, baseURL: preset.baseURL },
+    { signal: request.signal },
+  )
+  if (request.signal.aborted) return
+  if (discovery.error || !discovery.data) {
+    opts.toast.show({ variant: "error", message: providerSetupError(discovery.error) })
+    back()
+    return
+  }
+
+  const update = await opts.sdk.client.global.config.update(
+    { config: ollamaLocalConfig(discovery.data.models) },
+    { signal: request.signal },
+  )
+  if (request.signal.aborted) return
+  if (update.error) {
+    opts.toast.show({ variant: "error", message: providerSetupError(update.error) })
+    back()
+    return
+  }
+
+  await opts.sdk.client.instance.dispose(undefined, { signal: request.signal })
+  if (request.signal.aborted) return
+  await opts.sync.bootstrap()
+  if (request.signal.aborted) return
+  busy = false
+  opts.dialog.replace(() => <DialogModel providerID={preset.providerID} />)
 }
 
 export function DialogProvider(props: ProviderDestination & { providerID?: string } = {}) {

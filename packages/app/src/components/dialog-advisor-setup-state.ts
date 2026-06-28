@@ -34,6 +34,18 @@ export function shouldDiscoverProvider(onConnected: ((providerID: string) => unk
   return !!onConnected
 }
 
+export function ollamaLocalPreset() {
+  return { providerID: "ollama", name: "Ollama (local)", baseURL: "http://localhost:11434/v1" }
+}
+
+export function shouldDiscoverCustomProvider(props: { discover?: boolean; onConnected?: unknown }) {
+  return !!(props.discover || props.onConnected)
+}
+
+export function customProviderIDs(providerIDs: string[], presetID?: string) {
+  return new Set(providerIDs.filter((id) => id !== presetID))
+}
+
 export function providerCandidateKey(value: string) {
   const key = value.trim()
   if (!key || /^\{env:[^}]+\}$/.test(key)) return

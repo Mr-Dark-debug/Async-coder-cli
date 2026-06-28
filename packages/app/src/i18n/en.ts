@@ -26,6 +26,8 @@ export const dict = {
   "dialog.advisor.provider.setupRequired": "Setup required",
   "dialog.advisor.provider.local": "Local or custom endpoint",
   "dialog.advisor.provider.ollama": "Ollama / local",
+  "dialog.provider.ollamaLocal.name": "Ollama (local)",
+  "dialog.provider.ollamaLocal.tag": "Local",
   "dialog.advisor.model.title": "Select Sage model · {{provider}}",
   "dialog.advisor.model.search": "Search models",
   "dialog.advisor.model.empty": "No available models",
