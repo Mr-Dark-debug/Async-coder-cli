@@ -12,6 +12,9 @@ This repository is maintained at:
 
 - Terminal-native coding workflow with the existing OpenCode-style TUI, commands, keybindings, sessions, and agent modes.
 - First-class provider onboarding for Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, GitHub Copilot, and custom OpenAI-compatible endpoints.
+- Local Ollama onboarding with live model discovery from the local Ollama server.
+- Sage consultations: ask a configured second model for an independent opinion with `/consult`, or let the working agent consult Sage when it needs another perspective.
+- Guided Sage setup for provider, model, and reasoning level, including credential setup and searchable model selection.
 - Per-session usage visibility with token and cost reporting by provider and model.
 - Configurable web search through DuckDuckGo, Tavily, Brave Search, Google Custom Search, or Exa.
 - Lavender `async-coder` branding with a clean terminal-first visual identity.
@@ -37,7 +40,17 @@ Run a non-interactive prompt:
 async-coder run "explain this repository"
 ```
 
-Version `0.1.2` publishes the scoped installer package `@async-coder/cli`. Platform packages such as `@async-coder/binary-windows-x64` are runtime payloads used by the installer and are not the normal user-facing install path.
+Version `0.1.3` publishes the scoped installer package `@async-coder/cli`. Platform packages such as `@async-coder/binary-windows-x64` are runtime payloads used by the installer and are not the normal user-facing install path.
+
+## Sage Consultations
+
+Sage gives the working agent access to a separately configured model for a second opinion. The working agent knows Sage is available and can consult it when a task is ambiguous or it needs an independent review. You can also invoke Sage directly:
+
+```text
+/consult Review this migration plan and identify the riskiest assumption.
+```
+
+On first use, async-coder guides you through selecting a provider, model, and reasoning level. If the provider is not configured yet, its existing setup flow opens first and returns you to Sage setup afterward. Change the default later with `/sage-model`.
 
 ## Provider Setup
 
@@ -62,6 +75,8 @@ Custom OpenAI-compatible providers can be configured with:
 - Optional input, output, cache-read, and cache-write cost rates
 
 Legacy free-model compatibility is preserved where existing local configuration supports it, but new installations should configure a provider API key for reliable access.
+
+For local models, start Ollama and choose **Ollama (local)** from the provider dialog. async-coder discovers installed models from the local server and makes them available in the normal `/models` picker. Ollama Cloud remains a separate provider option.
 
 ## Web Search
 
@@ -115,7 +130,7 @@ Build the current platform package:
 
 ```bash
 cd packages/opencode
-$env:ASYNC_CODER_VERSION="0.1.2"
+$env:ASYNC_CODER_VERSION="0.1.3"
 $env:ASYNC_CODER_CHANNEL="latest"
 bun run script/build.ts --single --skip-install
 ```

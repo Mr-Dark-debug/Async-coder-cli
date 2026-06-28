@@ -30,6 +30,9 @@ The current npm release includes the Windows x64 runtime. Linux and macOS users 
 
 - Terminal-native coding agent with sessions, agent modes, tools, and command workflows.
 - Provider onboarding for Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, GitHub Copilot, and custom OpenAI-compatible APIs.
+- Local Ollama onboarding with live discovery of installed models.
+- Sage second-opinion consultations, triggered directly with `/consult` or automatically by the working agent when useful.
+- Guided Sage provider, model, credential, and reasoning-level setup through `/sage-model`.
 - Token and cost reporting by provider and model.
 - Configurable web search using DuckDuckGo, Tavily, Brave Search, Google Custom Search, or Exa.
 - Local SQLite storage for sessions and usage data.
@@ -49,7 +52,15 @@ GOOGLE_GENERATIVE_AI_API_KEY=...
 
 Custom OpenAI-compatible providers can be configured with a base URL, optional API key, model IDs, and optional cost rates.
 
+Local Ollama is available separately from Ollama Cloud. Start the local Ollama server, connect **Ollama (local)**, then choose any discovered model from `/models`.
+
 Legacy free-model compatibility is preserved for existing local configurations where possible. For new setups, configure a provider API key for reliable model access.
+
+## Sage
+
+Use `/consult` to ask a separately configured Sage model for an independent opinion. The working agent can also call Sage automatically when it is uncertain or would benefit from another perspective.
+
+The first consultation opens guided setup for the Sage provider, model, and reasoning level. Providers without credentials reuse their normal configuration flow, then return to Sage setup automatically. Use `/sage-model` whenever you want to change the selection.
 
 ## Web Search
 
