@@ -102,3 +102,62 @@ const table = sqliteTable("session", {
 ## Type Checking
 
 - Always run `bun typecheck` from package directories (e.g., `packages/opencode`), never `tsc` directly.
+
+## Publishing a Release
+
+Use this order for public releases. Do not publish the GitHub release before npm is verified.
+
+1. Inspect `git status` and preserve unrelated user changes. Update the release version in the public package manifests, lockfile, README files, installer examples, and release notes. Commit and push the release preparation first.
+2. Regenerate the JavaScript SDK with `./packages/sdk/js/script/build.ts` and run package-level typechecks/tests.
+3. Build the Windows release from `packages/opencode`:
+
+   ```powershell
+   $env:ASYNC_CODER_VERSION = "<version>"
+   $env:ASYNC_CODER_CHANNEL = "latest"
+   bun run script/build.ts --single --skip-install
+   ```
+
+   The build must report `Smoke test passed: async-coder <version>`.
+
+4. Confirm npm authentication with `npm whoami`. If it returns `E401`, run `npm login` and let the user complete npm's browser authentication.
+5. Publish in dependency order and verify each package before continuing:
+
+   ```powershell
+   npm publish .\async-coder-binary-windows-x64-<version>.tgz --access public --tag latest
+   npm view @async-coder/binary-windows-x64@<version> version dist-tags --json
+
+   npm publish .\async-coder-cli-<version>.tgz --access public --tag latest
+   npm view @async-coder/cli@<version> version dist-tags optionalDependencies --json
+   ```
+
+   The runtime tarball is under `packages/opencode/dist/binary-windows-x64`. The installer tarball is under `packages/opencode/dist/@async-coder/cli` after staging/packing.
+
+6. npm publish requires a real TTY for browser-based 2FA. In a non-interactive agent shell, do not repeatedly retry, scrape npm debug logs, or request/print an OTP. Launch the publish command in a visible interactive PowerShell window and wait for it, or ask the user to run that exact publish command in their terminal. Let npm open and poll its own authorization page.
+7. Smoke-test the registry package in a new temporary prefix, then run its installed executable:
+
+   ```powershell
+   npm install --prefix <temp-dir> @async-coder/cli@<version>
+   & <temp-dir>\node_modules\.bin\async-coder.cmd --version
+   ```
+
+8. Prepare a draft GitHub release titled `async-coder <version> — <short theme>`. Attach:
+
+   - `async-coder-binary-windows-x64-<version>.tgz`
+   - `async-coder-cli-<version>.tgz`
+   - `SHA256SUMS.txt`
+
+9. Only after both npm packages and the clean-install smoke test are verified, publish the draft:
+
+   ```powershell
+   gh release edit v<version> --draft=false --latest
+   gh release view v<version> --json name,tagName,isDraft,publishedAt,assets,url
+   npm view @async-coder/cli@latest version
+   npm view @async-coder/binary-windows-x64@latest version
+   ```
+
+Important release notes:
+
+- The normal public install path is `@async-coder/cli`; `@async-coder/binary-windows-x64` is its platform runtime dependency.
+- `script/publish.ts` at the repository root also attempts to publish the SDK and plugin. Do not use it for a CLI-only release unless those packages are intentionally part of the release.
+- `NPM_CONFIG_DRY_RUN=true` is incompatible with `packages/opencode/script/publish.ts`: npm prints a tarball name without creating the file, then the script fails while looking for it. Use explicit `npm pack` commands for package inspection.
+- Keep the GitHub release as a draft if npm authentication, 2FA, package publication, or smoke verification fails.

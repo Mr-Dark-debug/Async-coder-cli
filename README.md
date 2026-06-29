@@ -4,10 +4,6 @@
 
 `async-coder` is a terminal-native AI coding agent for engineers who want an OpenCode-style workflow with first-class support for bring-your-own-key model providers, usage visibility, and configurable web search.
 
-This repository is maintained at:
-
-<https://github.com/Mr-Dark-debug/Async-coder-cli>
-
 ## What It Provides
 
 - Terminal-native coding workflow with the existing OpenCode-style TUI, commands, keybindings, sessions, and agent modes.
