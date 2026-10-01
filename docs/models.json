@@ -1,0 +1,780 @@
+{
+  "checked": "2026-10-01",
+  "source": "https://models.dev/api.json",
+  "providerDocumentation": [
+    "https://platform.claude.com/docs/en/models/overview",
+    "https://developers.openai.com/api/docs/models",
+    "https://ai.google.dev/gemini-api/docs/models"
+  ],
+  "note": "Requested names mapped to catalog entries; empty matches are not advertised as available. Catalog prices are per million tokens and may change.",
+  "providers": [
+    {
+      "provider": "anthropic",
+      "models": [
+        {
+          "requested": "claude-opus-4-8",
+          "matches": [
+            {
+              "id": "claude-opus-4-8",
+              "name": "Claude Opus 4.8",
+              "cost": {
+                "input": 5,
+                "output": 25,
+                "cache_read": 0.5,
+                "cache_write": 6.25
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 128000
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "claude-sonnet-5-5",
+          "matches": [
+            {
+              "id": "claude-sonnet-5-5",
+              "name": "Claude Sonnet 5.5",
+              "cost": {
+                "input": 2,
+                "output": 10,
+                "cache_read": 0.2,
+                "cache_write": 2.5
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 128000
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "claude-fable-5-1",
+          "matches": [
+            {
+              "id": "claude-fable-5-1",
+              "name": "Claude Fable 5.1",
+              "cost": {
+                "input": 10,
+                "output": 50,
+                "cache_read": 0.25,
+                "cache_write": 12.5
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 128000
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "claude-haiku-4",
+          "matches": [
+            {
+              "id": "claude-haiku-4-5",
+              "name": "Claude Haiku 4.5 (latest)",
+              "cost": {
+                "input": 1,
+                "output": 5,
+                "cache_read": 0.1,
+                "cache_write": 1.25
+              },
+              "limit": {
+                "context": 200000,
+                "output": 64000
+              },
+              "status": "active"
+            },
+            {
+              "id": "claude-haiku-4-5-20251001",
+              "name": "Claude Haiku 4.5",
+              "cost": {
+                "input": 1,
+                "output": 5,
+                "cache_read": 0.1,
+                "cache_write": 1.25
+              },
+              "limit": {
+                "context": 200000,
+                "output": 64000
+              },
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "openai",
+      "models": [
+        {
+          "requested": "gpt-6",
+          "matches": [
+            {
+              "id": "gpt-6.1-sol",
+              "name": "GPT-6.1 Sol",
+              "cost": {
+                "input": 2,
+                "output": 10,
+                "cache_read": 0.1,
+                "cache_write": 2.5,
+                "tiers": [
+                  {
+                    "input": 4,
+                    "output": 15,
+                    "cache_read": 0.2,
+                    "cache_write": 5,
+                    "tier": {
+                      "type": "context",
+                      "size": 272000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 4,
+                  "output": 15,
+                  "cache_read": 0.2,
+                  "cache_write": 5
+                }
+              },
+              "limit": {
+                "context": 1050000,
+                "input": 922000,
+                "output": 128000
+              },
+              "status": "active"
+            },
+            {
+              "id": "gpt-6-astra",
+              "name": "GPT-6 Astra",
+              "cost": {
+                "input": 10,
+                "output": 50,
+                "cache_read": 1,
+                "cache_write": 12.5,
+                "tiers": [
+                  {
+                    "input": 20,
+                    "output": 75,
+                    "cache_read": 2,
+                    "cache_write": 25,
+                    "tier": {
+                      "type": "context",
+                      "size": 272000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 20,
+                  "output": 75,
+                  "cache_read": 2,
+                  "cache_write": 25
+                }
+              },
+              "limit": {
+                "context": 1050000,
+                "input": 922000,
+                "output": 128000
+              },
+              "status": "active"
+            },
+            {
+              "id": "gpt-6-luna",
+              "name": "GPT-6 Luna",
+              "cost": {
+                "input": 0.1,
+                "output": 0.5,
+                "cache_read": 0.01,
+                "cache_write": 0.125,
+                "tiers": [
+                  {
+                    "input": 0.2,
+                    "output": 0.75,
+                    "cache_read": 0.02,
+                    "cache_write": 0.25,
+                    "tier": {
+                      "type": "context",
+                      "size": 272000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 0.2,
+                  "output": 0.75,
+                  "cache_read": 0.02,
+                  "cache_write": 0.25
+                }
+              },
+              "limit": {
+                "context": 1050000,
+                "input": 922000,
+                "output": 128000
+              },
+              "status": "active"
+            },
+            {
+              "id": "gpt-6-sol",
+              "name": "GPT-6 Sol",
+              "cost": {
+                "input": 2,
+                "output": 10,
+                "cache_read": 0.2,
+                "cache_write": 2.5,
+                "tiers": [
+                  {
+                    "input": 4,
+                    "output": 15,
+                    "cache_read": 0.4,
+                    "cache_write": 5,
+                    "tier": {
+                      "type": "context",
+                      "size": 272000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 4,
+                  "output": 15,
+                  "cache_read": 0.4,
+                  "cache_write": 5
+                }
+              },
+              "limit": {
+                "context": 1050000,
+                "input": 922000,
+                "output": 128000
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "gpt-6-sol",
+          "matches": [
+            {
+              "id": "gpt-6-sol",
+              "name": "GPT-6 Sol",
+              "cost": {
+                "input": 2,
+                "output": 10,
+                "cache_read": 0.2,
+                "cache_write": 2.5,
+                "tiers": [
+                  {
+                    "input": 4,
+                    "output": 15,
+                    "cache_read": 0.4,
+                    "cache_write": 5,
+                    "tier": {
+                      "type": "context",
+                      "size": 272000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 4,
+                  "output": 15,
+                  "cache_read": 0.4,
+                  "cache_write": 5
+                }
+              },
+              "limit": {
+                "context": 1050000,
+                "input": 922000,
+                "output": 128000
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "gpt-6-astra",
+          "matches": [
+            {
+              "id": "gpt-6-astra",
+              "name": "GPT-6 Astra",
+              "cost": {
+                "input": 10,
+                "output": 50,
+                "cache_read": 1,
+                "cache_write": 12.5,
+                "tiers": [
+                  {
+                    "input": 20,
+                    "output": 75,
+                    "cache_read": 2,
+                    "cache_write": 25,
+                    "tier": {
+                      "type": "context",
+                      "size": 272000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 20,
+                  "output": 75,
+                  "cache_read": 2,
+                  "cache_write": 25
+                }
+              },
+              "limit": {
+                "context": 1050000,
+                "input": 922000,
+                "output": 128000
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "gpt-5.5",
+          "matches": [
+            {
+              "id": "gpt-5.5-pro",
+              "name": "GPT-5.5 Pro",
+              "cost": {
+                "input": 30,
+                "output": 180,
+                "tiers": [
+                  {
+                    "input": 60,
+                    "output": 270,
+                    "tier": {
+                      "type": "context",
+                      "size": 272000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 60,
+                  "output": 270
+                }
+              },
+              "limit": {
+                "context": 1050000,
+                "input": 922000,
+                "output": 128000
+              },
+              "status": "active"
+            },
+            {
+              "id": "gpt-5.5",
+              "name": "GPT-5.5",
+              "cost": {
+                "input": 5,
+                "output": 30,
+                "cache_read": 0.5,
+                "tiers": [
+                  {
+                    "input": 10,
+                    "output": 45,
+                    "cache_read": 1,
+                    "tier": {
+                      "type": "context",
+                      "size": 272000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 10,
+                  "output": 45,
+                  "cache_read": 1
+                }
+              },
+              "limit": {
+                "context": 1050000,
+                "input": 922000,
+                "output": 128000
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "o4-mini",
+          "matches": [
+            {
+              "id": "o4-mini",
+              "name": "o4-mini",
+              "cost": {
+                "input": 1.1,
+                "output": 4.4,
+                "cache_read": 0.275
+              },
+              "limit": {
+                "context": 200000,
+                "output": 100000
+              },
+              "status": "deprecated"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "google",
+      "models": [
+        {
+          "requested": "gemini-3.1-pro",
+          "matches": [
+            {
+              "id": "gemini-3.1-pro-preview",
+              "name": "Gemini 3.1 Pro Preview",
+              "cost": {
+                "input": 2,
+                "output": 12,
+                "cache_read": 0.2,
+                "tiers": [
+                  {
+                    "input": 4,
+                    "output": 18,
+                    "cache_read": 0.4,
+                    "tier": {
+                      "type": "context",
+                      "size": 200000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 4,
+                  "output": 18,
+                  "cache_read": 0.4
+                }
+              },
+              "limit": {
+                "context": 1048576,
+                "output": 65536
+              },
+              "status": "active"
+            },
+            {
+              "id": "gemini-3.1-pro-preview-customtools",
+              "name": "Gemini 3.1 Pro Preview Custom Tools",
+              "cost": {
+                "input": 2,
+                "output": 12,
+                "cache_read": 0.2,
+                "tiers": [
+                  {
+                    "input": 4,
+                    "output": 18,
+                    "cache_read": 0.4,
+                    "tier": {
+                      "type": "context",
+                      "size": 200000
+                    }
+                  }
+                ],
+                "context_over_200k": {
+                  "input": 4,
+                  "output": 18,
+                  "cache_read": 0.4
+                }
+              },
+              "limit": {
+                "context": 1048576,
+                "output": 65536
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "gemini-3.1-flash",
+          "matches": [
+            {
+              "id": "gemini-3.1-flash-image-preview",
+              "name": "Nano Banana 2",
+              "cost": {
+                "input": 0.5,
+                "output": 60
+              },
+              "limit": {
+                "context": 65536,
+                "output": 65536
+              },
+              "status": "active"
+            },
+            {
+              "id": "gemini-3.1-flash-tts-preview",
+              "name": "Gemini 3.1 Flash TTS Preview",
+              "cost": {
+                "input": 1,
+                "output": 20
+              },
+              "limit": {
+                "context": 8192,
+                "output": 16384
+              },
+              "status": "active"
+            },
+            {
+              "id": "gemini-3.1-flash-image",
+              "name": "Nano Banana 2",
+              "cost": {
+                "input": 0.5,
+                "output": 60
+              },
+              "limit": {
+                "context": 131072,
+                "output": 32768
+              },
+              "status": "active"
+            },
+            {
+              "id": "gemini-3.1-flash-lite-image",
+              "name": "Nano Banana 2 Lite",
+              "cost": {
+                "input": 0.25,
+                "output": 30
+              },
+              "limit": {
+                "context": 65536,
+                "output": 4096
+              },
+              "status": "active"
+            },
+            {
+              "id": "gemini-3.1-flash-lite-preview",
+              "name": "Gemini 3.1 Flash Lite Preview",
+              "cost": {
+                "input": 0.25,
+                "output": 1.5,
+                "cache_read": 0.025,
+                "input_audio": 0.5
+              },
+              "limit": {
+                "context": 1048576,
+                "output": 65536
+              },
+              "status": "deprecated"
+            },
+            {
+              "id": "gemini-3.1-flash-live-preview",
+              "name": "Gemini 3.1 Flash Live Preview",
+              "cost": {
+                "input": 0.75,
+                "output": 4.5,
+                "input_audio": 3,
+                "output_audio": 12
+              },
+              "limit": {
+                "context": 131072,
+                "output": 65536
+              },
+              "status": "active"
+            },
+            {
+              "id": "gemini-3.1-flash-lite",
+              "name": "Gemini 3.1 Flash Lite",
+              "cost": {
+                "input": 0.25,
+                "output": 1.5,
+                "cache_read": 0.025,
+                "input_audio": 0.5
+              },
+              "limit": {
+                "context": 1048576,
+                "output": 65536
+              },
+              "status": "active"
+            }
+          ]
+        },
+        {
+          "requested": "gemini-3-flash",
+          "matches": [
+            {
+              "id": "gemini-3-flash-preview",
+              "name": "Gemini 3 Flash Preview",
+              "cost": {
+                "input": 0.5,
+                "output": 3,
+                "cache_read": 0.05,
+                "input_audio": 1
+              },
+              "limit": {
+                "context": 1048576,
+                "output": 65536
+              },
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "deepseek",
+      "models": [
+        {
+          "requested": "deepseek-v4",
+          "matches": [
+            {
+              "id": "deepseek-v4-flash-vision-exp",
+              "name": "DeepSeek V4 Flash Vision Exp",
+              "cost": {
+                "input": 0.15,
+                "output": 0.6,
+                "reasoning": 0.6,
+                "cache_read": 0.003
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 393216
+              },
+              "status": "deprecated"
+            },
+            {
+              "id": "deepseek-v4-pro",
+              "name": "DeepSeek V4 Pro",
+              "cost": {
+                "input": 0.435,
+                "output": 0.87,
+                "reasoning": 0.87,
+                "cache_read": 0.003625
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 393216
+              },
+              "status": "active"
+            },
+            {
+              "id": "deepseek-v4-flash",
+              "name": "DeepSeek V4 Flash",
+              "cost": {
+                "input": 0.15,
+                "output": 0.6,
+                "reasoning": 0.6,
+                "cache_read": 0.003
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 393216
+              },
+              "status": "deprecated"
+            }
+          ]
+        },
+        {
+          "requested": "deepseek-r2",
+          "matches": []
+        }
+      ]
+    },
+    {
+      "provider": "alibaba",
+      "models": [
+        {
+          "requested": "qwen3.5-coder",
+          "matches": []
+        },
+        {
+          "requested": "qwen3.5-max",
+          "matches": []
+        }
+      ]
+    },
+    {
+      "provider": "moonshotai",
+      "models": [
+        {
+          "requested": "kimi-k3",
+          "matches": [
+            {
+              "id": "kimi-k3",
+              "name": "Kimi K3",
+              "cost": {
+                "input": 3,
+                "output": 15,
+                "cache_read": 0.3
+              },
+              "limit": {
+                "context": 1048576,
+                "output": 1048576
+              },
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "zai",
+      "models": [
+        {
+          "requested": "glm-5.3",
+          "matches": [
+            {
+              "id": "glm-5.3-flash",
+              "name": "GLM-5.3-Flash",
+              "cost": {
+                "input": 0.15,
+                "output": 0.5,
+                "cache_read": 0.03,
+                "cache_write": 0
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 131072
+              },
+              "status": "active"
+            },
+            {
+              "id": "glm-5.3-flashx",
+              "name": "GLM-5.3-FlashX",
+              "cost": {
+                "input": 0.37,
+                "output": 1.25,
+                "cache_read": 0.075,
+                "cache_write": 0
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 131072
+              },
+              "status": "active"
+            },
+            {
+              "id": "glm-5.3",
+              "name": "GLM-5.3",
+              "cost": {
+                "input": 1.4,
+                "output": 4.4,
+                "cache_read": 0.26,
+                "cache_write": 0
+              },
+              "limit": {
+                "context": 1000000,
+                "output": 131072
+              },
+              "status": "active"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "provider": "xai",
+      "models": [
+        {
+          "requested": "grok-5",
+          "matches": []
+        }
+      ]
+    },
+    {
+      "provider": "mistral",
+      "models": [
+        {
+          "requested": "mistral-large-3",
+          "matches": []
+        }
+      ]
+    }
+  ]
+}

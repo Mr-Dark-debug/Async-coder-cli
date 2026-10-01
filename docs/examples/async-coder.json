@@ -1,0 +1,9 @@
+{
+  "checkpoints": { "enabled": true, "retention": 10 },
+  "mcpServers": {
+    "local-files": { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "."] }
+  },
+  "hooks": [
+    { "id": "format-edits", "event": "post_file_edit", "condition": "tool === 'edit'", "command": "bun run format", "timeout": 10000 }
+  ]
+}

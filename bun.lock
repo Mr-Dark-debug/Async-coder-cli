@@ -31,7 +31,7 @@
     },
     "packages/app": {
       "name": "@async-coder/app",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
         "@async-coder/sdk": "workspace:*",
         "@async-coder/shared": "workspace:*",
@@ -194,7 +194,7 @@
     },
     "packages/desktop": {
       "name": "@async-coder/desktop",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "dependencies": {
         "drizzle-orm": "catalog:",
         "effect": "catalog:",
@@ -283,7 +283,7 @@
     },
     "packages/opencode": {
       "name": "@async-coder/cli",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "bin": {
         "async-coder": "./bin/async-coder",
       },
@@ -342,6 +342,7 @@
         "@opentui/solid": "0.1.101",
         "@parcel/watcher": "2.5.1",
         "@pierre/diffs": "catalog:",
+        "@repomix/tree-sitter-wasms": "0.1.17",
         "@solid-primitives/event-bus": "1.1.2",
         "@solid-primitives/i18n": "2.2.1",
         "@solid-primitives/scheduled": "1.5.2",
@@ -437,7 +438,7 @@
     },
     "packages/plugin": {
       "name": "@async-coder/plugin",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "dependencies": {
         "@async-coder/sdk": "workspace:*",
         "effect": "catalog:",
@@ -472,7 +473,7 @@
     },
     "packages/sdk/js": {
       "name": "@async-coder/sdk",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "dependencies": {
         "cross-spawn": "catalog:",
       },
@@ -487,7 +488,7 @@
     },
     "packages/shared": {
       "name": "@async-coder/shared",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "bin": {
         "opencode": "./bin/opencode",
       },
@@ -546,7 +547,7 @@
     },
     "packages/ui": {
       "name": "@async-coder/ui",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "dependencies": {
         "@async-coder/sdk": "workspace:*",
         "@async-coder/shared": "workspace:*",
@@ -595,7 +596,7 @@
     },
     "packages/web": {
       "name": "@async-coder/web",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "dependencies": {
         "@astrojs/cloudflare": "12.6.3",
         "@astrojs/markdown-remark": "6.3.1",
@@ -1955,6 +1956,8 @@
     "@remix-run/node-fetch-server": ["@remix-run/node-fetch-server@0.8.1", "", {}, "sha512-J1dev372wtJqmqn9U/qbpbZxbJSQrogNN2+Qv1lKlpATpe/WQ9aCZfl/xSb9d2Rgh1IyLSvNxZAXPZxruO6Xig=="],
 
     "@remix-run/router": ["@remix-run/router@1.9.0", "", {}, "sha512-bV63itrKBC0zdT27qYm6SDZHlkXwFL1xMBuhkn+X7l0+IIhNaH5wuuvZKp6eKhCD4KFhujhfhCT1YxXW6esUIA=="],
+
+    "@repomix/tree-sitter-wasms": ["@repomix/tree-sitter-wasms@0.1.17", "", {}, "sha512-tc3HnFqdMF1pXhIMzG3aTaBDpIiHK2tPfn3fwqA6P3WTbHa+1EuuTubbKshvmN7xCHP5Ojz0/VW4R+XvR88KOw=="],
 
     "@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.1.1", "", { "os": "android", "cpu": "arm64" }, "sha512-BLf9Wak/gfwVb7NQTQW4wBgL3oAfPy7ArEkhwV543OVw/uY6B47z5xYsqPSZ9PDOorvURPinws6ThaFuNgGLgA=="],
 
@@ -3328,7 +3331,7 @@
 
     "get-tsconfig": ["get-tsconfig@4.14.0", "", { "dependencies": { "resolve-pkg-maps": "^1.0.0" } }, "sha512-yTb+8DXzDREzgvYmh6s9vHsSVCHeC0G3PI5bEXNBHtmshPnO+S5O7qgLEOn0I5QvMy6kpZN8K1NKGyilLb93wA=="],
 
-    "ghostty-web": ["ghostty-web@github:anomalyco/ghostty-web#20bd361", {}, "anomalyco-ghostty-web-20bd361", "sha512-dW0nwaiBBcun9y5WJSvm3HxDLe5o9V0xLCndQvWonRVubU8CS1PHxZpLffyPt1YujPWC13ez03aWxcuKBPYYGQ=="],
+    "ghostty-web": ["ghostty-web@github:anomalyco/ghostty-web#6e24d04", {}, "anomalyco-ghostty-web-6e24d04", "sha512-svnTv7Djx1QbZHr2H2Fxqp/LqkMwZB19x7ln4IOSYxlCs2wN1fTC3QRrknxtuPxDznfjV7eVBGps+Foa2v2YnQ=="],
 
     "gifwrap": ["gifwrap@0.10.1", "", { "dependencies": { "image-q": "^4.0.0", "omggif": "^1.0.10" } }, "sha512-2760b1vpJHNmLzZ/ubTtNnEx5WApN/PYWJvXvgS+tL1egTTthayFYIQQNi136FLEDcN/IyEY2EcGpIITD6eYUw=="],
 

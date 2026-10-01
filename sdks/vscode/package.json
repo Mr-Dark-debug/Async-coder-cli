@@ -1,8 +1,8 @@
 {
-  "name": "opencode",
-  "displayName": "opencode",
-  "description": "opencode for VS Code",
-  "version": "0.1.1",
+  "name": "async-coder",
+  "displayName": "async-coder",
+  "description": "async-coder agent sidebar, code actions and terminal for VS Code",
+  "version": "0.2.0",
   "publisher": "sst-dev",
   "repository": {
     "type": "git",
@@ -11,7 +11,7 @@
   "license": "MIT",
   "icon": "images/icon.png",
   "galleryBanner": {
-    "color": "#000000",
+      "color": "#b4a4ef",
     "theme": "dark"
   },
   "engines": {
@@ -21,12 +21,30 @@
     "Other"
   ],
   "activationEvents": [],
+  "capabilities": { "untrustedWorkspaces": { "supported": false, "description": "async-coder can edit files and run commands." }, "virtualWorkspaces": false },
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [{ "id": "async-coder", "title": "async-coder", "icon": "images/button-dark.svg" }]
+    },
+    "views": {
+      "async-coder": [{ "type": "webview", "id": "async-coder.agent", "name": "Agent" }]
+    },
+    "configuration": {
+      "title": "async-coder",
+      "properties": {
+        "async-coder.executable": { "type": "string", "default": "async-coder", "description": "Path to the async-coder CLI executable. Requires a trusted local workspace.", "scope": "machine" }
+      }
+    },
     "commands": [
+      { "command": "async-coder.openPanel", "title": "async-coder: Open Agent Panel" },
+      { "command": "async-coder.explainSelection", "title": "async-coder: Explain Selection" },
+      { "command": "async-coder.generateTests", "title": "async-coder: Generate Tests" },
+      { "command": "async-coder.reviewFile", "title": "async-coder: Review File" },
+      { "command": "async-coder.fixIssue", "title": "async-coder: Fix Issue at Cursor" },
       {
         "command": "opencode.openTerminal",
-        "title": "Open opencode",
+        "title": "Open async-coder Terminal",
         "icon": {
           "light": "images/button-dark.svg",
           "dark": "images/button-light.svg"
@@ -34,7 +52,7 @@
       },
       {
         "command": "opencode.openNewTerminal",
-        "title": "Open opencode in new tab",
+        "title": "Open async-coder in New Terminal",
         "icon": {
           "light": "images/button-dark.svg",
           "dark": "images/button-light.svg"
@@ -46,6 +64,12 @@
       }
     ],
     "menus": {
+      "editor/context": [
+        { "command": "async-coder.explainSelection", "when": "editorHasSelection", "group": "async-coder" },
+        { "command": "async-coder.generateTests", "group": "async-coder" },
+        { "command": "async-coder.reviewFile", "group": "async-coder" },
+        { "command": "async-coder.fixIssue", "group": "async-coder" }
+      ],
       "editor/title": [
         {
           "command": "opencode.openNewTerminal",
@@ -54,6 +78,9 @@
       ]
     },
     "keybindings": [
+      { "command": "async-coder.openPanel", "key": "ctrl+alt+a", "mac": "cmd+alt+a" },
+      { "command": "async-coder.explainSelection", "key": "ctrl+alt+e", "mac": "cmd+alt+e", "when": "editorHasSelection" },
+      { "command": "async-coder.fixIssue", "key": "ctrl+alt+i", "mac": "cmd+alt+i", "when": "editorTextFocus" },
       {
         "command": "opencode.openTerminal",
         "title": "Run opencode",
@@ -89,11 +116,15 @@
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "bun run compile-tests && bun run compile && bun run lint",
-    "check-types": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
+    "check-types": "bun typecheck",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "bun test test",
+    "test:host": "vscode-test"
   },
   "devDependencies": {
+    "@typescript/native-preview": "7.0.0-dev.20251207.1",
+    "@types/bun": "1.3.11",
     "@types/vscode": "^1.94.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
