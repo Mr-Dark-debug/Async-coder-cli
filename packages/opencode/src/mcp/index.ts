@@ -330,7 +330,9 @@ export const layer = Layer.effect(
       const connectTimeout = mcp.timeout ?? DEFAULT_TIMEOUT
       let lastStatus: Status | undefined
 
-      for (const { name, transport } of transports) {
+      for (const { name, transport } of transports.filter((item) =>
+        !mcp.transport || item.name === (mcp.transport === "http" ? "StreamableHTTP" : "SSE"),
+      )) {
         const result = yield* connectTransport(transport, connectTimeout).pipe(
           Effect.map((client) => ({ client, transportName: name })),
           Effect.catch((error) => {

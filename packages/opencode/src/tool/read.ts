@@ -146,13 +146,8 @@ export const ReadTool = Tool.define(
         return yield* Effect.fail(new Error("offset must be greater than or equal to 1"))
       }
 
-      let filepath = params.filePath
-      if (!path.isAbsolute(filepath)) {
-        filepath = path.resolve(SessionCwd.get(ctx.sessionID), filepath)
-      }
-      if (process.platform === "win32") {
-        filepath = AppFileSystem.normalizePath(filepath)
-      }
+      const resolved = path.resolve(SessionCwd.get(ctx.sessionID), AppFileSystem.windowsPath(params.filePath))
+      const filepath = process.platform === "win32" ? AppFileSystem.normalizePath(resolved) : resolved
       const title = path.relative(Instance.worktree, filepath)
 
       const stat = yield* fs.stat(filepath).pipe(

@@ -47,6 +47,7 @@ import { DialogAgreement, FREE_AGREEMENT_KEY, FREE_MODEL_IDS } from "../dialog-a
 import { useArgs } from "@tui/context/args"
 import { formatCost, formatTokens } from "../../feature-plugins/sidebar/usage-data"
 import { DialogAdvisorSetup, needsAdvisorSetup } from "../dialog-advisor-setup"
+import { parseFeatureCommand } from "../../util/feature-command"
 
 export type PromptProps = {
   sessionID?: string
@@ -690,6 +691,7 @@ export function Prompt(props: PromptProps) {
         category: "prompt",
         slash: {
           name: "skills",
+          aliases: ["skill"],
         },
         onSelect: () => {
           dialog.replace(() => (
@@ -1018,6 +1020,39 @@ export function Prompt(props: PromptProps) {
     if (trimmed === "exit" || trimmed === "quit" || trimmed === ":q") {
       void exit()
       return true
+    }
+    const feature = parseFeatureCommand(trimmed)
+    if (feature?.type === "error") {
+      toast.show({ message: feature.message, variant: "error" })
+      return false
+    }
+    if (feature?.type === "mcp") {
+      const result = await (feature.action === "connect" ? sdk.client.mcp.connect({ name: feature.name }) : sdk.client.mcp.disconnect({ name: feature.name })).catch((error: unknown) => {
+        toast.show({ message: error instanceof Error ? error.message : String(error), variant: "error" })
+        return undefined
+      })
+      if (!result?.data || result.error) {
+        if (result?.error) toast.show({ message: JSON.stringify(result.error), variant: "error" })
+        return false
+      }
+      const status = await sdk.client.mcp.status()
+      if (status.data) sync.set("mcp", status.data)
+      const current = status.data?.[feature.name]
+      toast.show({ message: `${feature.name}: ${current?.status ?? feature.action}`, variant: current?.status === "failed" ? "error" : "info" })
+      input.extmarks.clear()
+      setStore("prompt", { input: "", parts: [] })
+      setStore("extmarkToPartIndex", new Map())
+      input.clear()
+      return true
+    }
+    if (feature?.type === "skill") {
+      if (!sync.data.command.some((item) => item.source === "skill" && item.name === feature.name)) {
+        toast.show({ message: `Skill ${feature.name} was not found. Use /skills to browse available skills.`, variant: "error" })
+        return false
+      }
+      const text = `/${feature.name}${feature.arguments ? ` ${feature.arguments}` : ""}`
+      input.setText(text)
+      setStore("prompt", "input", text)
     }
     if (needsAdvisorSetup(store.prompt.input, sync.data.config.advisor)) {
       if (advisorSetupPending) return false

@@ -105,10 +105,8 @@ export function assertMemoryWriteAllowed(input: {
   const notesFile = path.join(memoryRoot, "sessions", sessionID, "notes.md")
   const checkpointFile = path.join(memoryRoot, "sessions", sessionID, "checkpoint.md")
   const taskMemDir = path.join(memoryRoot, "sessions", sessionID, "tasks")
-  const normalizedRoot = memoryRoot.endsWith(path.sep) ? memoryRoot : memoryRoot + path.sep
-  if (!target.startsWith(normalizedRoot)) return
-
   const rel = path.relative(memoryRoot, target)
+  if (path.isAbsolute(rel) || rel === ".." || rel.startsWith(`..${path.sep}`)) return
   const parts = rel.split(path.sep)
 
   if (parts.length < 2) {

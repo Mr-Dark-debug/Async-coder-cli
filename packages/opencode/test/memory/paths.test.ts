@@ -1,5 +1,21 @@
 import { describe, expect, test } from "bun:test"
-import { parsePath, buildPath, resolveProjectId } from "../../src/memory/paths"
+import path from "path"
+import { parsePath, parseCcPath, parseCcFrontmatterType, buildPath, resolveProjectId } from "../../src/memory/paths"
+
+describe("cross-platform memory paths", () => {
+  test("Windows memory paths preserve nested keys and memory types", () => {
+    expect(parsePath("C:\\data\\memory\\sessions\\ses_abc\\tasks\\T1\\progress.md")).toEqual({ scope: "sessions", scope_id: "ses_abc", key: "tasks/T1/progress", type: "progress" })
+    expect(parsePath("C:\\data\\memory\\global\\nested\\rules.md")).toEqual({ scope: "global", scope_id: "", key: "nested/rules", type: "free" })
+    expect(parseCcPath("C:\\Users\\me\\.claude\\projects\\slug\\memory\\nested\\rule.md")).toEqual({ scope: "cc", scope_id: "slug", key: "nested/rule", type: "free" })
+    expect(parseCcFrontmatterType("---\r\nmetadata:\r\n  type: feedback\r\n---\r\nbody")).toBe("feedback")
+  })
+
+  test("rejects Windows traversal and absolute drive or UNC paths", () => {
+    for (const key of ["..\\escape", "tasks\\T1\\..\\escape", "C:\\escape", "C:escape", "\\\\server\\share\\escape"]) {
+      expect(() => buildPath({ root: "/data/memory", scope: "global", key })).toThrow(/invalid path component/)
+    }
+  })
+})
 
 describe("parsePath", () => {
   test("global scope, key is filename", () => {
@@ -154,12 +170,12 @@ describe("buildPath", () => {
   test("session checkpoint", () => {
     expect(
       buildPath({ root: "/data/memory", scope: "sessions", scope_id: "ses_abc", key: "checkpoint" }),
-    ).toBe("/data/memory/sessions/ses_abc/checkpoint.md")
+    ).toBe(path.join("/data/memory", "sessions", "ses_abc", "checkpoint.md"))
   })
 
   test("global free", () => {
     expect(buildPath({ root: "/data/memory", scope: "global", key: "tooling" })).toBe(
-      "/data/memory/global/tooling.md",
+      path.join("/data/memory", "global", "tooling.md"),
     )
   })
 

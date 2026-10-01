@@ -12,6 +12,10 @@ import { SessionRevert } from "@/session/revert"
 import { SessionShare } from "@/share"
 import { SessionStatus } from "@/session/status"
 import { SessionSummary } from "@/session/summary"
+import { Checkpoint } from "@/checkpoint"
+import { SessionExport } from "@/share/export"
+import { InstanceState } from "@/effect"
+import { Instance } from "@/project/instance"
 import { Todo } from "@/session/todo"
 import { Effect } from "effect"
 import { Agent } from "@/agent/agent"
@@ -63,6 +67,49 @@ export const resolveCurrentAgent = (sessionID: SessionID, defaultAgent: string) 
 
 export const SessionRoutes = lazy(() =>
   new Hono()
+    .get("/:sessionID/checkpoint",
+      describeRoute({ summary: "List file checkpoints", operationId: "session.checkpointList", responses: { 200: { description: "Checkpoints", content: { "application/json": { schema: resolver(Checkpoint.Summary.array()) } } } } }),
+      validator("param", z.object({ sessionID: SessionID.zod })),
+      (c) => jsonRequest("SessionRoutes.checkpointList", c, function* () {
+        const instance = yield* InstanceState.context
+        const sessions = yield* Session.Service
+        yield* sessions.get(c.req.valid("param").sessionID)
+        return yield* Effect.promise(() => Instance.restore(instance, async () => Checkpoint.list(c.req.valid("param").sessionID).map(Checkpoint.summarize)))
+      }),
+    )
+    .post("/:sessionID/checkpoint",
+      describeRoute({ summary: "Create file checkpoint", operationId: "session.checkpointCreate", responses: { 200: { description: "Checkpoint", content: { "application/json": { schema: resolver(Checkpoint.Summary) } } } } }),
+      validator("param", z.object({ sessionID: SessionID.zod })),
+      validator("json", z.object({ description: z.string().optional(), files: z.array(z.string()).optional() })),
+      (c) => jsonRequest("SessionRoutes.checkpointCreate", c, function* () {
+        const instance = yield* InstanceState.context
+        return yield* Effect.promise(() => Instance.restore(instance, () => Checkpoint.create({ sessionID: c.req.valid("param").sessionID, ...c.req.valid("json") }).then(Checkpoint.summarize)))
+      }),
+    )
+    .post("/:sessionID/checkpoint/:checkpointID/restore",
+      describeRoute({ summary: "Restore file and conversation checkpoint", operationId: "session.checkpointRestore", responses: { 200: { description: "Restored files and preserved unrelated changes", content: { "application/json": { schema: resolver(Checkpoint.RestoreResult) } } } } }),
+      validator("param", z.object({ sessionID: SessionID.zod, checkpointID: z.string() })),
+      validator("json", z.object({ files: z.array(z.string()).optional(), allFiles: z.boolean().optional() })),
+      (c) => jsonRequest("SessionRoutes.checkpointRestore", c, function* () {
+        const instance = yield* InstanceState.context
+        const running = yield* SessionRunState.Service
+        yield* running.assertNotBusy(c.req.valid("param").sessionID)
+        return yield* Effect.promise(() => Instance.restore(instance, () => Checkpoint.restore({ sessionID: c.req.valid("param").sessionID, id: c.req.valid("param").checkpointID, ...c.req.valid("json") })))
+      }),
+    )
+    .get("/:sessionID/export",
+      describeRoute({ summary: "Export read-only offline session", operationId: "session.exportOffline", responses: { 200: { description: "Offline session document", content: { "application/json": { schema: resolver(SessionExport.Document) }, "text/html": { schema: resolver(z.string()) } } } } }),
+      validator("param", z.object({ sessionID: SessionID.zod })),
+      validator("query", z.object({ format: z.enum(["html", "json"]).default("json") })),
+      async (c) => {
+        const document = await runRequest("SessionRoutes.exportOffline", c, Effect.gen(function* () {
+          const instance = yield* InstanceState.context
+          return yield* Effect.promise(() => Instance.restore(instance, () => SessionExport.collect(c.req.valid("param").sessionID)))
+        }))
+        if (c.req.valid("query").format === "html") return c.html(SessionExport.html(document))
+        return c.json(document)
+      },
+    )
     .get(
       "/",
       describeRoute({

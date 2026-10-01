@@ -27,6 +27,7 @@ function decodeFrames(buffer) {
 }
 
 let readBuffer = Buffer.alloc(0)
+let activeUri
 
 process.stdin.on("data", (chunk) => {
   readBuffer = Buffer.concat([readBuffer, chunk])
@@ -57,6 +58,28 @@ function handle(raw) {
     return
   }
   if (data.method === "initialized") {
+    return
+  }
+  if (data.method === "textDocument/didOpen" || data.method === "textDocument/didChange") {
+    activeUri = data.params.textDocument.uri
+    const text = data.method === "textDocument/didOpen" ? data.params.textDocument.text : data.params.contentChanges[0].text
+    send({ jsonrpc: "2.0", method: "textDocument/publishDiagnostics", params: { uri: activeUri, diagnostics: text.includes("BROKEN") ? [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } }, severity: 1, message: "Fixture syntax error" }] : [] } })
+    return
+  }
+  if (data.method === "textDocument/didClose") {
+    activeUri = undefined
+    return
+  }
+  if (data.method === "textDocument/hover") {
+    send({ jsonrpc: "2.0", id: data.id, result: { contents: { kind: "plaintext", value: "Fixture hover" }, pid: process.pid } })
+    return
+  }
+  if (data.method === "textDocument/definition" || data.method === "textDocument/references") {
+    send({ jsonrpc: "2.0", id: data.id, result: [{ uri: data.params.textDocument.uri, range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } } }] })
+    return
+  }
+  if (data.method === "workspace/symbol") {
+    send({ jsonrpc: "2.0", id: data.id, result: [{ name: data.params.query || "fixture", kind: 12, location: { uri: activeUri, range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } } } }] })
     return
   }
   if (data.method === "workspace/didChangeConfiguration") {

@@ -15,6 +15,7 @@ import { type Tool as AITool, type ModelMessage, tool, jsonSchema, type ToolExec
 import type { JSONSchema7 } from "@ai-sdk/provider"
 import { SessionPrune } from "./prune"
 import { SessionCheckpoint } from "./checkpoint"
+import { Checkpoint } from "@/checkpoint"
 import { SessionCompaction } from "./compaction"
 import { computeLastMessageInfo } from "./last-message-info"
 import { pressureLevel, isOverflow as overflowCheck } from "./overflow"
@@ -708,6 +709,11 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                     .pipe(Effect.ignore)
                   yield* input.processor.completeToolCall(options.toolCallId, cancelOutput)
                   return cancelOutput
+                }
+                if (["edit", "write", "apply_patch", "bash"].includes(item.id)) {
+                  const files = typeof beforeOutput.args.filePath === "string" ? [beforeOutput.args.filePath]
+                    : typeof beforeOutput.args.patchText === "string" ? [...beforeOutput.args.patchText.matchAll(/^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm)].map((match) => match[1]!.trim()) : undefined
+                  yield* Checkpoint.autoEffect({ sessionID: ctx.sessionID, tool: item.id, files })
                 }
                 const result = yield* item.execute(beforeOutput.args, ctx)
                 log.debug("tool execute done", {

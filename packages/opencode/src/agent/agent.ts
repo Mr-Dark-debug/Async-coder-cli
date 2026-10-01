@@ -199,6 +199,8 @@ export const layer = Layer.effect(
               defaults,
               Permission.fromConfig({
                 change_directory: "deny",
+                todowrite: "deny",
+                todoread: "deny",
               }),
               user,
             ),
@@ -206,6 +208,35 @@ export const layer = Layer.effect(
             mode: "subagent",
             native: true,
           },
+          ...Object.fromEntries([
+            {
+              name: "review",
+              description: "Review code for correctness, security, regressions, and missing tests without changing files.",
+              prompt: "Review the requested changes using the repository instructions. Read the actual implementation and relevant callers. Prioritize actionable defects with file and line references. Explain concrete failure scenarios. Run appropriate read-only checks. Do not modify files or commit changes.",
+              readonly: true,
+            },
+            {
+              name: "test-writer",
+              description: "Write meaningful tests using the project's existing test framework and verify their results.",
+              prompt: "Inspect the existing test framework and repository instructions. Test observable behavior and real implementations, cover edge cases and regressions, and avoid duplicating implementation logic. Use fixtures and minimize mocks. Run the relevant package tests. Report exactly what passed and any failures.",
+              readonly: false,
+            },
+            {
+              name: "docs",
+              description: "Write and update accurate documentation based on the actual code and verified behavior.",
+              prompt: "Read the implementation and existing documentation before editing. Preserve terminology and project identity. Explain behavior, configuration, and usable examples. Verify commands and links when practical. Do not claim unverified functionality. Keep documentation focused on the user's task.",
+              readonly: false,
+            },
+          ].map((agent) => [agent.name, {
+            name: agent.name,
+            description: agent.description,
+            prompt: agent.prompt,
+            color: "#a7a3d8",
+            options: {},
+            permission: Permission.merge(defaults, Permission.fromConfig({ change_directory: "deny", ...(agent.readonly ? { edit: "deny" as const } : {}) }), user),
+            mode: "subagent" as const,
+            native: true,
+          }])),
           explore: {
             name: "explore",
             color: "#f5c9b0",

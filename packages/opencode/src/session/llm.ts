@@ -32,6 +32,8 @@ import * as OtelTracer from "@effect/opentelemetry/Tracer"
 import { ActorRegistry } from "@/actor/registry"
 import { Memory } from "@/memory"
 import { isRetryableTransientError } from "./retry"
+import { streamWithFallback } from "@/provider/fallback"
+import { RepoMap } from "@/repo-map"
 
 const log = Log.create({ service: "llm" })
 export const OUTPUT_TOKEN_MAX = ProviderTransform.OUTPUT_TOKEN_MAX
@@ -210,7 +212,8 @@ export type StreamRequest = StreamInput & {
   abort: AbortSignal
 }
 
-export type Event = Result["fullStream"] extends AsyncIterable<infer T> ? T : never
+type SDKEvent = Result["fullStream"] extends AsyncIterable<infer T> ? T : never
+export type Event = SDKEvent | { type: "provider-switch"; model: Provider.Model }
 
 export interface Interface {
   readonly stream: (input: StreamInput) => Stream.Stream<Event, unknown>
@@ -246,6 +249,7 @@ const live: Layer.Layer<
     const perm = yield* Permission.Service
     const actorReg = yield* ActorRegistry.Service
     const memory = yield* Memory.Service
+    const repoMap = Option.getOrUndefined(yield* Effect.serviceOption(RepoMap.Service))
 
     const buildSystemArray = Effect.fn("LLM.buildSystemArray")(function* (input: {
       agent: Agent.Info
@@ -280,6 +284,14 @@ const live: Layer.Layer<
         ? yield* actorReg.isSystemSpawned(SessionID.make(input.sessionID), input.agentID)
         : false
       if (!isSystemActor) {
+        if (repoMap && !input.agent.hidden && !Permission.disabled(["repo_map"], input.agent.permission).has("repo_map")) {
+          const summary = yield* repoMap.get().pipe(
+            Effect.map((map) => RepoMap.format(map, { tokens: 1500 })),
+            Effect.timeout("3 seconds"),
+            Effect.catch(() => Effect.succeed("")),
+          )
+          if (summary) system.push(`Repository structure (signatures only; use repo_map to query current details):\n${summary}`)
+        }
         const projectID =
           (yield* Effect.try({
             try: () => Instance.current?.project?.id as ProjectID | undefined,
@@ -674,6 +686,8 @@ const live: Layer.Layer<
               (ctrl) => Effect.sync(() => ctrl.abort()),
             )
             const attemptRef = yield* Ref.make(0)
+            const cfg = yield* config.get()
+            const bridge = yield* EffectBridge.make()
 
             const publishRetryEvent = (error: unknown, nextAttempt: number) =>
               Effect.gen(function* () {
@@ -713,7 +727,18 @@ const live: Layer.Layer<
               }),
             )
 
-            return Stream.fromAsyncIterable(result.fullStream, (e) => (e instanceof Error ? e : new Error(String(e))))
+            if (!cfg.reliability?.fallback_models?.length) return Stream.fromAsyncIterable(result.fullStream, (e) => (e instanceof Error ? e : new Error(String(e))))
+            const fallbacks = yield* Effect.forEach(cfg.reliability.fallback_models, (id) => {
+              const ref = Provider.parseModel(id)
+              return provider.getModel(ref.providerID, ref.modelID)
+            })
+            return Stream.fromAsyncIterable(streamWithFallback<Provider.Model, Event>({
+              models: [input.model, ...fallbacks.filter((model) => model.providerID !== input.model.providerID || model.id !== input.model.id)],
+              signal: ctrl.signal,
+              open: (model) => model === input.model ? Promise.resolve(result.fullStream)
+                : bridge.promise(run({ ...input, model, abort: ctrl.signal })).then((result) => result.fullStream),
+              switched: (model) => ({ type: "provider-switch", model }),
+            }), (e) => e instanceof Error ? e : new Error(String(e)))
           }),
         ),
       )
@@ -732,6 +757,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Plugin.defaultLayer),
     Layer.provide(ActorRegistry.defaultLayer),
     Layer.provide(Memory.defaultLayer),
+    Layer.provide(RepoMap.defaultLayer),
   ),
 )
 

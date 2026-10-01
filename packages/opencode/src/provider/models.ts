@@ -28,10 +28,10 @@ const JsonValue: z.ZodType<JsonValue> = z.lazy(() =>
 )
 
 const Cost = z.object({
-  input: z.number(),
-  output: z.number(),
-  cache_read: z.number().optional(),
-  cache_write: z.number().optional(),
+  input: z.number().nonnegative(),
+  output: z.number().nonnegative(),
+  cache_read: z.number().nonnegative().optional(),
+  cache_write: z.number().nonnegative().optional(),
   context_over_200k: z
     .object({
       input: z.number(),
@@ -49,7 +49,7 @@ export const Model = z.object({
   release_date: z.string(),
   attachment: z.boolean(),
   reasoning: z.boolean(),
-  temperature: z.boolean(),
+  temperature: z.boolean().default(false),
   tool_call: z.boolean(),
   interleaved: z
     .union([
@@ -124,11 +124,18 @@ const fetchApi = async () => {
     headers: { "User-Agent": Installation.USER_AGENT },
     signal: AbortSignal.timeout(10000),
   })
-  return { ok: result.ok, text: await result.text() }
+  if (!result.ok) return { ok: false, text: "{}" }
+  const text = await result.text()
+  decodeCatalog(JSON.parse(text))
+  return { ok: true, text }
+}
+
+export function decodeCatalog(value: unknown) {
+  return z.record(z.string(), Provider).parse(value)
 }
 
 export const Data = lazy(async () => {
-  const result = await Filesystem.readJson(Flag.ASYNC_CODER_MODELS_PATH ?? filepath).catch(() => {})
+  const result = await Filesystem.readJson(Flag.ASYNC_CODER_MODELS_PATH ?? filepath).then(decodeCatalog).catch(() => {})
   if (result) return result
   // @ts-ignore
   const snapshot = await import("./models-snapshot.js")
@@ -137,7 +144,7 @@ export const Data = lazy(async () => {
   if (snapshot) return snapshot
   if (Flag.ASYNC_CODER_DISABLE_MODELS_FETCH) return {}
   return Flock.withLock(`models-dev:${filepath}`, async () => {
-    const result = await Filesystem.readJson(Flag.ASYNC_CODER_MODELS_PATH ?? filepath).catch(() => {})
+    const result = await Filesystem.readJson(Flag.ASYNC_CODER_MODELS_PATH ?? filepath).then(decodeCatalog).catch(() => {})
     if (result) return result
     const result2 = await fetchApi()
     if (result2.ok) {
@@ -145,7 +152,8 @@ export const Data = lazy(async () => {
         log.error("Failed to write models cache", { error: e })
       })
     }
-    return JSON.parse(result2.text)
+    if (!result2.ok) throw new Error(`Model catalog unavailable at ${url()}; configure models explicitly or retry later`)
+    return decodeCatalog(JSON.parse(result2.text))
   })
 })
 

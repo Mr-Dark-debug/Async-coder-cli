@@ -182,7 +182,7 @@ const discoverSkills = Effect.fnUntraced(function* (
       .up({ targets: externalDirs, start: directory, stop: worktree })
       .pipe(Effect.catch(() => Effect.succeed([] as string[])))
 
-    for (const root of upDirs) {
+    for (const root of upDirs.toReversed()) {
       yield* scan(state, root, EXTERNAL_SKILL_PATTERN, { dot: true, scope: "project" })
     }
   }

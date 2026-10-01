@@ -30,6 +30,7 @@ import { ConfigAdvisor } from "./advisor"
 import { ConfigCommand } from "./command"
 import { ConfigFormatter } from "./formatter"
 import { ConfigHistory } from "./history"
+import { ConfigHooks } from "./hooks"
 import { ConfigLayout } from "./layout"
 import { ConfigLSP } from "./lsp"
 import { ConfigManaged } from "./managed"
@@ -59,6 +60,20 @@ function mergeConfigConcatArrays(target: Info, source: Info): Info {
 function normalizeLoadedConfig(data: unknown, source: string) {
   if (!isRecord(data)) return data
   const copy = { ...data }
+  if (isRecord(copy.mcpServers)) {
+    copy.mcp = {
+      ...Object.fromEntries(Object.entries(copy.mcpServers).map(([name, server]) => {
+        if (isRecord(server) && (server.type === "local" || server.type === "remote")) {
+          return [name, ConfigParse.schema(ConfigMCP.Info.zod, server, source)]
+        }
+        const converted = ConfigMCP.fromClaude(name, server)
+        if ("warning" in converted) throw new Error(`${source}: ${converted.warning}`)
+        return [name, converted.config]
+      })),
+      ...(isRecord(copy.mcp) ? copy.mcp : {}),
+    }
+    delete copy.mcpServers
+  }
   const hadLegacy = "theme" in copy || "keybinds" in copy || "tui" in copy
   if (!hadLegacy) return copy
   delete copy.theme
@@ -106,6 +121,19 @@ const InfoSchema = Schema.Struct({
     description: "Command configuration, see https://opencode.ai/docs/commands",
   }),
   skills: Schema.optional(ConfigSkills.Info).annotate({ description: "Additional skill folder paths" }),
+  hooks: Schema.optional(Schema.mutable(Schema.Array(ConfigHooks.Info))),
+  checkpoints: Schema.optional(Schema.Struct({
+    enabled: Schema.optional(Schema.Boolean),
+    retention: Schema.optional(PositiveInt),
+  })),
+  reliability: Schema.optional(Schema.Struct({
+    provider_concurrency: Schema.optional(PositiveInt),
+    max_retries: Schema.optional(NonNegativeInt),
+    fallback_models: Schema.optional(Schema.mutable(Schema.Array(ConfigModelID))),
+  })),
+  mcpServers: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)).annotate({
+    description: "MCP server definitions in command/args/env or native mcp format. Native mcp entries take precedence.",
+  }),
   watcher: Schema.optional(
     Schema.Struct({
       ignore: Schema.optional(Schema.mutable(Schema.Array(Schema.String))),
@@ -572,9 +600,24 @@ export const layer = Layer.effect(
       return yield* loadConfig(text, { path: filepath })
     })
 
+    const loadExtras = Effect.fnUntraced(function* (dir: string) {
+      const values = yield* Effect.forEach(["mcp.json", "hooks.json"], Effect.fnUntraced(function* (filename) {
+        const source = path.join(dir, filename)
+        const text = yield* readConfigFile(source)
+        if (!text) return {} as Info
+        const data = ConfigParse.jsonc(text, source)
+        const wrapped = filename === "mcp.json" && isRecord(data) && !data.mcp && !data.mcpServers
+          ? { mcpServers: data }
+          : data
+        return yield* loadConfig(JSON.stringify(wrapped), { dir, source })
+      }), { concurrency: 2 })
+      return values.reduce(mergeConfigConcatArrays, {})
+    })
+
     const loadGlobal = Effect.fnUntraced(function* () {
+      const extras = yield* loadExtras(Global.Path.config)
       let result: Info = pipe(
-        {},
+        extras,
         mergeDeep(yield* loadFile(path.join(Global.Path.config, "config.json"))),
         mergeDeep(yield* loadFile(path.join(Global.Path.config, "async-coder.json"))),
         mergeDeep(yield* loadFile(path.join(Global.Path.config, "async-coder.jsonc"))),
@@ -620,7 +663,7 @@ export const layer = Layer.effect(
         yield* fs
           .writeFileString(
             gitignore,
-            ["node_modules", "package.json", "package-lock.json", "bun.lock", ".gitignore"].join("\n"),
+            ["node_modules", "package.json", "package-lock.json", "bun.lock", "AGENTS.local.md", ".gitignore"].join("\n"),
           )
           .pipe(
             Effect.catchIf(
@@ -780,6 +823,7 @@ export const layer = Layer.effect(
         }
 
         for (const dir of directories) {
+          if (dir !== Global.Path.config) yield* merge(dir, yield* loadExtras(dir))
           if (dir.endsWith(".async-coder") || dir === Flag.ASYNC_CODER_CONFIG_DIR) {
             for (const file of ["async-coder.json", "async-coder.jsonc"]) {
               const source = path.join(dir, file)

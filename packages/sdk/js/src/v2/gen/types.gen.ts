@@ -558,99 +558,10 @@ export type EventTeamMemberJoined = {
   }
 }
 
-export type SessionStatus =
-  | {
-      type: "idle"
-    }
-  | {
-      type: "retry"
-      attempt: number
-      message: string
-      next: number
-    }
-  | {
-      type: "busy"
-      message?: string
-    }
-
-export type EventSessionStatus = {
-  type: "session.status"
+export type EventVcsBranchUpdated = {
+  type: "vcs.branch.updated"
   properties: {
-    sessionID: string
-    status: SessionStatus
-  }
-}
-
-export type EventSessionIdle = {
-  type: "session.idle"
-  properties: {
-    sessionID: string
-  }
-}
-
-export type EventSessionGoal = {
-  type: "session.goal"
-  properties: {
-    sessionID: string
-    goal?: {
-      condition: string
-    }
-    lastVerdict?: {
-      ok: boolean
-      impossible?: boolean
-      reason: string
-      attempt: number
-      messageID?: string
-      error?: boolean
-    }
-  }
-}
-
-export type EventMetricsModelCall = {
-  type: "metrics.model_call"
-  properties: {
-    sessionID: string
-    finish_reason: string
-    ttft_ms?: number
-    latency_ms: number
-    cached_read_tokens: number
-    model_id: string
-    provider: string
-    total_tokens_in: number
-    total_tokens_out: number
-  }
-}
-
-export type EventMetricsToolCall = {
-  type: "metrics.tool_call"
-  properties: {
-    sessionID: string
-    tool_name: string
-    input_bytes: number
-    output_bytes: number
-    tool_call_id: string
-    tool_call_status: "success" | "error" | "cancelled"
-  }
-}
-
-export type EventMetricsAgentRequest = {
-  type: "metrics.agent_request"
-  properties: {
-    sessionID: string
-    phase: string
-    task_type: string
-    surface: string
-    total_tokens_in: number
-    total_tokens_out: number
-    files_changed: number
-    validation_status: string
-  }
-}
-
-export type EventSessionCompacted = {
-  type: "session.compacted"
-  properties: {
-    sessionID: string
+    branch?: string
   }
 }
 
@@ -743,10 +654,44 @@ export type EventCommandExecuted = {
   }
 }
 
-export type EventVcsBranchUpdated = {
-  type: "vcs.branch.updated"
+export type EventMetricsModelCall = {
+  type: "metrics.model_call"
   properties: {
-    branch?: string
+    sessionID: string
+    finish_reason: string
+    ttft_ms?: number
+    latency_ms: number
+    cached_read_tokens: number
+    model_id: string
+    provider: string
+    total_tokens_in: number
+    total_tokens_out: number
+  }
+}
+
+export type EventMetricsToolCall = {
+  type: "metrics.tool_call"
+  properties: {
+    sessionID: string
+    tool_name: string
+    input_bytes: number
+    output_bytes: number
+    tool_call_id: string
+    tool_call_status: "success" | "error" | "cancelled"
+  }
+}
+
+export type EventMetricsAgentRequest = {
+  type: "metrics.agent_request"
+  properties: {
+    sessionID: string
+    phase: string
+    task_type: string
+    surface: string
+    total_tokens_in: number
+    total_tokens_out: number
+    files_changed: number
+    validation_status: string
   }
 }
 
@@ -762,6 +707,61 @@ export type EventWorktreeFailed = {
   type: "worktree.failed"
   properties: {
     message: string
+  }
+}
+
+export type SessionStatus =
+  | {
+      type: "idle"
+    }
+  | {
+      type: "retry"
+      attempt: number
+      message: string
+      next: number
+    }
+  | {
+      type: "busy"
+      message?: string
+    }
+
+export type EventSessionStatus = {
+  type: "session.status"
+  properties: {
+    sessionID: string
+    status: SessionStatus
+  }
+}
+
+export type EventSessionIdle = {
+  type: "session.idle"
+  properties: {
+    sessionID: string
+  }
+}
+
+export type EventSessionGoal = {
+  type: "session.goal"
+  properties: {
+    sessionID: string
+    goal?: {
+      condition: string
+    }
+    lastVerdict?: {
+      ok: boolean
+      impossible?: boolean
+      reason: string
+      attempt: number
+      messageID?: string
+      error?: boolean
+    }
+  }
+}
+
+export type EventSessionCompacted = {
+  type: "session.compacted"
+  properties: {
+    sessionID: string
   }
 }
 
@@ -1533,13 +1533,7 @@ export type GlobalEvent = {
     | EventTodoUpdated
     | EventTeamCreated
     | EventTeamMemberJoined
-    | EventSessionStatus
-    | EventSessionIdle
-    | EventSessionGoal
-    | EventMetricsModelCall
-    | EventMetricsToolCall
-    | EventMetricsAgentRequest
-    | EventSessionCompacted
+    | EventVcsBranchUpdated
     | EventTuiPromptAppend
     | EventTuiCommandExecute
     | EventTuiToastShow
@@ -1548,9 +1542,15 @@ export type GlobalEvent = {
     | EventMcpToolsChanged
     | EventMcpBrowserOpenFailed
     | EventCommandExecuted
-    | EventVcsBranchUpdated
+    | EventMetricsModelCall
+    | EventMetricsToolCall
+    | EventMetricsAgentRequest
     | EventWorktreeReady
     | EventWorktreeFailed
+    | EventSessionStatus
+    | EventSessionIdle
+    | EventSessionGoal
+    | EventSessionCompacted
     | EventPtyCreated
     | EventPtyUpdated
     | EventPtyExited
@@ -1870,6 +1870,10 @@ export type McpRemoteConfig = {
    */
   url: string
   /**
+   * Explicit remote transport. Omit to try Streamable HTTP followed by SSE.
+   */
+  transport?: "http" | "sse"
+  /**
    * Enable or disable the MCP server on startup
    */
   enabled?: boolean
@@ -1925,6 +1929,44 @@ export type Config = {
      * URLs to fetch skills from (e.g., https://example.com/.well-known/skills/)
      */
     urls?: Array<string>
+  }
+  hooks?: Array<{
+    id?: string
+    event:
+      | "pre_tool_use"
+      | "post_tool_use"
+      | "pre_file_edit"
+      | "post_file_edit"
+      | "pre_command"
+      | "post_command"
+      | "session_start"
+      | "session_end"
+      | "message_sent"
+      | "message_received"
+      | "agent_start"
+      | "agent_end"
+      | "error"
+    command: string
+    timeout?: number
+    /**
+     * Optional tool-name condition, for example tool === 'bash'. No JavaScript is evaluated.
+     */
+    condition?: string
+  }>
+  checkpoints?: {
+    enabled?: boolean
+    retention?: number
+  }
+  reliability?: {
+    provider_concurrency?: number
+    max_retries?: number
+    fallback_models?: Array<string>
+  }
+  /**
+   * MCP server definitions in command/args/env or native mcp format. Native mcp entries take precedence.
+   */
+  mcpServers?: {
+    [key: string]: unknown
   }
   watcher?: {
     ignore?: Array<string>
@@ -2464,10 +2506,13 @@ export type Worktree = {
   name: string
   branch: string
   directory: string
+  baseBranch?: string
 }
 
 export type WorktreeCreateInput = {
   name?: string
+  branch?: string
+  baseBranch?: string
   /**
    * Additional startup script to run after the project's start command
    */
@@ -2530,6 +2575,26 @@ export type McpResource = {
   description?: string
   mimeType?: string
   client: string
+}
+
+export type SessionCheckpointSummary = {
+  id: string
+  session_id: string
+  directory: string
+  description: string
+  snapshot: string
+  time_created: number
+  automatic: boolean
+  files: Array<string>
+  status: "ready" | "restoring" | "restored"
+  messages: number
+}
+
+export type SessionCheckpointRestore = {
+  id: string
+  restored: Array<string>
+  preserved: Array<string>
+  messageCount: number
 }
 
 export type ConflictError = {
@@ -2708,13 +2773,7 @@ export type Event =
   | EventTodoUpdated
   | EventTeamCreated
   | EventTeamMemberJoined
-  | EventSessionStatus
-  | EventSessionIdle
-  | EventSessionGoal
-  | EventMetricsModelCall
-  | EventMetricsToolCall
-  | EventMetricsAgentRequest
-  | EventSessionCompacted
+  | EventVcsBranchUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
@@ -2723,9 +2782,15 @@ export type Event =
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
   | EventCommandExecuted
-  | EventVcsBranchUpdated
+  | EventMetricsModelCall
+  | EventMetricsToolCall
+  | EventMetricsAgentRequest
   | EventWorktreeReady
   | EventWorktreeFailed
+  | EventSessionStatus
+  | EventSessionIdle
+  | EventSessionGoal
+  | EventSessionCompacted
   | EventPtyCreated
   | EventPtyUpdated
   | EventPtyExited
@@ -3999,6 +4064,110 @@ export type ExperimentalResourceListResponses = {
 
 export type ExperimentalResourceListResponse =
   ExperimentalResourceListResponses[keyof ExperimentalResourceListResponses]
+
+export type SessionCheckpointListData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/checkpoint"
+}
+
+export type SessionCheckpointListResponses = {
+  /**
+   * Checkpoints
+   */
+  200: Array<SessionCheckpointSummary>
+}
+
+export type SessionCheckpointListResponse = SessionCheckpointListResponses[keyof SessionCheckpointListResponses]
+
+export type SessionCheckpointCreateData = {
+  body?: {
+    description?: string
+    files?: Array<string>
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/checkpoint"
+}
+
+export type SessionCheckpointCreateResponses = {
+  /**
+   * Checkpoint
+   */
+  200: SessionCheckpointSummary
+}
+
+export type SessionCheckpointCreateResponse = SessionCheckpointCreateResponses[keyof SessionCheckpointCreateResponses]
+
+export type SessionCheckpointRestoreData = {
+  body?: {
+    files?: Array<string>
+    allFiles?: boolean
+  }
+  path: {
+    sessionID: string
+    checkpointID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/checkpoint/{checkpointID}/restore"
+}
+
+export type SessionCheckpointRestoreResponses = {
+  /**
+   * Restored files and preserved unrelated changes
+   */
+  200: SessionCheckpointRestore
+}
+
+export type SessionCheckpointRestoreResponse =
+  SessionCheckpointRestoreResponses[keyof SessionCheckpointRestoreResponses]
+
+export type SessionExportOfflineData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+    format?: "html" | "json"
+  }
+  url: "/session/{sessionID}/export"
+}
+
+export type SessionExportOfflineResponses = {
+  /**
+   * Offline session document
+   */
+  200: {
+    format: "async-coder-session"
+    version: 1
+    exportedAt: string
+    readOnly: true
+    info: Session
+    messages: Array<{
+      info: Message
+      parts: Array<Part>
+    }>
+    diffs: Array<SnapshotFileDiff>
+  }
+}
+
+export type SessionExportOfflineResponse = SessionExportOfflineResponses[keyof SessionExportOfflineResponses]
 
 export type SessionListData = {
   body?: never

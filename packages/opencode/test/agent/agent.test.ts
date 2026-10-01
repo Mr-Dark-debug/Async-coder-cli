@@ -37,6 +37,9 @@ test("returns default native agents when no config", async () => {
       expect(names).toContain("plan")
       expect(names).toContain("general")
       expect(names).toContain("explore")
+      expect(names).toContain("review")
+      expect(names).toContain("test-writer")
+      expect(names).toContain("docs")
       expect(names).toContain("title")
       expect(names).toContain("summary")
     },

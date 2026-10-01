@@ -59,6 +59,7 @@ export interface Info {
   id: string
   extensions: string[]
   global?: boolean
+  available?: () => boolean
   root: RootFunction
   spawn(root: string, ctx: InstanceContext): Promise<Handle | undefined>
 }

@@ -39,6 +39,9 @@ export class OAuth extends Schema.Class<OAuth>("McpOAuthConfig")({
 export class Remote extends Schema.Class<Remote>("McpRemoteConfig")({
   type: Schema.Literal("remote").annotate({ description: "Type of MCP server connection" }),
   url: Schema.String.annotate({ description: "URL of the remote MCP server" }),
+  transport: Schema.optional(Schema.Literals(["http", "sse"])).annotate({
+    description: "Explicit remote transport. Omit to try Streamable HTTP followed by SSE.",
+  }),
   enabled: Schema.optional(Schema.Boolean).annotate({
     description: "Enable or disable the MCP server on startup",
   }),
@@ -65,7 +68,7 @@ export type Origin = {
   source: string
 }
 
-const remoteTypes = new Set(["http", "streamable-http", "remote"])
+const remoteTypes = new Set(["http", "streamable-http", "remote", "sse"])
 const localTypes = new Set(["stdio", "local"])
 const sensitive = ["authorization", "token", "api_key", "apikey", "key", "secret", "password", "credential"]
 
@@ -95,10 +98,6 @@ function oauth(input: unknown) {
 export function fromClaude(name: string, input: unknown): { config: Info } | { warning: string } {
   if (!isRecord(input)) return { warning: `skipped Claude Code MCP server "${name}"; server config is not an object.` }
 
-  if (input.type === "sse") {
-    return { warning: `skipped Claude Code MCP server "${name}"; unsupported transport "sse".` }
-  }
-
   if (input.args !== undefined && !Array.isArray(input.args)) {
     return { warning: `skipped Claude Code MCP server "${name}"; args is not an array.` }
   }
@@ -108,10 +107,10 @@ export function fromClaude(name: string, input: unknown): { config: Info } | { w
     return { warning: `skipped Claude Code MCP server "${name}"; args must contain only strings.` }
   }
 
-  const enabled = input.disabled === true ? false : input.enabled === false ? false : true
+  const enabled = input.disabled === true || input.enabled === false || input.autoStart === false ? false : true
   const environment = stringRecord(input.environment) ?? stringRecord(input.env)
   const timeout = typeof input.timeout === "number" ? input.timeout : undefined
-  const type = typeof input.type === "string" ? input.type : undefined
+  const type = typeof input.transport === "string" ? input.transport : typeof input.type === "string" ? input.type : undefined
 
   if (typeof input.command === "string" && (!type || localTypes.has(type))) {
     return {
@@ -136,6 +135,8 @@ export function fromClaude(name: string, input: unknown): { config: Info } | { w
       config: {
         type: "remote",
         url: input.url,
+        ...(type === "sse" && { transport: "sse" as const }),
+        ...(input.transport === "http" && { transport: "http" as const }),
         enabled,
         ...(headers && { headers }),
         ...(oauthConfig !== undefined && { oauth: oauthConfig }),

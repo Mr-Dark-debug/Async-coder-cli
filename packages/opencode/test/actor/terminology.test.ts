@@ -21,7 +21,6 @@ const ACTIVE_ACTOR_FILES = [
 const LEGACY_ACTOR_TERMS = [
   /sub-agent/g,
   /Background task/g,
-  /\btaskRegistry\b/g,
   /Active Background Tasks/g,
   /\bTask status\b/g,
   /\bTask wait\b/g,

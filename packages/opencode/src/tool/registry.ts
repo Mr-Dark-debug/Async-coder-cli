@@ -62,6 +62,10 @@ import { shellWrap } from "./shell-wrap"
 import * as BashInteractive from "./bash-interactive"
 import { resolveInvocationStyle } from "./invocation-style"
 import { BuiltinWorkflow } from "@/workflow/builtin"
+import { RepoMapTool, FindSymbolTool, FindDependenciesTool } from "./repo-map"
+import { RepoMap } from "@/repo-map"
+import { WorktreeTool } from "./worktree"
+import { CheckpointTool } from "./checkpoint"
 
 const log = Log.create({ service: "tool.registry" })
 
@@ -143,6 +147,11 @@ export const layer = Layer.effect(
     const tasktool = yield* TaskTool
     const workflowtool = yield* WorkflowTool
     const agent = yield* Agent.Service
+    const repomap = yield* RepoMapTool
+    const symbol = yield* FindSymbolTool
+    const dependencies = yield* FindDependenciesTool
+    const worktree = yield* WorktreeTool
+    const checkpoint = yield* CheckpointTool
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("ToolRegistry.state")(function* (ctx) {
@@ -228,6 +237,11 @@ export const layer = Layer.effect(
           history: Tool.init(historytool),
           task: Tool.init(tasktool),
           workflow: Tool.init(workflowtool),
+          repomap: Tool.init(repomap),
+          symbol: Tool.init(symbol),
+          dependencies: Tool.init(dependencies),
+          worktree: Tool.init(worktree),
+          checkpoint: Tool.init(checkpoint),
         })
 
         return {
@@ -249,7 +263,12 @@ export const layer = Layer.effect(
             tool.skill,
             tool.patch,
             tool.changedir,
-            ...(Flag.ASYNC_CODER_EXPERIMENTAL_LSP_TOOL ? [tool.lsp] : []),
+            tool.lsp,
+            tool.repomap,
+            tool.symbol,
+            tool.dependencies,
+            tool.worktree,
+            tool.checkpoint,
             tool.plan,
             tool.memory,
             tool.history,
@@ -385,7 +404,7 @@ export const layer = Layer.effect(
 
     return Service.of({ ids, all, named, tools, reload })
   }),
-)
+).pipe(Layer.provide(RepoMap.defaultLayer))
 
 export const defaultLayer = Layer.suspend(() =>
   layer.pipe(
@@ -397,7 +416,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Agent.defaultLayer),
     Layer.provide(Session.defaultLayer),
     Layer.provide(Provider.defaultLayer),
-    Layer.provide(LSP.defaultLayer),
+    Layer.provide(Layer.mergeAll(LSP.defaultLayer, RepoMap.defaultLayer)),
     Layer.provide(Instruction.defaultLayer),
     Layer.provide(AppFileSystem.defaultLayer),
     Layer.provide(Bus.layer),

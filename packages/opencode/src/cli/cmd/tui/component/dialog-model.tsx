@@ -12,6 +12,7 @@ import { useToast, type ToastContext } from "../ui/toast"
 import { DialogPrompt } from "../ui/dialog-prompt"
 import * as fuzzysort from "fuzzysort"
 import { modelCostLabel } from "../feature-plugins/sidebar/usage-data"
+import { modelFooter } from "../util/model"
 
 const ADD_MODEL_SENTINEL = "__add_model__"
 
@@ -57,7 +58,7 @@ export function DialogModel(props: { providerID?: string }) {
             description: provider.name,
             category,
             disabled: provider.id === "opencode" && model.id.includes("-nano"),
-            footer: modelCostLabel(model.cost),
+            footer: modelFooter(model),
             onSelect: () => {
               onSelect(provider.id, model.id)
             },
@@ -91,10 +92,10 @@ export function DialogModel(props: { providerID?: string }) {
             title: info.name ?? model,
             description: favorites.some((item) => item.providerID === provider.id && item.modelID === model)
               ? "(Favorite)"
-              : undefined,
-            category: connected() ? provider.name : undefined,
+              : provider.name,
+            category: modelCostLabel(info.cost) === "Free" ? "Zen (Free)" : connected() ? provider.name : undefined,
             disabled: provider.id === "opencode" && model.includes("-nano"),
-            footer: modelCostLabel(info.cost),
+            footer: modelFooter(info),
             onSelect() {
               onSelect(provider.id, model)
             },
@@ -108,7 +109,7 @@ export function DialogModel(props: { providerID?: string }) {
             return true
           }),
           sortBy(
-            (x) => x.footer !== "Free",
+            (x) => x.category !== "Zen (Free)",
             (x) => x.title,
           ),
         )
@@ -149,7 +150,7 @@ export function DialogModel(props: { providerID?: string }) {
       ]
     }
 
-    return [...favoriteOptions, ...recentOptions, ...providerOptions, ...popularProviders]
+    return [...favoriteOptions, ...recentOptions, ...sortBy(providerOptions, (option) => option.category !== "Zen (Free)"), ...popularProviders]
   })
 
   const provider = createMemo(() =>

@@ -143,7 +143,17 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
     get connection() {
       return connection
     },
+    isAlive() {
+      return input.server.process.exitCode === null && input.server.process.signalCode === null
+    },
     notify: {
+      async close(request: { path: string }) {
+        const file = path.isAbsolute(request.path) ? request.path : path.resolve(input.directory, request.path)
+        if (files[file] === undefined) return
+        await connection.sendNotification("textDocument/didClose", { textDocument: { uri: pathToFileURL(file).href } })
+        delete files[file]
+        diagnostics.delete(file)
+      },
       async open(request: { path: string }) {
         request.path = path.isAbsolute(request.path) ? request.path : path.resolve(input.directory, request.path)
         const text = await Filesystem.readText(request.path)

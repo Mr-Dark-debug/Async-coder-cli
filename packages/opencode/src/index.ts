@@ -9,6 +9,10 @@ import { AgentCommand } from "./cli/cmd/agent"
 import { UpgradeCommand } from "./cli/cmd/upgrade"
 import { UninstallCommand } from "./cli/cmd/uninstall"
 import { ModelsCommand } from "./cli/cmd/models"
+import { ZenCommand } from "./cli/cmd/zen"
+import { WorktreeCommand } from "./cli/cmd/worktree"
+import { CheckpointCommand } from "./cli/cmd/checkpoint"
+import { ShareExportCommand, ShareViewCommand } from "./cli/cmd/share"
 import { UI } from "./cli/ui"
 import { Installation } from "./installation"
 import { InstallationVersion } from "./installation/version"
@@ -184,6 +188,11 @@ const cli = yargs(args)
   // Web command temporarily disabled
   // .command(WebCommand)
   .command(ModelsCommand)
+  .command(ZenCommand)
+  .command(WorktreeCommand)
+  .command(CheckpointCommand)
+  .command(ShareExportCommand)
+  .command(ShareViewCommand)
   .command(StatsCommand)
   .command(ExportCommand)
   .command(ImportCommand)

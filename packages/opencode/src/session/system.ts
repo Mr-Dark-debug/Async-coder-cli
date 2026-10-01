@@ -59,6 +59,7 @@ export const layer = Layer.effect(
             `  Platform: ${process.platform}`,
             `  Today's date: ${new Date().toDateString()}`,
             `</env>`,
+            `Code intelligence: use repo_map for a compact structural summary, find_symbol to locate definitions, find_dependencies for relative import relationships, and lsp for live language-server diagnostics and navigation.`,
           ].join("\n"),
           `IMPORTANT: Your response must ALWAYS strictly follow the same major language as the user.`,
         ]

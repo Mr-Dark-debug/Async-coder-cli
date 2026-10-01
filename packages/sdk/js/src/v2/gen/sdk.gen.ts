@@ -132,6 +132,9 @@ import type {
   SessionAbortResponses,
   SessionActorsErrors,
   SessionActorsResponses,
+  SessionCheckpointCreateResponses,
+  SessionCheckpointListResponses,
+  SessionCheckpointRestoreResponses,
   SessionChildrenErrors,
   SessionChildrenResponses,
   SessionCommandErrors,
@@ -143,6 +146,7 @@ import type {
   SessionDeleteMessageResponses,
   SessionDeleteResponses,
   SessionDiffResponses,
+  SessionExportOfflineResponses,
   SessionForkResponses,
   SessionGetErrors,
   SessionGetResponses,
@@ -1716,6 +1720,148 @@ export class Worktree extends HeyApiClient {
 }
 
 export class Session2 extends HeyApiClient {
+  /**
+   * List file checkpoints
+   */
+  public checkpointList<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionCheckpointListResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/checkpoint",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Create file checkpoint
+   */
+  public checkpointCreate<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      workspace?: string
+      description?: string
+      files?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "description" },
+            { in: "body", key: "files" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionCheckpointCreateResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/checkpoint",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Restore file and conversation checkpoint
+   */
+  public checkpointRestore<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      checkpointID: string
+      directory?: string
+      workspace?: string
+      files?: Array<string>
+      allFiles?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "checkpointID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "files" },
+            { in: "body", key: "allFiles" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionCheckpointRestoreResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/checkpoint/{checkpointID}/restore",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Export read-only offline session
+   */
+  public exportOffline<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      workspace?: string
+      format?: "html" | "json"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "query", key: "format" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionExportOfflineResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/export",
+      ...options,
+      ...params,
+    })
+  }
+
   /**
    * List sessions
    *

@@ -27,11 +27,11 @@ export const directories = Effect.fn("ConfigPaths.directories")(function* (direc
   return unique([
     Global.Path.config,
     ...(!Flag.ASYNC_CODER_DISABLE_PROJECT_CONFIG
-      ? yield* afs.up({
+      ? (yield* afs.up({
           targets: [".async-coder"],
           start: directory,
           stop: worktree,
-        })
+        })).toReversed()
       : []),
     ...(yield* afs.up({
       targets: [".async-coder"],

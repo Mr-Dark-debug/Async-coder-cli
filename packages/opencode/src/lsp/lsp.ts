@@ -5,6 +5,7 @@ import * as LSPClient from "./client"
 import path from "path"
 import { pathToFileURL, fileURLToPath } from "url"
 import * as LSPServer from "./server"
+import { discover, SERVERS } from "./discovery"
 import z from "zod"
 import { Config } from "../config"
 import { Flag } from "@/flag/flag"
@@ -167,8 +168,27 @@ export const layer = Layer.effect(
 
         const servers: Record<string, LSPServer.Info> = {}
 
-        if (!cfg.lsp) {
+        if (cfg.lsp === false) {
           log.info("all LSPs are disabled")
+        } else if (cfg.lsp === undefined) {
+          const commands = new Map<string, string | undefined>()
+          const executable = (id: string) => {
+            if (!commands.has(id)) commands.set(id, discover(ctx.directory, id)[0]?.command)
+            return commands.get(id)
+          }
+          for (const found of SERVERS) {
+            const builtin = Object.values(LSPServer).find((server) => server.id === found.id)
+            servers[found.id] = {
+              id: found.id,
+              extensions: [...found.extensions],
+              root: builtin?.root ?? (async (_file, ctx) => ctx.directory),
+              available: () => Boolean(executable(found.id)),
+              spawn: async (root) => {
+                const command = executable(found.id)
+                return command ? { process: lspspawn(command, [...found.args], { cwd: root }) } : undefined
+              },
+            }
+          }
         } else {
           for (const server of Object.values(LSPServer)) {
             servers[server.id] = server
@@ -279,11 +299,18 @@ export const layer = Layer.effect(
 
         for (const server of Object.values(s.servers)) {
           if (server.extensions.length && !server.extensions.includes(extension)) continue
+          if (server.available?.() === false) continue
 
           const root = await server.root(file, ctx)
           if (!root) continue
           if (s.broken.has(root + server.id)) continue
 
+          const stale = s.clients.find((x) => x.root === root && x.serverID === server.id && !x.isAlive())
+          if (stale) {
+            await stale.shutdown()
+            s.clients.splice(s.clients.indexOf(stale), 1)
+            s.broken.delete(root + server.id)
+          }
           const match = s.clients.find((x) => x.root === root && x.serverID === server.id)
           if (match) {
             result.push(match)
@@ -354,6 +381,7 @@ export const layer = Layer.effect(
         const extension = path.parse(file).ext || file
         for (const server of Object.values(s.servers)) {
           if (server.extensions.length && !server.extensions.includes(extension)) continue
+          if (server.available?.() === false) continue
           const root = await server.root(file, ctx)
           if (!root) continue
           if (s.broken.has(root + server.id)) continue

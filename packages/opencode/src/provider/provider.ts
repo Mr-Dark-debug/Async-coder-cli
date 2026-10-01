@@ -19,6 +19,7 @@ import { zod } from "@/util/effect-zod"
 import { iife } from "@/util/iife"
 import { Global } from "../global"
 import path from "path"
+import { ProviderQueue } from "./queue"
 import { pathToFileURL } from "url"
 import { Effect, Layer, Context, Schema, Types } from "effect"
 import { EffectBridge } from "@/effect"
@@ -32,7 +33,7 @@ import * as ProviderDiscovery from "./discovery"
 import { ModelID, ProviderID } from "./schema"
 
 const log = Log.create({ service: "provider" })
-const DEFAULT_CONTEXT_WINDOW = 1_000_000
+const DEFAULT_CONTEXT_WINDOW = 200_000
 // Reserved built-in model tiers: always resolve, falling back to the default
 // model when not configured in `model_groups` (zero-config never errors).
 const BUILTIN_TIERS = new Set(["ultra", "standard", "lite"])
@@ -1281,6 +1282,7 @@ export interface Interface {
 }
 
 interface State {
+  concurrency: number
   models: Map<string, LanguageModelV3>
   providers: Record<ProviderID, Info>
   sdk: Map<string, BundledSDK>
@@ -1773,6 +1775,7 @@ const layer: Layer.Layer<
 
         return {
           models: languages,
+          concurrency: cfg.reliability?.provider_concurrency ?? 4,
           providers,
           sdk,
           modelLoaders,
@@ -1875,7 +1878,7 @@ const layer: Layer.Layer<
             }
           }
 
-          const res = await fetchFn(input, {
+          const res = await ProviderQueue.pooled(model.providerID, s.concurrency).fetch(fetchFn, input, {
             ...opts,
             // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
             timeout: false,

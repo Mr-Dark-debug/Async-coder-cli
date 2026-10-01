@@ -43,11 +43,13 @@ function detectType(key: string): MemoryType {
 }
 
 export function parsePath(absPath: string): MemoryLocator | null {
-  const m = absPath.match(/\/memory\/(global|projects|sessions)(?:\/([^/]+))?\/(.+)\.md$/)
+  const m = absPath.replaceAll("\\", "/").match(/\/memory\/(global|projects|sessions)\/(.+)\.md$/)
   if (!m) return null
-  const [, scope, idMaybe, keyRaw] = m
-  const scope_id = scope === "global" ? "" : (idMaybe ?? "")
-  const key = keyRaw
+  const scope = m[1]
+  const split = m[2].indexOf("/")
+  if (scope !== "global" && split < 1) return null
+  const scope_id = scope === "global" ? "" : m[2].slice(0, split)
+  const key = scope === "global" ? m[2] : m[2].slice(split + 1)
   return { scope: scope as Scope, scope_id, type: detectType(key), key }
 }
 
@@ -57,7 +59,7 @@ export function parsePath(absPath: string): MemoryLocator | null {
 const CC_PATH_RE = /\/\.claude\/projects\/([^/]+)\/memory\/(.+)\.md$/
 
 export function parseCcPath(absPath: string): MemoryLocator | null {
-  const m = absPath.match(CC_PATH_RE)
+  const m = absPath.replaceAll("\\", "/").match(CC_PATH_RE)
   if (!m) return null
   const [, slug, keyRaw] = m
   return {
@@ -84,7 +86,7 @@ const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n/
 const METADATA_TYPE_RE = /^[ \t]+type:[ \t]*(\w+)[ \t]*$/m
 
 export function parseCcFrontmatterType(body: string): CcType | null {
-  const fm = body.match(FRONTMATTER_RE)
+  const fm = body.replaceAll("\r\n", "\n").match(FRONTMATTER_RE)
   if (!fm) return null
   const inner = fm[1]
   const t = inner.match(METADATA_TYPE_RE)
@@ -96,10 +98,10 @@ export function parseCcFrontmatterType(body: string): CcType | null {
 function assertSafeComponent(value: string) {
   // Reject any segment containing ".." or starting with "/" — guards against
   // path traversal and absolute-path injection from caller-supplied scope_id/key.
-  for (const segment of value.split("/")) {
+  for (const segment of value.split(/[\\/]/)) {
     if (segment === "..") throw new Error(`buildPath: invalid path component: ${value}`)
   }
-  if (value.startsWith("/")) throw new Error(`buildPath: invalid path component: ${value}`)
+  if (path.posix.isAbsolute(value) || path.win32.isAbsolute(value) || /^[a-z]:/i.test(value) || value.includes("\0")) throw new Error(`buildPath: invalid path component: ${value}`)
 }
 
 export function buildPath(input: { root: string; scope: Scope; scope_id?: string; key: string }): string {
