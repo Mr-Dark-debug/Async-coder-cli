@@ -157,7 +157,14 @@ export function registerIpcHandlers(deps: Deps) {
   })
 
   ipcMain.on("show-notification", (_event: IpcMainEvent, title: string, body?: string) => {
-    new Notification({ title, body }).show()
+    if (!Notification.isSupported()) return
+    const notification = new Notification({ title, body })
+    notification.on("click", () => {
+      const window = BrowserWindow.fromWebContents(_event.sender)
+      window?.show()
+      window?.focus()
+    })
+    notification.show()
   })
 
   ipcMain.handle("get-window-count", () => BrowserWindow.getAllWindows().length)

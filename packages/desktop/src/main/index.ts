@@ -19,9 +19,9 @@ try {
 process.env.OPENCODE_DISABLE_EMBEDDED_WEB_UI = "true"
 
 const APP_NAMES: Record<string, string> = {
-  dev: "OpenCode Dev",
-  beta: "OpenCode Beta",
-  prod: "OpenCode",
+  dev: "async-coder Dev",
+  beta: "async-coder Beta",
+  prod: "async-coder",
 }
 const APP_IDS: Record<string, string> = {
   dev: "ai.opencode.desktop.dev",
@@ -29,7 +29,7 @@ const APP_IDS: Record<string, string> = {
   prod: "ai.opencode.desktop",
 }
 const appId = app.isPackaged ? APP_IDS[CHANNEL] : "ai.opencode.desktop.dev"
-app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "OpenCode Dev")
+app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "async-coder Dev")
 app.setAppUserModelId(appId)
 app.setPath("userData", join(app.getPath("appData"), appId))
 const { autoUpdater } = pkg
@@ -42,6 +42,7 @@ import { initLogging } from "./logging"
 import { parseMarkdown } from "./markdown"
 import { createMenu } from "./menu"
 import { getDefaultServerUrl, getWslConfig, setDefaultServerUrl, setWslConfig, spawnLocalServer } from "./server"
+import { createTray } from "./tray"
 import {
   createLoadingWindow,
   createMainWindow,
@@ -211,6 +212,9 @@ async function initialize() {
   }
 
   mainWindow = createMainWindow()
+  void createTray(mainWindow).watch(url, password).catch((error) => {
+    if (error?.name !== "AbortError") logger.warn("tray status stream stopped", error)
+  })
   wireMenu()
 
   overlay?.close()

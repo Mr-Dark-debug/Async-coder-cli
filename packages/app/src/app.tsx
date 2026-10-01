@@ -134,6 +134,7 @@ export function AppBaseProviders(props: ParentProps<{ locale?: Locale }>) {
     <MetaProvider>
       <Font />
       <ThemeProvider
+        defaultTheme="async-coder"
         onThemeApplied={(_, mode) => {
           void window.api?.setTitlebar?.({ mode })
         }}

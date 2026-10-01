@@ -24,6 +24,7 @@ import { createStore } from "solid-js/store"
 import { ResizeHandle } from "@async-coder/ui/resize-handle"
 import { Select } from "@async-coder/ui/select"
 import { Tabs } from "@async-coder/ui/tabs"
+import { SessionTabs } from "@/components/session/session-tabs"
 import { createAutoScroll } from "@async-coder/ui/hooks"
 import { previewSelectedLines } from "@async-coder/ui/pierre/selection-bridge"
 import { Button } from "@async-coder/ui/button"
@@ -1796,6 +1797,7 @@ export default function Page() {
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
       {sessionSync() ?? ""}
       <SessionHeader />
+      <SessionTabs />
       <div class="flex-1 min-h-0 flex flex-col md:flex-row">
         <Show when={!isDesktop() && !!params.id}>
           <Tabs value={store.mobileTab} class="h-auto">
