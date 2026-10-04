@@ -37,6 +37,8 @@ npm pack
 
 Inspect the tarball contents and generated manifests. Do not set `NPM_CONFIG_DRY_RUN=true` for the publish script: npm can report a filename without creating it. The repository-root publish script also publishes SDK/plugin packages, so do not use it for a CLI-only release.
 
+To pack all built targets and the staged installer together, run `bun run script/pack-release.ts` from `packages/opencode`. It verifies versions and executable entries, packs in bounded batches, and writes the tarballs and `SHA256SUMS.txt` under `.artifacts/release/0.2.0`. Use those absolute tarball paths when publishing; this helper does not publish packages.
+
 ## Authentication and publication
 
 Check `npm whoami`. If it returns E401, run `npm login` and complete npm's browser authentication. Publishing requires an interactive terminal for browser-based 2FA. Run the following in a visible PowerShell terminal, or a real TTY; allow npm to open and poll its authorization page. Do not retry from a non-interactive shell or extract authorization codes from logs.
