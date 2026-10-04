@@ -58,3 +58,5 @@ state-worktree-spawn.log
 experiment/*.log
 experiment/last-outcome.json
 /experiment
+final-typechecks.log
+packages/opencode/pack-release.log
