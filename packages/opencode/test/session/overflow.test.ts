@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { isOverflow, pressureLevel, usable } from "../../src/session/overflow"
+import { isOverflow, pressureLevel, usable, stats } from "../../src/session/overflow"
 import { Token } from "../../src/util"
 import { Session as SessionNs } from "../../src/session"
 import type { Provider } from "../../src/provider"
@@ -572,5 +572,28 @@ describe("usable", () => {
     const model = createModel({ context: 200_000, output: 32_000 })
     const cfg = mockCfg({ reserved: 5_000 })
     expect(usable({ cfg, model })).toBe(175_000)
+  })
+})
+
+describe("compaction.threshold", () => {
+  const model = createModel({ context: 100_000, output: 1_000 })
+  const tokens = (n: number) => ({ input: n, output: 0, reasoning: 0, cache: { read: 0, write: 0 } })
+  const cfg = (threshold?: number) => ({ compaction: { auto: true, reserved: 0, threshold } }) as any
+
+  test("defaults to compacting only when full", () => {
+    expect(isOverflow({ cfg: cfg(), tokens: tokens(60_000), model })).toBe(false)
+  })
+
+  test("a lower threshold compacts before the window is full", () => {
+    expect(isOverflow({ cfg: cfg(0.5), tokens: tokens(60_000), model })).toBe(true)
+    expect(isOverflow({ cfg: cfg(0.5), tokens: tokens(40_000), model })).toBe(false)
+  })
+
+  test("stats projects turns until the compaction trigger", () => {
+    const result = stats({ cfg: cfg(0.5), model, history: [10_000, 15_000, 20_000] })
+    expect(result.used).toBe(20_000)
+    expect(result.compactAt).toBe(Math.round(usable({ cfg: cfg(0.5), model }) * 0.5))
+    expect(result.turnsLeft).toBe(Math.ceil((result.compactAt - 20_000) / 5_000))
+    expect(stats({ cfg: cfg(), model, history: [] }).turnsLeft).toBeUndefined()
   })
 })

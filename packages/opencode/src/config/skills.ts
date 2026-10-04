@@ -9,6 +9,10 @@ export const Info = Schema.Struct({
   urls: Schema.optional(Schema.Array(Schema.String)).annotate({
     description: "URLs to fetch skills from (e.g., https://example.com/.well-known/skills/)",
   }),
+  trust_project: Schema.optional(Schema.Boolean).annotate({
+    description:
+      "Load skills from a project's own .claude/.codex/.opencode directories. Off by default: a cloned repository could otherwise inject instructions. User-level skills are always loaded.",
+  }),
 }).pipe(withStatics((s) => ({ zod: zod(s) })))
 
 export type Info = Schema.Schema.Type<typeof Info>

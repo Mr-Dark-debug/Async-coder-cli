@@ -1,6 +1,7 @@
 import HomeFooter from "../feature-plugins/home/footer"
 import HomeTips from "../feature-plugins/home/tips"
 import SidebarContext from "../feature-plugins/sidebar/context"
+import ContextInspector from "../feature-plugins/sidebar/context-inspector"
 import SidebarUsage from "../feature-plugins/sidebar/usage"
 import SidebarCwd from "../feature-plugins/sidebar/cwd"
 import SidebarInstructions from "../feature-plugins/sidebar/instructions"
@@ -11,6 +12,11 @@ import SidebarTask from "../feature-plugins/sidebar/task"
 import SidebarTodo from "../feature-plugins/sidebar/todo"
 import SidebarFiles from "../feature-plugins/sidebar/files"
 import SidebarFooter from "../feature-plugins/sidebar/footer"
+import SystemSandbox from "../feature-plugins/system/sandbox"
+import SideChannelCommands from "../feature-plugins/system/side-channel"
+import SystemJobs from "../feature-plugins/system/jobs"
+import SystemMemory from "../feature-plugins/system/memory"
+import SystemHooks from "../feature-plugins/system/hooks"
 import PluginManager from "../feature-plugins/system/plugins"
 import type { TuiPlugin, TuiPluginModule } from "@async-coder/plugin/tui"
 
@@ -24,6 +30,7 @@ export const INTERNAL_TUI_PLUGINS: InternalTuiPlugin[] = [
   HomeTips,
   SidebarUsage,
   SidebarContext,
+  ContextInspector,
   SidebarCwd,
   SidebarInstructions,
   SidebarMcp,
@@ -34,4 +41,9 @@ export const INTERNAL_TUI_PLUGINS: InternalTuiPlugin[] = [
   SidebarFiles,
   SidebarFooter,
   PluginManager,
+  SystemSandbox,
+  SideChannelCommands,
+  SystemJobs,
+  SystemMemory,
+  SystemHooks,
 ]

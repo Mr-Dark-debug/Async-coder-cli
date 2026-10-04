@@ -1,4 +1,6 @@
-import { describe, expect } from "bun:test"
+import { describe, expect, test } from "bun:test"
+import os from "os"
+import * as ProjectTrust from "../../src/project/trust"
 import { Effect, Layer } from "effect"
 import { Skill } from "../../src/skill"
 import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
@@ -192,9 +194,63 @@ description: A skill in the .claude/skills directory.
           expect(item).toBeDefined()
           expect(item!.location).toContain(path.join(".claude", "skills", "claude-skill", "SKILL.md"))
         }),
+      { git: true, config: { skills: { trust_project: true } } },
+    ),
+  )
+
+  it.live("does not load a repository's own .claude skills until trusted", () =>
+    provideTmpdirInstance(
+      (dir) =>
+        Effect.gen(function* () {
+          yield* Effect.promise(() =>
+            Bun.write(
+              path.join(dir, ".claude", "skills", "poison", "SKILL.md"),
+              `---
+name: poison
+description: Untrusted project skill.
+---
+
+# Poison
+`,
+            ),
+          )
+          const skill = yield* Skill.Service
+          expect((yield* skill.all()).find((x) => x.name === "poison")).toBeUndefined()
+        }),
       { git: true },
     ),
   )
+
+  it.live("loads a repository's own skills once the project is trusted, and stops after revoke", () =>
+    provideTmpdirInstance(
+      (dir) =>
+        Effect.gen(function* () {
+          yield* Effect.promise(() =>
+            Bun.write(
+              path.join(dir, ".claude", "skills", "vetted", "SKILL.md"),
+              "---\nname: vetted\ndescription: Reviewed project skill.\n---\n\n# Vetted\n",
+            ),
+          )
+          const skill = yield* Skill.Service
+          ProjectTrust.grant(dir)
+          yield* Effect.addFinalizer(() => Effect.sync(() => ProjectTrust.revoke(dir)))
+          expect(ProjectTrust.isTrusted(dir)).toBe(true)
+          expect((yield* skill.all()).map((x) => x.name)).toContain("vetted")
+        }).pipe(Effect.scoped),
+      { git: true },
+    ),
+  )
+
+  test("trust records are per directory and revocable", () => {
+    const dir = path.join(os.tmpdir(), "trust-probe")
+    expect(ProjectTrust.isTrusted(dir)).toBe(false)
+    ProjectTrust.grant(dir)
+    expect(ProjectTrust.isTrusted(dir)).toBe(true)
+    expect(ProjectTrust.list()).toContain(process.platform === "win32" ? path.resolve(dir).toLowerCase() : path.resolve(dir))
+    expect(ProjectTrust.revoke(dir)).toBe(true)
+    expect(ProjectTrust.revoke(dir)).toBe(false)
+    expect(ProjectTrust.isTrusted(dir)).toBe(false)
+  })
 
   it.live("discovers global skills from ~/.claude/skills/ directory", () =>
     Effect.gen(function* () {
@@ -255,7 +311,7 @@ description: A skill in the .agents/skills directory.
           expect(item).toBeDefined()
           expect(item!.location).toContain(path.join(".agents", "skills", "agent-skill", "SKILL.md"))
         }),
-      { git: true },
+      { git: true, config: { skills: { trust_project: true } } },
     ),
   )
 
@@ -324,7 +380,7 @@ description: A skill in the .codex/skills directory.
           expect(item!.description).toBe("A skill in the .codex/skills directory.")
           expect(item!.location).toContain(path.join(".codex", "skills", "codex-skill", "SKILL.md"))
         }),
-      { git: true },
+      { git: true, config: { skills: { trust_project: true } } },
     ),
   )
 
@@ -403,7 +459,7 @@ description: A skill in the .agents/skills directory.
           expect(list.find((x) => x.name === "claude-skill")).toBeDefined()
           expect(list.find((x) => x.name === "agent-skill")).toBeDefined()
         }),
-      { git: true },
+      { git: true, config: { skills: { trust_project: true } } },
     ),
   )
 
@@ -459,7 +515,7 @@ description: A skill in the .async-coder/skills directory.
           const skill = yield* Skill.Service
           expect((yield* skill.dirs()).length).toBe(4)
         }),
-      { git: true },
+      { git: true, config: { skills: { trust_project: true } } },
     ),
   )
 })

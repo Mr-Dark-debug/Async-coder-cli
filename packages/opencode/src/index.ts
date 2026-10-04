@@ -11,6 +11,12 @@ import { UninstallCommand } from "./cli/cmd/uninstall"
 import { ModelsCommand } from "./cli/cmd/models"
 import { ZenCommand } from "./cli/cmd/zen"
 import { WorktreeCommand } from "./cli/cmd/worktree"
+import { JobsCommand } from "./cli/cmd/jobs"
+import { PairCommand } from "./cli/cmd/pair"
+import { BridgeCommand } from "./cli/cmd/bridge"
+import { MarketCommand } from "./cli/cmd/market"
+import { TrustCommand } from "./cli/cmd/trust"
+import { EvalCommand } from "./cli/cmd/eval"
 import { CheckpointCommand } from "./cli/cmd/checkpoint"
 import { ShareExportCommand, ShareViewCommand } from "./cli/cmd/share"
 import { UI } from "./cli/ui"
@@ -190,6 +196,12 @@ const cli = yargs(args)
   .command(ModelsCommand)
   .command(ZenCommand)
   .command(WorktreeCommand)
+  .command(JobsCommand)
+  .command(PairCommand)
+  .command(BridgeCommand)
+  .command(MarketCommand)
+  .command(TrustCommand)
+  .command(EvalCommand)
   .command(CheckpointCommand)
   .command(ShareExportCommand)
   .command(ShareViewCommand)

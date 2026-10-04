@@ -1,3 +1,4 @@
+import * as SideChannel from "@/session/side-channel"
 import { Hono } from "hono"
 import { stream } from "hono/streaming"
 import { describeRoute, validator, resolver } from "hono-openapi"
@@ -546,6 +547,36 @@ export const SessionRoutes = lazy(() =>
           const svc = yield* SessionPrompt.Service
           yield* svc.cancel(c.req.valid("param").sessionID)
           return true
+        }),
+    )
+    .post(
+      "/:sessionID/btw",
+      describeRoute({
+        summary: "Send a side-channel note",
+        description:
+          "Inject a note into a running agent without interrupting it or creating a user turn. The agent sees the note on its next model call.",
+        operationId: "session.btw",
+        responses: {
+          200: {
+            description: "Whether the note was queued",
+            content: { "application/json": { schema: resolver(z.boolean()) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: SessionID.zod })),
+      validator(
+        "json",
+        z.object({
+          text: z.string().min(1),
+          agentID: z.string().optional().describe("Target a running subagent instead of the main agent"),
+          steer: z.boolean().optional().describe("Frame the note as a course correction"),
+        }),
+      ),
+      async (c) =>
+        jsonRequest("SessionRoutes.btw", c, function* () {
+          const body = c.req.valid("json")
+          return SideChannel.push({ sessionID: c.req.valid("param").sessionID, ...body })
         }),
     )
     .post(

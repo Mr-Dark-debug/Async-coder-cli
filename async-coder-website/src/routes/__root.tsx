@@ -84,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Terminal-native AI coding agent. Bring your own key — Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, Copilot. No telemetry, MIT-licensed.",
+          "Terminal-native AI coding agent. Bring your own key. Background jobs with spend caps and verification gates. No telemetry, MIT-licensed.",
       },
       { property: "og:site_name", content: "async-coder" },
       { property: "og:type", content: "website" },

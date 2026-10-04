@@ -137,6 +137,12 @@ export const Flag = {
 
   // Evaluated at access time (not module load) because tests, the CLI, and
   // external tooling set these env vars at runtime.
+  get ASYNC_CODER_DISABLE_SANDBOX() {
+    return truthy("ASYNC_CODER_DISABLE_SANDBOX")
+  },
+  get ASYNC_CODER_TRUST_PROJECT_SKILLS() {
+    return truthy("ASYNC_CODER_TRUST_PROJECT_SKILLS")
+  },
   get ASYNC_CODER_DISABLE_COMPOSE_SKILLS() {
     return truthy("ASYNC_CODER_DISABLE_COMPOSE_SKILLS")
   },

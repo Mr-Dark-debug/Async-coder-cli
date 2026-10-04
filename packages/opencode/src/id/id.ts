@@ -14,6 +14,7 @@ const prefixes = {
   workspace: "wrk",
   entry: "ent",
   workflow: "wf",
+  job: "job",
 } as const
 
 export function schema(prefix: keyof typeof prefixes) {

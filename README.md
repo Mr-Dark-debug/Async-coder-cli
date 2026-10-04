@@ -27,6 +27,18 @@
 - Lavender `async-coder` branding with a clean terminal-first visual identity.
 - Local SQLite storage with migration support for existing data from the previous fork.
 
+## What's New
+
+- **Background jobs, teams and routines**: detached sessions with their own worktree, spend cap and verification gate; `/jobs`, `async-coder jobs run`, cron routines. [Guide](docs/jobs.md)
+- **Verified completion**: a job is done only when its gate passes; receipts with cost, tokens and gate results; draft pull requests on request. [Guide](docs/jobs.md)
+- **Budgets**: `usage.budget` caps (session, agent, day, month) with warn, downgrade or stop; per-agent `max_usd` and model fallback chains. [Guide](docs/budgets-and-context.md)
+- **`/usage` tabs** for today and this month with a month-end projection, and **`/context`** with a token breakdown and an early-compaction threshold. [Guide](docs/budgets-and-context.md)
+- **Auto-recall memory** with a pin/forget browser at `/memory`; `/btw` and `/steer` side notes to a running agent. [Guide](docs/budgets-and-context.md)
+- **Safer defaults**: no implicit share host, repository skills load only after `async-coder trust grant`, OS sandbox modes `writes` and `full` (Linux bubblewrap, macOS Seatbelt). [Guide](docs/security.md)
+- **More hook events**: user prompt, permission request, compaction, subagent start/stop, notification; `/hooks` toggles them. [Guide](docs/security.md)
+- **Sage review for jobs**, risk-gated so a green, low-risk job costs no extra model call; capability aliases `cheap`, `local`, `long-context`. [Guide](docs/remote-and-ecosystem.md)
+- **Remote and ecosystem**: device pairing for a running server, chat bridges for Telegram, Discord and Slack, a signed skill/agent/command marketplace, local whisper.cpp dictation, and an eval harness. [Guide](docs/remote-and-ecosystem.md)
+
 ## Installation
 
 Install the CLI package from npm:

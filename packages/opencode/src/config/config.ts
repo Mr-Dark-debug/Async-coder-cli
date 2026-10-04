@@ -31,6 +31,10 @@ import { ConfigCommand } from "./command"
 import { ConfigFormatter } from "./formatter"
 import { ConfigHistory } from "./history"
 import { ConfigHooks } from "./hooks"
+import { ConfigUsage } from "./usage"
+import { ConfigSandbox } from "./sandbox"
+import { ConfigRoutines } from "./routines"
+import { ConfigSage } from "./sage"
 import { ConfigLayout } from "./layout"
 import { ConfigLSP } from "./lsp"
 import { ConfigManaged } from "./managed"
@@ -122,6 +126,33 @@ const InfoSchema = Schema.Struct({
   }),
   skills: Schema.optional(ConfigSkills.Info).annotate({ description: "Additional skill folder paths" }),
   hooks: Schema.optional(Schema.mutable(Schema.Array(ConfigHooks.Info))),
+  sage: Schema.optional(ConfigSage.Info).annotate({
+    description: "Risk-gated Sage review for background jobs. Needs `advisor` to be configured.",
+  }),
+  routines: Schema.optional(ConfigRoutines.Info).annotate({
+    description: "Scheduled routines: cron-triggered background jobs that inherit worktree isolation, gates and budgets.",
+  }),
+  marketplace: Schema.optional(
+    Schema.Struct({
+      registry_url: Schema.optional(Schema.String).annotate({ description: "URL of a signed marketplace registry (JSON)." }),
+      public_key: Schema.optional(Schema.String).annotate({
+        description: "The registry's ed25519 public key (64 hex characters). A registry that does not verify against it is refused.",
+      }),
+    }),
+  ).annotate({ description: "Signed skill/agent/command registry used by `async-coder market`." }),
+  notification: Schema.optional(
+    Schema.Struct({
+      quiet_hours: Schema.optional(Schema.Struct({ start: Schema.String, end: Schema.String })).annotate({
+        description: "Suppress job-completion notifications between these local times, e.g. { start: '22:00', end: '07:00' }.",
+      }),
+    }),
+  ).annotate({ description: "Notification preferences for background jobs." }),
+  sandbox: Schema.optional(ConfigSandbox.Info).annotate({
+    description: "OS-level confinement for shell commands and file writes.",
+  }),
+  usage: Schema.optional(ConfigUsage.Info).annotate({
+    description: "Usage accounting and spend budgets. Caps are checked before every model call.",
+  }),
   checkpoints: Schema.optional(Schema.Struct({
     enabled: Schema.optional(Schema.Boolean),
     retention: Schema.optional(PositiveInt),
@@ -295,6 +326,10 @@ const InfoSchema = Schema.Struct({
       reserved: Schema.optional(NonNegativeInt).annotate({
         description: "Token buffer for compaction. Leaves enough window to avoid overflow during compaction.",
       }),
+      threshold: Schema.optional(Schema.Number.check(Schema.isBetween({ minimum: 0.1, maximum: 1 }))).annotate({
+        description:
+          "Fraction of the usable context window at which automatic compaction starts (default: 1, i.e. only when full). Set 0.85 to compact earlier.",
+      }),
     }),
   ),
   checkpoint: Schema.optional(
@@ -373,6 +408,14 @@ const InfoSchema = Schema.Struct({
   ),
   memory: Schema.optional(
     Schema.Struct({
+      auto: Schema.optional(Schema.Boolean).annotate({
+        description:
+          "Automatically recall relevant memory notes into each new user turn (bounded by recall_limit and token_budget). Default: true.",
+      }),
+      recall_limit: Schema.optional(PositiveInt).annotate({ description: "Maximum notes recalled per turn. Default: 12." }),
+      token_budget: Schema.optional(PositiveInt).annotate({
+        description: "Maximum tokens the recalled block may use. Default: 1500.",
+      }),
       cc_index: Schema.optional(Schema.Boolean).annotate({
         description:
           "Index Claude Code memory (~/.claude/projects/<slug>/memory) and expose under scope='cc'. Default: false. Note: when enabled, every async-coder agent (build/explore/subagents) can search these memories via the builtin `memory` tool — including CC's `type: user` (your role/preferences) and `type: feedback` (your guidance) categories. CC originally writes them for future CC sessions; flipping this on widens the consumer set to async-coder agents on the same machine. Leave disabled (default) if you don't want personal context recallable from a prompt-injection-vulnerable agent.",

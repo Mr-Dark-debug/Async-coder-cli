@@ -31,8 +31,8 @@ describe("shell lifecycle hooks", () => {
     expect(yield* Effect.promise(() => Bun.file(path.join(dir, "arguments.json")).json())).toEqual({ file: args.filePath, args })
     yield* run([{ event: "post_file_edit", command: "bun arguments.ts" }], "tool.execute.after", { tool: "write", args }, { output: "done" })
     expect(yield* Effect.promise(() => Bun.file(path.join(dir, "arguments.json")).json())).toEqual({ file: args.filePath, args })
-    expect(events("actor.status", { status: "running" })).toEqual(["agent_start"])
-    expect(events("actor.status", { status: "idle", lastOutcome: "failure" })).toEqual(["agent_end", "error"])
+    expect(events("actor.status", { status: "running" })).toEqual(["agent_start", "subagent_start"])
+    expect(events("actor.status", { status: "idle", lastOutcome: "failure" })).toEqual(["agent_end", "subagent_stop", "error"])
   })))
 
   it.live("kills timed-out pre-command hooks and fails closed", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
@@ -41,6 +41,22 @@ describe("shell lifecycle hooks", () => {
     const result = yield* run([{ event: "pre_command", command: "bun wait.ts", timeout: 600 }], "tool.execute.before", { tool: "bash" }).pipe(Effect.exit)
     expect(result._tag).toBe("Failure")
     expect(Date.now() - start).toBeLessThan(6000)
+  })))
+
+  it.live("maps compaction, permission, prompt and notification events", () => provideTmpdirInstance(() => Effect.gen(function* () {
+    expect(events("experimental.session.compacting", {})).toEqual(["compact_before"])
+    expect(events("session.compacted", {})).toEqual(["compact_after"])
+    expect(events("permission.asked", {})).toEqual(["permission_request"])
+    expect(events("chat.message", {})).toContain("user_prompt_submit")
+    expect(events("tui.toast.show", {})).toEqual(["notification"])
+  })))
+
+  it.live("a hook with enabled: false is configured but never runs", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
+    yield* Effect.promise(() => Bun.write(path.join(dir, "touch.ts"), 'await Bun.write("ran.txt", "yes")'))
+    yield* run([{ event: "post_command", command: "bun touch.ts", enabled: false }], "tool.execute.after", { tool: "bash" }, { output: "x" })
+    expect(yield* Effect.promise(() => Bun.file(path.join(dir, "ran.txt")).exists())).toBe(false)
+    yield* run([{ event: "post_command", command: "bun touch.ts" }], "tool.execute.after", { tool: "bash" }, { output: "x" })
+    expect(yield* Effect.promise(() => Bun.file(path.join(dir, "ran.txt")).exists())).toBe(true)
   })))
 
   it.live("skips unmatched conditions without evaluating arbitrary code", () => provideTmpdirInstance(() => Effect.gen(function* () {

@@ -6,6 +6,7 @@ import { Database } from "../storage"
 import { Config } from "../config"
 import { reconcileMemory } from "./reconcile"
 import { buildFtsQuery } from "./fts-query"
+import * as Recall from "./recall"
 
 type SearchRow = {
   path: string
@@ -28,6 +29,19 @@ export interface Interface {
   }) => Effect.Effect<
     Array<{ path: string; snippet: string; score: number; scope: string; scope_id: string; type: string }>
   >
+  /** Every indexed memory note, newest first, with whether it is pinned. */
+  readonly list: () => Effect.Effect<Array<{ path: string; scope: string; scope_id: string; type: string; pinned: boolean; bytes: number }>>
+  /** Read one note. Only files under the memory root can be read. */
+  readonly read: (file: string) => Effect.Effect<string | undefined>
+  /** Delete a note from disk and from the index. Never silent: callers surface it to the user. */
+  readonly forget: (file: string) => Effect.Effect<boolean>
+  readonly pin: (file: string, pinned: boolean) => Effect.Effect<boolean>
+  /** Bounded recall for prompt injection: best matches that fit a count limit and token budget. */
+  readonly recall: (input: {
+    query: string
+    limit?: number
+    tokenBudget?: number
+  }) => Effect.Effect<Recall.Hit[]>
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Memory") {}
@@ -133,10 +147,65 @@ export const layer: Layer.Layer<Service, never, Config.Service> = Layer.effect(
       return mapped.filter((r, i) => i === 0 || r.score >= cutoff).slice(0, limit)
     })
 
+    const pinsFile = path.join(root, ".pins.json")
+    const readPins = () => Bun.file(pinsFile).json().then((v) => (Array.isArray(v) ? (v as string[]) : [])).catch(() => [] as string[])
+    const inside = (file: string) => {
+      const resolved = path.resolve(file)
+      const rel = path.relative(root, resolved)
+      return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel) ? resolved : undefined
+    }
+
+    const list = Effect.fn("Memory.list")(function* () {
+      const pins = new Set(yield* Effect.promise(readPins))
+      const rows = Database.Client().$client.query("SELECT path, scope, scope_id, type, length(body) AS bytes FROM memory_fts ORDER BY last_indexed_at DESC").all() as Array<{ path: string; scope: string; scope_id: string; type: string; bytes: number }>
+      return rows.map((row) => ({ ...row, pinned: pins.has(row.path) }))
+    })
+
+    const readNote = Effect.fn("Memory.read")(function* (file: string) {
+      const resolved = inside(file)
+      if (!resolved) return undefined
+      return yield* Effect.promise(() => Bun.file(resolved).text().catch(() => undefined))
+    })
+
+    const forget = Effect.fn("Memory.forget")(function* (file: string) {
+      const resolved = inside(file)
+      if (!resolved || !(yield* Effect.promise(() => Bun.file(resolved).exists()))) return false
+      yield* Effect.promise(() => import("fs/promises").then((fs) => fs.rm(resolved)))
+      yield* Effect.promise(async () => Bun.write(pinsFile, JSON.stringify((await readPins()).filter((item) => item !== resolved))))
+      yield* reconcile()
+      return true
+    })
+
+    const pin = Effect.fn("Memory.pin")(function* (file: string, pinned: boolean) {
+      const resolved = inside(file)
+      if (!resolved) return false
+      const pins = new Set(yield* Effect.promise(readPins))
+      if (pinned) pins.add(resolved)
+      else pins.delete(resolved)
+      yield* Effect.promise(() => Bun.write(pinsFile, JSON.stringify([...pins])))
+      return true
+    })
+
+    const recall = Effect.fn("Memory.recall")(function* (input: { query: string; limit?: number; tokenBudget?: number }) {
+      const hits = yield* search({ query: input.query, limit: (input.limit ?? Recall.DEFAULT_LIMIT) * 2 })
+      // Pinned notes always lead, even when the question does not match them.
+      const pinned = yield* Effect.forEach(yield* Effect.promise(readPins), (file) =>
+        Effect.promise(() =>
+          Bun.file(file).text().then((body): Recall.Hit => ({ path: file, snippet: body.slice(0, 400), score: Infinity, scope: "pinned", scope_id: "", type: "note" })).catch(() => undefined),
+        ),
+      )
+      return Recall.fit(Recall.withPins(pinned.filter((hit): hit is Recall.Hit => hit !== undefined), hits), input)
+    })
+
     return Service.of({
       root: rootEff,
       reconcile,
       search,
+      list,
+      read: readNote,
+      forget,
+      pin,
+      recall,
     })
   }),
 )

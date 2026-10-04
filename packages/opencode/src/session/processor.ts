@@ -3,6 +3,7 @@ import * as Stream from "effect/Stream"
 import { Agent } from "@/agent/agent"
 import { SYSTEM_SPAWNED_AGENT_TYPES } from "@/agent/config"
 import { Bus } from "@/bus"
+import { TuiEvent } from "@/cli/cmd/tui/event"
 import { Metrics } from "@/metrics"
 import { Config } from "@/config"
 import { Permission } from "@/permission"
@@ -305,6 +306,15 @@ export const layer: Layer.Layer<
       const handleEvent = Effect.fnUntraced(function* (value: StreamEvent) {
         switch (value.type) {
           case "provider-switch":
+            if (value.model.providerID !== ctx.assistantMessage.providerID || value.model.id !== ctx.assistantMessage.modelID)
+              yield* bus
+                .publish(TuiEvent.ToastShow, {
+                  title: "Model fallback",
+                  message: `${ctx.assistantMessage.providerID}/${ctx.assistantMessage.modelID} failed; continuing on ${value.model.providerID}/${value.model.id}`,
+                  variant: "warning",
+                  duration: 8000,
+                })
+                .pipe(Effect.ignore)
             ctx.model = value.model
             ctx.assistantMessage.providerID = value.model.providerID
             ctx.assistantMessage.modelID = value.model.id

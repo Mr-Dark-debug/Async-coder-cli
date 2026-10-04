@@ -22,6 +22,10 @@ import { pressureLevel, isOverflow as overflowCheck } from "./overflow"
 import { Config } from "@/config"
 import { Global } from "@/global"
 import { Bus } from "../bus"
+import * as Budget from "@/usage/budget"
+import * as SideChannel from "./side-channel"
+import { Memory } from "@/memory"
+import * as MemoryRecall from "@/memory/recall"
 import { ProviderTransform } from "../provider"
 import { SystemPrompt } from "./system"
 import { Instruction } from "./instruction"
@@ -1814,6 +1818,9 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         // Skip one overflow check so the model can respond on the trimmed context;
         // its new assistant message will carry accurate tokens for the next check.
         let skipOverflowCheck = false
+        const budgetWarned = new Set<string>()
+        const recalled = new Set<string>()
+        let downgraded = false
 
         const textLoopBuffer: string[] = []
         let textLoopRecoveryAttempts = 0
@@ -2379,7 +2386,12 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             }
           }
 
-          const model = yield* getModel(lastUser.model.providerID, lastUser.model.modelID, sessionID)
+          // Budget "downgrade" routes the rest of the loop to the cheap lite tier.
+          let model = downgraded
+            ? yield* provider.resolveModelRef("lite", lastUser.model.providerID).pipe(
+                Effect.catch(() => getModel(lastUser.model.providerID, lastUser.model.modelID, sessionID)),
+              )
+            : yield* getModel(lastUser.model.providerID, lastUser.model.modelID, sessionID)
           lastModelForPrune = model
           lastFinishedForPrune = lastFinished
           const task = tasks.pop()
@@ -2602,6 +2614,122 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           const maxSteps = agent.steps ?? Infinity
           const isLastStep = step >= maxSteps
           msgs = yield* insertReminders({ messages: msgs, agent, session })
+
+          // Side-channel notes (/btw, /steer) arrive while a turn runs. They are persisted as a
+          // synthetic part on the latest user message so later iterations keep seeing them, and
+          // tagged so the transcript can render them as muted side notes.
+          const notes = SideChannel.drain(sessionID, lastUser.agentID ?? "main")
+          if (notes.length) {
+            const part = {
+              id: PartID.ascending(),
+              messageID: lastUser.id,
+              sessionID,
+              type: "text" as const,
+              synthetic: true,
+              text: SideChannel.render(notes),
+              metadata: { sideChannel: notes.map((note) => note.text) },
+            }
+            yield* sessions.updatePart(part)
+            msgs.findLast((m) => m.info.id === lastUser.id)?.parts.push(part)
+          }
+
+          // Auto-recall: once per user turn on the main agent, inject a bounded block of
+          // relevant memory notes. Persisted as a synthetic part so it stays in later steps.
+          if ((lastUser.agentID ?? "main") === "main") {
+            const memory = yield* Effect.serviceOption(Memory.Service)
+            const mem = (yield* config.get()).memory
+            const userMsg = msgs.findLast((m) => m.info.id === lastUser.id)
+            const ask = userMsg?.parts.find((p) => p.type === "text" && !p.synthetic)
+            const done = userMsg?.parts.some((p) => p.type === "text" && p.metadata?.memoryRecall)
+            if (memory._tag === "Some" && mem?.auto !== false && userMsg && ask?.type === "text" && !done && !recalled.has(lastUser.id)) {
+              recalled.add(lastUser.id)
+              const hits = yield* memory.value
+                .recall({ query: MemoryRecall.query(ask.text), limit: mem?.recall_limit, tokenBudget: mem?.token_budget })
+                .pipe(Effect.catch(() => Effect.succeed([] as MemoryRecall.Hit[])))
+              const block = MemoryRecall.render(hits)
+              if (block) {
+                const part = {
+                  id: PartID.ascending(),
+                  messageID: lastUser.id,
+                  sessionID,
+                  type: "text" as const,
+                  synthetic: true,
+                  text: block,
+                  metadata: { memoryRecall: hits.map((hit) => hit.path) },
+                }
+                yield* sessions.updatePart(part)
+                userMsg.parts.push(part)
+              }
+            }
+          }
+
+          // Vision: when the user attached images and the model can see them, say so once so the
+          // agent actually inspects them instead of answering from the filename alone.
+          {
+            const userMsg = msgs.findLast((m) => m.info.id === lastUser.id)
+            const images = userMsg?.parts.filter((p) => p.type === "file" && p.mime.startsWith("image/")).length ?? 0
+            const hinted = userMsg?.parts.some((p) => p.type === "text" && p.metadata?.visionHint)
+            if (userMsg && images > 0 && !hinted && model.capabilities.input.image) {
+              const part = {
+                id: PartID.ascending(),
+                messageID: lastUser.id,
+                sessionID,
+                type: "text" as const,
+                synthetic: true,
+                text: `<system-reminder>The user attached ${images} image${images === 1 ? "" : "s"} to this message. Look at ${images === 1 ? "it" : "them"} carefully and base your answer on what you see before doing anything else.</system-reminder>`,
+                metadata: { visionHint: true },
+              }
+              yield* sessions.updatePart(part)
+              userMsg.parts.push(part)
+            }
+          }
+
+          // Spend caps (usage.budget): evaluated before every model call. A reached
+          // cap with action "stop" ends the loop with a visible error; warnings
+          // surface once per scope and threshold as a toast.
+          if (!isBoundedComputation) {
+            const caps = (yield* config.get()).usage?.budget
+            const who = { sessionID, agentID: lastUser.agentID ?? "main" }
+            // An agent's own max_usd is an extra, always-stopping cap on top of the configured budget.
+            const own = agent.maxUsd
+              ? Budget.evaluate({ per_agent_usd: agent.maxUsd, default_action: "stop" }, Budget.measure({ per_agent_usd: agent.maxUsd }, who))
+              : []
+            const verdict = Budget.decisive([...Budget.evaluate(caps, Budget.measure(caps, who)), ...own])
+            if (verdict?.action === "stop") {
+              const stopped: MessageV2.Assistant = {
+                id: MessageID.ascending(),
+                parentID: lastUser.id,
+                role: "assistant",
+                agentID: lastUser.agentID,
+                mode: agent.name,
+                agent: agent.name,
+                variant: lastUser.model.variant,
+                path: { cwd: ctx.directory, root: ctx.worktree },
+                cost: 0,
+                tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+                modelID: model.id,
+                providerID: model.providerID,
+                time: { created: Date.now(), completed: Date.now() },
+                finish: "error",
+                sessionID,
+              }
+              yield* sessions.updateMessage(stopped)
+              yield* writeModelError({ assistant: stopped, reason: verdict.message })
+              yield* slog.warn("budget stop", { scope: verdict.scope, spent: verdict.spent, cap: verdict.cap })
+              break
+            }
+            if (verdict?.action === "downgrade" && !downgraded) {
+              downgraded = true
+              model = yield* provider.resolveModelRef("lite", lastUser.model.providerID).pipe(Effect.catch(() => Effect.succeed(model)))
+            }
+            if (verdict && !budgetWarned.has(`${verdict.scope}:${verdict.action}`)) {
+              budgetWarned.add(`${verdict.scope}:${verdict.action}`)
+              yield* slog.warn("budget warning", { scope: verdict.scope, spent: verdict.spent, cap: verdict.cap })
+              yield* bus
+                .publish(TuiEvent.ToastShow, { title: "Budget", message: verdict.message, variant: "warning", duration: 8000 })
+                .pipe(Effect.ignore)
+            }
+          }
 
           const msg: MessageV2.Assistant = {
             id: MessageID.ascending(),

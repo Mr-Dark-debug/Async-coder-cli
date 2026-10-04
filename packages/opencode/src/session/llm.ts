@@ -740,7 +740,8 @@ const live: Layer.Layer<
               }),
             )
 
-            if (!cfg.reliability?.fallback_models?.length) {
+            const chain = input.agent.fallback?.length ? input.agent.fallback : cfg.reliability?.fallback_models
+            if (!chain?.length) {
               const result = yield* streamWithTelemetry.pipe(
                 Effect.retry({
                   while: isTransientCapacityError,
@@ -753,7 +754,7 @@ const live: Layer.Layer<
                 e instanceof Error ? e : new Error(String(e)),
               )
             }
-            const fallbacks = yield* Effect.forEach(cfg.reliability.fallback_models, (id) => {
+            const fallbacks = yield* Effect.forEach(chain, (id) => {
               const ref = Provider.parseModel(id)
               return provider.getModel(ref.providerID, ref.modelID).pipe(
                 Effect.catchCause((cause) => {

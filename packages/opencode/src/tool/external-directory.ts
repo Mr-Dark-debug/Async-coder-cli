@@ -8,6 +8,9 @@ import { Instance } from "../project/instance"
 import { ProjectID } from "../project/schema"
 import { assertMemoryWriteAllowed } from "./memory-path-guard"
 import { AppFileSystem } from "@async-coder/shared/filesystem"
+import { Config } from "@/config"
+import { Flag } from "@/flag/flag"
+import { Sandbox } from "@/sandbox"
 
 type Kind = "file" | "directory"
 
@@ -80,6 +83,17 @@ export const assertWriteAllowed = Effect.fn("Tool.assertWriteAllowed")(function*
 ) {
   yield* assertExternalDirectoryEffect(ctx, target, options)
   if (!target) return
+
+  // Sandbox confinement applies to file tools as well as shell commands. Config is
+  // looked up optionally so tools stay usable in contexts that do not provide it.
+  const config = yield* Effect.serviceOption(Config.Service)
+  if (config._tag === "Some" && !Flag.ASYNC_CODER_DISABLE_SANDBOX) {
+    const profile = Sandbox.build({ cfg: (yield* config.value.get()).sandbox, root: Instance.directory })
+    // Agent memory lives outside the project but is a first-class write target.
+    const memory = path.join(Global.Path.data, "memory")
+    const denied = AppFileSystem.contains(memory, target) ? undefined : Sandbox.writeDenied(profile, target)
+    if (denied) throw new Error(denied)
+  }
 
   // Instance.current is a getter that THROWS when no instance is ALS-bound
   // (detached fibers, tests without a project fixture). The optional chain runs

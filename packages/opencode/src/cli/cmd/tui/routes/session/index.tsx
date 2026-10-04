@@ -1286,6 +1286,12 @@ function UserMessage(props: {
   const local = useLocal()
   const text = createMemo(() => props.parts.flatMap((x) => (x.type === "text" && !x.synthetic ? [x] : []))[0])
   const files = createMemo(() => props.parts.flatMap((x) => (x.type === "file" ? [x] : [])))
+  // /btw and /steer notes are stored as synthetic parts tagged with metadata.sideChannel.
+  const sideNotes = createMemo(() =>
+    props.parts.flatMap((x) =>
+      x.type === "text" && Array.isArray(x.metadata?.sideChannel) ? (x.metadata.sideChannel as string[]) : [],
+    ),
+  )
   const { theme } = useTheme()
   const [hover, setHover] = createSignal(false)
   const queued = createMemo(() => props.pending && props.message.id > props.pending)
@@ -1318,6 +1324,14 @@ function UserMessage(props: {
             flexShrink={0}
           >
             <text fg={theme.text}>{text()?.text}</text>
+            <For each={sideNotes()}>
+              {(note) => (
+                <text fg={theme.textMuted}>
+                  {"  ↳ "}
+                  {note}
+                </text>
+              )}
+            </For>
             <Show when={files().length}>
               <box flexDirection="row" paddingBottom={metadataVisible() ? 1 : 0} paddingTop={1} gap={1} flexWrap="wrap">
                 <For each={files()}>

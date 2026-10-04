@@ -13,6 +13,7 @@ import { InstanceRoutes } from "./routes/instance"
 import { ControlPlaneRoutes } from "./routes/control"
 import { UIRoutes } from "./routes/ui"
 import { GlobalRoutes } from "./routes/global"
+import { PairRoutes } from "./routes/pair"
 import { WorkspaceRouterMiddleware } from "./workspace"
 import { InstanceMiddleware } from "./routes/instance/middleware"
 import { WorkspaceRoutes } from "./routes/control/workspace"
@@ -41,6 +42,7 @@ function create(opts: { cors?: string[] }) {
     .use(AuthMiddleware)
     .use(CompressionMiddleware)
     .route("/global", GlobalRoutes())
+    .route("/pair", PairRoutes())
 
   const runtime = adapter.create(app)
 
@@ -100,6 +102,8 @@ export async function listen(opts: {
 }): Promise<Listener> {
   const built = create(opts)
   const server = await built.runtime.listen(opts)
+  // Jobs left running by a previous server process cannot still be running: fail them visibly.
+  void import("@/jobs").then(({ Jobs }) => Jobs.recover()).catch(() => undefined)
 
   const next = new URL("http://localhost")
   next.hostname = opts.hostname

@@ -1,7 +1,7 @@
 import { TextAttributes } from "@opentui/core"
 import { useKeyboard } from "@opentui/solid"
 import type { TuiPluginApi } from "@async-coder/plugin/tui"
-import { createEffect, createMemo, createSignal, For, Match, Show, Switch } from "solid-js"
+import { createEffect, createMemo, createResource, createSignal, For, Match, Show, Switch } from "solid-js"
 import path from "path"
 import { Global } from "@/global"
 import {
@@ -32,7 +32,50 @@ function tokens(item: ReturnType<typeof aggregateUsage>["models"][number]) {
   return item.input + item.output + item.cacheRead + item.cacheWrite + item.reasoning
 }
 
+const scopes = ["session", "today", "month"] as const
+
+function AllSessions(props: { api: TuiPluginApi; range: "day" | "month" }) {
+  const theme = () => props.api.theme.current
+  const [data] = createResource(
+    () => props.range,
+    (range) => props.api.client.usage.summary({ range }).then((res) => res.data),
+  )
+  return (
+    <Show when={data()} fallback={<text fg={theme().textMuted}>Loading usage across all sessions…</text>}>
+      {(summary) => (
+        <box gap={1}>
+          <box flexDirection="row" gap={2}>
+            <text fg={theme().primary}>{formatCost(summary().total)}</text>
+            <text fg={theme().textMuted}>all sessions, {props.range === "day" ? "today" : "this month"}</text>
+            <Show when={summary().projected_month !== undefined}>
+              <text fg={theme().warning}>projected month {formatCost(summary().projected_month ?? 0)}</text>
+            </Show>
+          </box>
+          <text fg={theme().primary}>{sparkline(summary().daily.map((d) => ({ date: d.day, cost: d.cost })))}</text>
+          <For each={summary().rows}>
+            {(row) => (
+              <box flexDirection="row" justifyContent="space-between">
+                <text fg={theme().text} wrapMode="none">
+                  {row.provider} / {row.model} · {row.agent || "—"}
+                </text>
+                <text fg={theme().primary}>{formatCost(row.cost)}</text>
+                <text fg={theme().textMuted}>
+                  in {formatTokens(row.input)} out {formatTokens(row.output)} cr {formatTokens(row.cache_read)} cw {formatTokens(row.cache_write)}
+                </text>
+              </box>
+            )}
+          </For>
+          <Show when={summary().rows.length === 0}>
+            <text fg={theme().textMuted}>No usage recorded in this period.</text>
+          </Show>
+        </box>
+      )}
+    </Show>
+  )
+}
+
 export function DialogUsage(props: { api: TuiPluginApi; session_id: string }) {
+  const [scope, setScope] = createSignal<(typeof scopes)[number]>("session")
   const [range, setRange] = createSignal<Range>("all")
   const [sort, setSort] = createSignal<Sort>("cost")
   const theme = () => props.api.theme.current
@@ -60,6 +103,11 @@ export function DialogUsage(props: { api: TuiPluginApi; session_id: string }) {
   createEffect(() => props.api.ui.dialog.setSize("xlarge"))
 
   useKeyboard((evt) => {
+    if (evt.name === "tab") {
+      evt.preventDefault()
+      setScope((value) => scopes[(scopes.indexOf(value) + 1) % scopes.length])
+    }
+    if (scope() !== "session") return
     if (evt.name === "t") {
       evt.preventDefault()
       setRange((value) => ranges[(ranges.indexOf(value) + 1) % ranges.length])
@@ -83,9 +131,13 @@ export function DialogUsage(props: { api: TuiPluginApi; session_id: string }) {
         <text attributes={TextAttributes.BOLD} fg={theme().text}>
           Usage
         </text>
-        <text fg={theme().textMuted}>t range | s sort | e export | esc</text>
+        <text fg={theme().textMuted}>tab {scope()} | t range | s sort | e export | esc</text>
       </box>
 
+      <Show when={scope() !== "session"}>
+        <AllSessions api={props.api} range={scope() === "today" ? "day" : "month"} />
+      </Show>
+      <Show when={scope() === "session"}>
       <box flexDirection="row" gap={2}>
         <text fg={theme().primary}>{formatCost(summary().total.cost)}</text>
         <text fg={theme().textMuted}>in {formatTokens(summary().total.input)}</text>
@@ -151,6 +203,7 @@ export function DialogUsage(props: { api: TuiPluginApi; session_id: string }) {
           <text fg={theme().textMuted}>Showing synced messages for the current session in this TUI.</text>
         </Match>
       </Switch>
+      </Show>
     </box>
   )
 }

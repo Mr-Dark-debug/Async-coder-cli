@@ -1,3 +1,4 @@
+import * as Whisper from "../../util/whisper"
 import { BoxRenderable, RGBA, TextareaRenderable, MouseEvent, PasteEvent, decodePasteBytes } from "@opentui/core"
 import { createEffect, createMemo, onMount, createSignal, onCleanup, on, Show, Switch, Match } from "solid-js"
 import "opentui-spinner/solid"
@@ -8,7 +9,7 @@ import { useLocal } from "@tui/context/local"
 import { tint, useTheme } from "@tui/context/theme"
 import { EmptyBorder, SplitBorder } from "@tui/component/border"
 import { useSDK } from "@tui/context/sdk"
-import { useRoute } from "@tui/context/route"
+import { useRoute, useCurrentAgentID } from "@tui/context/route"
 import { useProject } from "@tui/context/project"
 import { useSync } from "@tui/context/sync"
 import { useEvent } from "@tui/context/event"
@@ -117,6 +118,7 @@ export function Prompt(props: PromptProps) {
   const args = useArgs()
   const sdk = useSDK()
   const route = useRoute()
+  const agentID = useCurrentAgentID()
   const project = useProject()
   const sync = useSync()
   const dialog = useDialog()
@@ -304,11 +306,9 @@ export function Prompt(props: PromptProps) {
             })
             .catch(() => {})
         } else {
-          Voice.transcribeAudio({
-            audio: segment.audio,
-            apiKey,
-            baseUrl,
-          })
+          // On-device whisper.cpp first (audio stays local); the cloud endpoint is the fallback.
+          Whisper.find()
+            .then((local) => (local ? Whisper.transcribe(segment.audio, local) : Voice.transcribeAudio({ audio: segment.audio, apiKey, baseUrl })))
             .then((text) => {
               if (text) {
                 if (voiceSendEnabled() && Voice.SEND_RE.test(text.replace(/[\s。.!！？?，,]+$/g, "").trim())) {
@@ -1199,6 +1199,19 @@ export function Prompt(props: PromptProps) {
         command: inputText,
       })
       setStore("mode", "normal")
+    } else if (/^\/(btw|steer)\s+\S/i.test(inputText)) {
+      // Side-channel: inject into the running turn instead of queueing a new user message.
+      const match = /^\/(btw|steer)\s+([\s\S]+)/i.exec(inputText)!
+      if (sync.data.session_status[sessionID]?.type === "busy" || sync.data.session_status[sessionID]?.type === "retry") {
+        void sdk.client.session
+          .btw({ sessionID, text: match[2].trim(), steer: match[1].toLowerCase() === "steer", agentID: agentID() === "main" ? undefined : agentID() })
+          .then(() => toast.show({ message: "Note sent to the running agent", variant: "info", duration: 2000 }))
+          .catch((err) =>
+            toast.show({ message: err instanceof Error ? err.message : "Failed to send note", variant: "error" }),
+          )
+      } else {
+        toast.show({ message: "Nothing is running. /btw and /steer talk to a running agent.", variant: "warning" })
+      }
     } else if (
       inputText.startsWith("/") &&
       iife(() => {

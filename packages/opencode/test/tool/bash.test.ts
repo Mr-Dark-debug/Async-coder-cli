@@ -14,12 +14,14 @@ import { SessionID, MessageID } from "../../src/session/schema"
 import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
 import { AppFileSystem } from "@async-coder/shared/filesystem"
 import { Plugin } from "../../src/plugin"
+import { Config } from "../../src/config"
 
 const runtime = ManagedRuntime.make(
   Layer.mergeAll(
     CrossSpawnSpawner.defaultLayer,
     AppFileSystem.defaultLayer,
     Plugin.defaultLayer,
+    Config.defaultLayer,
     Truncate.defaultLayer,
     Agent.defaultLayer,
   ),

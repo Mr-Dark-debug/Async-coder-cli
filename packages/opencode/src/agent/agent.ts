@@ -49,6 +49,8 @@ export const Info = z
     prompt: z.string().optional(),
     options: z.record(z.string(), z.any()),
     steps: z.number().int().positive().optional(),
+    maxUsd: z.number().positive().optional(),
+    fallback: z.array(z.string()).optional(),
     toolAllowlist: z.array(z.string()).optional(),
   })
   .meta({
@@ -451,6 +453,8 @@ export const layer = Layer.effect(
           item.hidden = value.hidden ?? item.hidden
           item.name = value.name ?? item.name
           item.steps = value.steps ?? item.steps
+          item.maxUsd = value.max_usd ?? item.maxUsd
+          item.fallback = value.fallback ? [...value.fallback] : item.fallback
           item.toolAllowlist = value.tool_allowlist ?? item.toolAllowlist
           item.options = mergeDeep(item.options, value.options ?? {})
           item.permission = Permission.merge(item.permission, Permission.fromConfig(value.permission ?? {}))

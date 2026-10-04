@@ -77,7 +77,7 @@ export function CommunityStats() {
               { icon: Star, label: "stars", value: fmt(stars.n), ref: stars.ref },
               { icon: GitFork, label: "forks", value: fmt(forks.n), ref: forks.ref },
               { icon: Users, label: "contributors", value: String(contribCount.n), ref: contribCount.ref },
-              { icon: Package, label: "version", value: releases?.[0]?.tagName ?? "v0.1.0" },
+              { icon: Package, label: "version", value: releases?.[0]?.tagName ?? "v0.2.0" },
               { icon: Download, label: "weekly downloads", value: fmt(npmDownloads.n), ref: npmDownloads.ref },
             ].map((s) => (
               <div key={s.label}>
@@ -113,7 +113,7 @@ export function LatestReleases() {
       ? releases.slice(0, 5)
       : [
           {
-            tagName: "v0.1.0",
+            tagName: "v0.2.0",
             name: "Initial rebrand release",
             publishedAt: new Date().toISOString(),
             body: "Lavender theme, Groq first-class, pluggable web search.",

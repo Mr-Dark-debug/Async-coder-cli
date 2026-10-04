@@ -24,17 +24,21 @@ import { Route as DocsWebsearchRouteImport } from './routes/docs.websearch'
 import { Route as DocsUsageRouteImport } from './routes/docs.usage'
 import { Route as DocsSubagentsRouteImport } from './routes/docs.subagents'
 import { Route as DocsSelfHostingRouteImport } from './routes/docs.self-hosting'
+import { Route as DocsSafetyRouteImport } from './routes/docs.safety'
+import { Route as DocsRemoteRouteImport } from './routes/docs.remote'
 import { Route as DocsQuickstartRouteImport } from './routes/docs.quickstart'
 import { Route as DocsProvidersRouteImport } from './routes/docs.providers'
 import { Route as DocsPluginsRouteImport } from './routes/docs.plugins'
 import { Route as DocsMigrationRouteImport } from './routes/docs.migration'
 import { Route as DocsMemoryRouteImport } from './routes/docs.memory'
 import { Route as DocsMcpRouteImport } from './routes/docs.mcp'
+import { Route as DocsJobsRouteImport } from './routes/docs.jobs'
 import { Route as DocsFaqRouteImport } from './routes/docs.faq'
 import { Route as DocsDreamDistillRouteImport } from './routes/docs.dream-distill'
 import { Route as DocsConfigurationRouteImport } from './routes/docs.configuration'
 import { Route as DocsComposeRouteImport } from './routes/docs.compose'
 import { Route as DocsCommandsRouteImport } from './routes/docs.commands'
+import { Route as DocsBudgetsRouteImport } from './routes/docs.budgets'
 import { Route as DocsApiRouteImport } from './routes/docs.api'
 import { Route as DocsAgentsRouteImport } from './routes/docs.agents'
 import { Route as DocsSplatRouteImport } from './routes/docs.$'
@@ -123,6 +127,16 @@ const DocsSelfHostingRoute = DocsSelfHostingRouteImport.update({
   path: '/docs/self-hosting',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsSafetyRoute = DocsSafetyRouteImport.update({
+  id: '/docs/safety',
+  path: '/docs/safety',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRemoteRoute = DocsRemoteRouteImport.update({
+  id: '/docs/remote',
+  path: '/docs/remote',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsQuickstartRoute = DocsQuickstartRouteImport.update({
   id: '/docs/quickstart',
   path: '/docs/quickstart',
@@ -153,6 +167,11 @@ const DocsMcpRoute = DocsMcpRouteImport.update({
   path: '/docs/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsJobsRoute = DocsJobsRouteImport.update({
+  id: '/docs/jobs',
+  path: '/docs/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsFaqRoute = DocsFaqRouteImport.update({
   id: '/docs/faq',
   path: '/docs/faq',
@@ -176,6 +195,11 @@ const DocsComposeRoute = DocsComposeRouteImport.update({
 const DocsCommandsRoute = DocsCommandsRouteImport.update({
   id: '/docs/commands',
   path: '/docs/commands',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsBudgetsRoute = DocsBudgetsRouteImport.update({
+  id: '/docs/budgets',
+  path: '/docs/budgets',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsApiRoute = DocsApiRouteImport.update({
@@ -254,17 +278,21 @@ export interface FileRoutesByFullPath {
   '/docs/$': typeof DocsSplatRoute
   '/docs/agents': typeof DocsAgentsRoute
   '/docs/api': typeof DocsApiRoute
+  '/docs/budgets': typeof DocsBudgetsRoute
   '/docs/commands': typeof DocsCommandsRoute
   '/docs/compose': typeof DocsComposeRoute
   '/docs/configuration': typeof DocsConfigurationRoute
   '/docs/dream-distill': typeof DocsDreamDistillRoute
   '/docs/faq': typeof DocsFaqRoute
+  '/docs/jobs': typeof DocsJobsRoute
   '/docs/mcp': typeof DocsMcpRoute
   '/docs/memory': typeof DocsMemoryRoute
   '/docs/migration': typeof DocsMigrationRoute
   '/docs/plugins': typeof DocsPluginsRoute
   '/docs/providers': typeof DocsProvidersRouteWithChildren
   '/docs/quickstart': typeof DocsQuickstartRoute
+  '/docs/remote': typeof DocsRemoteRoute
+  '/docs/safety': typeof DocsSafetyRoute
   '/docs/self-hosting': typeof DocsSelfHostingRoute
   '/docs/subagents': typeof DocsSubagentsRoute
   '/docs/usage': typeof DocsUsageRoute
@@ -294,17 +322,21 @@ export interface FileRoutesByTo {
   '/docs/$': typeof DocsSplatRoute
   '/docs/agents': typeof DocsAgentsRoute
   '/docs/api': typeof DocsApiRoute
+  '/docs/budgets': typeof DocsBudgetsRoute
   '/docs/commands': typeof DocsCommandsRoute
   '/docs/compose': typeof DocsComposeRoute
   '/docs/configuration': typeof DocsConfigurationRoute
   '/docs/dream-distill': typeof DocsDreamDistillRoute
   '/docs/faq': typeof DocsFaqRoute
+  '/docs/jobs': typeof DocsJobsRoute
   '/docs/mcp': typeof DocsMcpRoute
   '/docs/memory': typeof DocsMemoryRoute
   '/docs/migration': typeof DocsMigrationRoute
   '/docs/plugins': typeof DocsPluginsRoute
   '/docs/providers': typeof DocsProvidersRouteWithChildren
   '/docs/quickstart': typeof DocsQuickstartRoute
+  '/docs/remote': typeof DocsRemoteRoute
+  '/docs/safety': typeof DocsSafetyRoute
   '/docs/self-hosting': typeof DocsSelfHostingRoute
   '/docs/subagents': typeof DocsSubagentsRoute
   '/docs/usage': typeof DocsUsageRoute
@@ -335,17 +367,21 @@ export interface FileRoutesById {
   '/docs/$': typeof DocsSplatRoute
   '/docs/agents': typeof DocsAgentsRoute
   '/docs/api': typeof DocsApiRoute
+  '/docs/budgets': typeof DocsBudgetsRoute
   '/docs/commands': typeof DocsCommandsRoute
   '/docs/compose': typeof DocsComposeRoute
   '/docs/configuration': typeof DocsConfigurationRoute
   '/docs/dream-distill': typeof DocsDreamDistillRoute
   '/docs/faq': typeof DocsFaqRoute
+  '/docs/jobs': typeof DocsJobsRoute
   '/docs/mcp': typeof DocsMcpRoute
   '/docs/memory': typeof DocsMemoryRoute
   '/docs/migration': typeof DocsMigrationRoute
   '/docs/plugins': typeof DocsPluginsRoute
   '/docs/providers': typeof DocsProvidersRouteWithChildren
   '/docs/quickstart': typeof DocsQuickstartRoute
+  '/docs/remote': typeof DocsRemoteRoute
+  '/docs/safety': typeof DocsSafetyRoute
   '/docs/self-hosting': typeof DocsSelfHostingRoute
   '/docs/subagents': typeof DocsSubagentsRoute
   '/docs/usage': typeof DocsUsageRoute
@@ -377,17 +413,21 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/docs/agents'
     | '/docs/api'
+    | '/docs/budgets'
     | '/docs/commands'
     | '/docs/compose'
     | '/docs/configuration'
     | '/docs/dream-distill'
     | '/docs/faq'
+    | '/docs/jobs'
     | '/docs/mcp'
     | '/docs/memory'
     | '/docs/migration'
     | '/docs/plugins'
     | '/docs/providers'
     | '/docs/quickstart'
+    | '/docs/remote'
+    | '/docs/safety'
     | '/docs/self-hosting'
     | '/docs/subagents'
     | '/docs/usage'
@@ -417,17 +457,21 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/docs/agents'
     | '/docs/api'
+    | '/docs/budgets'
     | '/docs/commands'
     | '/docs/compose'
     | '/docs/configuration'
     | '/docs/dream-distill'
     | '/docs/faq'
+    | '/docs/jobs'
     | '/docs/mcp'
     | '/docs/memory'
     | '/docs/migration'
     | '/docs/plugins'
     | '/docs/providers'
     | '/docs/quickstart'
+    | '/docs/remote'
+    | '/docs/safety'
     | '/docs/self-hosting'
     | '/docs/subagents'
     | '/docs/usage'
@@ -457,17 +501,21 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/docs/agents'
     | '/docs/api'
+    | '/docs/budgets'
     | '/docs/commands'
     | '/docs/compose'
     | '/docs/configuration'
     | '/docs/dream-distill'
     | '/docs/faq'
+    | '/docs/jobs'
     | '/docs/mcp'
     | '/docs/memory'
     | '/docs/migration'
     | '/docs/plugins'
     | '/docs/providers'
     | '/docs/quickstart'
+    | '/docs/remote'
+    | '/docs/safety'
     | '/docs/self-hosting'
     | '/docs/subagents'
     | '/docs/usage'
@@ -497,17 +545,21 @@ export interface RootRouteChildren {
   DocsSplatRoute: typeof DocsSplatRoute
   DocsAgentsRoute: typeof DocsAgentsRoute
   DocsApiRoute: typeof DocsApiRoute
+  DocsBudgetsRoute: typeof DocsBudgetsRoute
   DocsCommandsRoute: typeof DocsCommandsRoute
   DocsComposeRoute: typeof DocsComposeRoute
   DocsConfigurationRoute: typeof DocsConfigurationRoute
   DocsDreamDistillRoute: typeof DocsDreamDistillRoute
   DocsFaqRoute: typeof DocsFaqRoute
+  DocsJobsRoute: typeof DocsJobsRoute
   DocsMcpRoute: typeof DocsMcpRoute
   DocsMemoryRoute: typeof DocsMemoryRoute
   DocsMigrationRoute: typeof DocsMigrationRoute
   DocsPluginsRoute: typeof DocsPluginsRoute
   DocsProvidersRoute: typeof DocsProvidersRouteWithChildren
   DocsQuickstartRoute: typeof DocsQuickstartRoute
+  DocsRemoteRoute: typeof DocsRemoteRoute
+  DocsSafetyRoute: typeof DocsSafetyRoute
   DocsSelfHostingRoute: typeof DocsSelfHostingRoute
   DocsSubagentsRoute: typeof DocsSubagentsRoute
   DocsUsageRoute: typeof DocsUsageRoute
@@ -622,6 +674,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSelfHostingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/safety': {
+      id: '/docs/safety'
+      path: '/docs/safety'
+      fullPath: '/docs/safety'
+      preLoaderRoute: typeof DocsSafetyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/remote': {
+      id: '/docs/remote'
+      path: '/docs/remote'
+      fullPath: '/docs/remote'
+      preLoaderRoute: typeof DocsRemoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/quickstart': {
       id: '/docs/quickstart'
       path: '/docs/quickstart'
@@ -664,6 +730,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsMcpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/jobs': {
+      id: '/docs/jobs'
+      path: '/docs/jobs'
+      fullPath: '/docs/jobs'
+      preLoaderRoute: typeof DocsJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/faq': {
       id: '/docs/faq'
       path: '/docs/faq'
@@ -697,6 +770,13 @@ declare module '@tanstack/react-router' {
       path: '/docs/commands'
       fullPath: '/docs/commands'
       preLoaderRoute: typeof DocsCommandsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/budgets': {
+      id: '/docs/budgets'
+      path: '/docs/budgets'
+      fullPath: '/docs/budgets'
+      preLoaderRoute: typeof DocsBudgetsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/api': {
@@ -838,17 +918,21 @@ const rootRouteChildren: RootRouteChildren = {
   DocsSplatRoute: DocsSplatRoute,
   DocsAgentsRoute: DocsAgentsRoute,
   DocsApiRoute: DocsApiRoute,
+  DocsBudgetsRoute: DocsBudgetsRoute,
   DocsCommandsRoute: DocsCommandsRoute,
   DocsComposeRoute: DocsComposeRoute,
   DocsConfigurationRoute: DocsConfigurationRoute,
   DocsDreamDistillRoute: DocsDreamDistillRoute,
   DocsFaqRoute: DocsFaqRoute,
+  DocsJobsRoute: DocsJobsRoute,
   DocsMcpRoute: DocsMcpRoute,
   DocsMemoryRoute: DocsMemoryRoute,
   DocsMigrationRoute: DocsMigrationRoute,
   DocsPluginsRoute: DocsPluginsRoute,
   DocsProvidersRoute: DocsProvidersRouteWithChildren,
   DocsQuickstartRoute: DocsQuickstartRoute,
+  DocsRemoteRoute: DocsRemoteRoute,
+  DocsSafetyRoute: DocsSafetyRoute,
   DocsSelfHostingRoute: DocsSelfHostingRoute,
   DocsSubagentsRoute: DocsSubagentsRoute,
   DocsUsageRoute: DocsUsageRoute,

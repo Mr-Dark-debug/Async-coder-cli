@@ -12,6 +12,7 @@ import { Global } from "@/global"
 import { Permission } from "@/permission"
 import { AppFileSystem } from "@async-coder/shared/filesystem"
 import { Config } from "../config"
+import * as ProjectTrust from "../project/trust"
 import { ConfigMarkdown } from "../config"
 import { Glob } from "@async-coder/shared/util/glob"
 import { Log } from "../util"
@@ -184,9 +185,15 @@ const discoverSkills = Effect.fnUntraced(function* (
       yield* scan(state, root, EXTERNAL_SKILL_PATTERN, { dot: true, scope: "global" })
     }
 
-    const upDirs = yield* fsys
-      .up({ targets: externalDirs, start: directory, stop: worktree })
-      .pipe(Effect.catch(() => Effect.succeed([] as string[])))
+    // Project-level external skills come from the repository itself, so they are
+    // untrusted until the user opts in (config skills.trust_project or env flag).
+    const trustProject =
+      Flag.ASYNC_CODER_TRUST_PROJECT_SKILLS || (yield* config.get()).skills?.trust_project === true || ProjectTrust.isTrusted(worktree)
+    const upDirs = trustProject
+      ? yield* fsys
+          .up({ targets: externalDirs, start: directory, stop: worktree })
+          .pipe(Effect.catch(() => Effect.succeed([] as string[])))
+      : []
 
     for (const root of upDirs.toReversed()) {
       yield* scan(state, root, EXTERNAL_SKILL_PATTERN, { dot: true, scope: "project" })

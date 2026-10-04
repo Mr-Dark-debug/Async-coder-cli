@@ -14,14 +14,18 @@ export function events(name: string, input: unknown): ConfigHooks.Info["event"][
   const tool = isRecord(input) && typeof input.tool === "string" ? input.tool : undefined
   if (name === "tool.execute.before") return ["pre_tool_use", ...(tool === "bash" ? ["pre_command" as const] : []), ...(tool && edits.has(tool) ? ["pre_file_edit" as const] : [])]
   if (name === "tool.execute.after") return ["post_tool_use", ...(tool === "bash" ? ["post_command" as const] : []), ...(tool && edits.has(tool) ? ["post_file_edit" as const] : [])]
-  if (name === "chat.message") return ["message_sent", "agent_start"]
+  if (name === "chat.message") return ["message_sent", "user_prompt_submit", "agent_start"]
+  if (name === "permission.asked") return ["permission_request"]
+  if (name === "experimental.session.compacting") return ["compact_before"]
+  if (name === "session.compacted") return ["compact_after"]
+  if (name === "tui.toast.show") return ["notification"]
   if (name === "experimental.text.complete") return ["message_received"]
   if (name === "session.created") return ["session_start"]
   if (name === "session.deleted") return ["session_end"]
   if (name === "session.idle") return ["agent_end"]
   if (name === "actor.status" && isRecord(input)) {
-    if (input.status === "running") return ["agent_start"]
-    if (input.status === "idle") return ["agent_end", ...(input.lastOutcome === "failure" ? ["error" as const] : [])]
+    if (input.status === "running") return ["agent_start", "subagent_start"]
+    if (input.status === "idle") return ["agent_end", "subagent_stop", ...(input.lastOutcome === "failure" ? ["error" as const] : [])]
   }
   if (name === "session.error") return ["error"]
   return []
@@ -40,7 +44,7 @@ export const run = Effect.fn("ShellHooks.run")(function* (
   input: unknown,
   output?: unknown,
 ) {
-  const selected = (hooks ?? []).filter((hook) => events(name, input).includes(hook.event) && matches(hook.condition, input))
+  const selected = (hooks ?? []).filter((hook) => hook.enabled !== false && events(name, input).includes(hook.event) && matches(hook.condition, input))
   if (!selected.length) return
   const cwd = yield* InstanceState.directory
   const args = isRecord(output) && isRecord(output.args) ? output.args : isRecord(input) && isRecord(input.args) ? input.args : input

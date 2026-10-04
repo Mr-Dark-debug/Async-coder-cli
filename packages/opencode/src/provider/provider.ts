@@ -1,3 +1,4 @@
+import { isAlias, isLocal as isLocalModel, pick as pickAlias } from "./alias"
 import z from "zod"
 import os from "os"
 import fuzzysort from "fuzzysort"
@@ -2014,6 +2015,25 @@ const layer: Layer.Layer<
         if (BUILTIN_TIERS.has(ref)) {
           const fallback = yield* defaultModel()
           return yield* getModel(fallback.providerID, fallback.modelID)
+        }
+        // Capability aliases (cheap, local, long-context) resolve from the models that are connected now.
+        if (isAlias(ref)) {
+          const providers = Object.values(yield* list())
+          const picked = pickAlias(
+            ref,
+            providers.flatMap((item) =>
+              Object.values(item.models).map((model) => ({
+                providerID: item.id,
+                id: model.id,
+                status: model.status,
+                toolcall: model.capabilities.toolcall,
+                context: model.limit.context,
+                cost: { input: model.cost.input, output: model.cost.output },
+                local: isLocalModel({ providerID: item.id, baseURL: item.options?.baseURL }),
+              })),
+            ),
+          )
+          if (picked) return yield* getModel(ProviderID.make(picked.model.providerID), ModelID.make(picked.model.id))
         }
         const names = Object.keys(cfg.model_groups ?? {})
         const matches = fuzzysort.go(ref, names, { limit: 3, threshold: -10000 })

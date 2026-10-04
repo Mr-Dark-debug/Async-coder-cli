@@ -1,4 +1,4 @@
-import { createMemo, Match, onCleanup, onMount, Show, Switch } from "solid-js"
+import { createMemo, createSignal, Match, onCleanup, onMount, Show, Switch } from "solid-js"
 import { useTheme } from "../../context/theme"
 import { useSync } from "../../context/sync"
 import { useDirectory } from "../../context/directory"
@@ -6,7 +6,9 @@ import { useConnected } from "../../component/dialog-model"
 import { createStore } from "solid-js/store"
 import { useRoute, useCurrentAgentID } from "../../context/route"
 import { useLocal } from "../../context/local"
+import { useSDK } from "../../context/sdk"
 import { useTerminalDimensions } from "@opentui/solid"
+import { level, used } from "../../feature-plugins/sidebar/context-data"
 
 export function Footer() {
   const { theme } = useTheme()
@@ -26,6 +28,26 @@ export function Footer() {
   const permissions = createMemo(() => {
     if (route.data.type !== "session") return []
     return sync.data.permission[route.data.sessionID] ?? []
+  })
+  const sdk = useSDK()
+  const [running, setRunning] = createSignal(0)
+  onMount(() => {
+    const poll = () =>
+      void sdk.client.job
+        .list()
+        .then((res) => setRunning((res.data ?? []).filter((job) => job.status === "running" || job.status === "queued").length))
+        .catch(() => undefined)
+    poll()
+    const handle = setInterval(poll, 5000)
+    onCleanup(() => clearInterval(handle))
+  })
+  const sandbox = createMemo(() => sync.data.config.sandbox?.mode ?? "off")
+  const context = createMemo(() => {
+    const last = messages().findLast((message) => message.role === "assistant" && message.tokens.output > 0)
+    if (!last || last.role !== "assistant") return
+    const limit = sync.data.provider.find((item) => item.id === last.providerID)?.models[last.modelID]?.limit.context
+    if (!limit) return
+    return Math.min(100, Math.round((used(last.tokens) / limit) * 100))
   })
   const directory = useDirectory()
   const connected = useConnected()
@@ -97,6 +119,17 @@ export function Footer() {
                   </Match>
                 </Switch>
                 {mcp()} MCP
+              </text>
+            </Show>
+            <Show when={running() > 0}>
+              <text fg={theme.primary}>▶ {running()} job{running() === 1 ? "" : "s"}</text>
+            </Show>
+            <Show when={sandbox() !== "off"}>
+              <text fg={theme.warning}>sandbox:{sandbox()}</text>
+            </Show>
+            <Show when={route.data.type === "session" && context() !== undefined}>
+              <text fg={level(context()!) === "ok" ? theme.textMuted : level(context()!) === "warn" ? theme.warning : theme.error}>
+                ctx {context()}%
               </text>
             </Show>
             <Show when={route.data.type === "session"}><text fg={theme.textMuted}>${cost().toFixed(2)}</text></Show>

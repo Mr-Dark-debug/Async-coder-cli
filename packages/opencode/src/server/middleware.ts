@@ -11,6 +11,7 @@ import { basicAuth } from "hono/basic-auth"
 import { cors } from "hono/cors"
 import { compress } from "hono/compress"
 import { isPtyConnectPath, PTY_CONNECT_TICKET_QUERY } from "./pty-ticket"
+import * as Pairing from "./pairing"
 
 const log = Log.create({ service: "server" })
 
@@ -45,6 +46,13 @@ export const AuthMiddleware: MiddlewareHandler = (c, next) => {
   // PTY websocket connect with a ticket skips basic auth; the handler validates the ticket.
   const path = new URL(c.req.url).pathname
   if (isPtyConnectPath(path) && c.req.query(PTY_CONNECT_TICKET_QUERY)) return next()
+
+  // The code exchange is the only unauthenticated pairing endpoint: the code itself is the credential.
+  if (path === "/pair/exchange" && c.req.method === "POST") return next()
+
+  // A paired device presents its token as a bearer credential instead of the server password.
+  const bearer = /^Bearer\s+(\S+)$/i.exec(c.req.header("authorization") ?? "")?.[1] ?? c.req.query("device_token")
+  if (bearer && Pairing.verify(bearer)) return next()
 
   const username = Flag.ASYNC_CODER_SERVER_USERNAME ?? "async-coder"
 
