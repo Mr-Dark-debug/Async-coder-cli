@@ -9,83 +9,52 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as StarGazersRouteImport } from './routes/star-gazers'
-import { Route as ProvidersRouteImport } from './routes/providers'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as FeaturesRouteImport } from './routes/features'
-import { Route as EnterpriseRouteImport } from './routes/enterprise'
-import { Route as ContributorsRouteImport } from './routes/contributors'
-import { Route as CommunityRouteImport } from './routes/community'
-import { Route as ChangelogRouteImport } from './routes/changelog'
-import { Route as BrandRouteImport } from './routes/brand'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DocsIndexRouteImport } from './routes/docs.index'
-import { Route as DocsWebsearchRouteImport } from './routes/docs.websearch'
-import { Route as DocsUsageRouteImport } from './routes/docs.usage'
-import { Route as DocsSubagentsRouteImport } from './routes/docs.subagents'
-import { Route as DocsSelfHostingRouteImport } from './routes/docs.self-hosting'
-import { Route as DocsQuickstartRouteImport } from './routes/docs.quickstart'
-import { Route as DocsProvidersRouteImport } from './routes/docs.providers'
-import { Route as DocsPluginsRouteImport } from './routes/docs.plugins'
-import { Route as DocsMigrationRouteImport } from './routes/docs.migration'
-import { Route as DocsMemoryRouteImport } from './routes/docs.memory'
-import { Route as DocsMcpRouteImport } from './routes/docs.mcp'
-import { Route as DocsFaqRouteImport } from './routes/docs.faq'
-import { Route as DocsDreamDistillRouteImport } from './routes/docs.dream-distill'
-import { Route as DocsConfigurationRouteImport } from './routes/docs.configuration'
-import { Route as DocsComposeRouteImport } from './routes/docs.compose'
-import { Route as DocsCommandsRouteImport } from './routes/docs.commands'
-import { Route as DocsApiRouteImport } from './routes/docs.api'
-import { Route as DocsAgentsRouteImport } from './routes/docs.agents'
-import { Route as DocsSplatRouteImport } from './routes/docs.$'
+import { Route as BrandRouteImport } from './routes/brand'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as CommunityRouteImport } from './routes/community'
+import { Route as ContributorsRouteImport } from './routes/contributors'
+import { Route as EnterpriseRouteImport } from './routes/enterprise'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as ProvidersRouteImport } from './routes/providers'
+import { Route as StarGazersRouteImport } from './routes/star-gazers'
 import { Route as ChangelogVersionRouteImport } from './routes/changelog.$version'
-import { Route as DocsProvidersXaiRouteImport } from './routes/docs.providers.xai'
-import { Route as DocsProvidersOpenrouterRouteImport } from './routes/docs.providers.openrouter'
-import { Route as DocsProvidersOpenaiRouteImport } from './routes/docs.providers.openai'
-import { Route as DocsProvidersGroqRouteImport } from './routes/docs.providers.groq'
-import { Route as DocsProvidersGoogleRouteImport } from './routes/docs.providers.google'
-import { Route as DocsProvidersCustomRouteImport } from './routes/docs.providers.custom'
-import { Route as DocsProvidersCopilotRouteImport } from './routes/docs.providers.copilot'
+import { Route as DocsIndexRouteImport } from './routes/docs.index'
+import { Route as DocsSplatRouteImport } from './routes/docs.$'
+import { Route as DocsAgentsRouteImport } from './routes/docs.agents'
+import { Route as DocsApiRouteImport } from './routes/docs.api'
+import { Route as DocsBudgetsRouteImport } from './routes/docs.budgets'
+import { Route as DocsCommandsRouteImport } from './routes/docs.commands'
+import { Route as DocsComposeRouteImport } from './routes/docs.compose'
+import { Route as DocsConfigurationRouteImport } from './routes/docs.configuration'
+import { Route as DocsDreamDistillRouteImport } from './routes/docs.dream-distill'
+import { Route as DocsFaqRouteImport } from './routes/docs.faq'
+import { Route as DocsJobsRouteImport } from './routes/docs.jobs'
+import { Route as DocsMcpRouteImport } from './routes/docs.mcp'
+import { Route as DocsMemoryRouteImport } from './routes/docs.memory'
+import { Route as DocsMigrationRouteImport } from './routes/docs.migration'
+import { Route as DocsPluginsRouteImport } from './routes/docs.plugins'
+import { Route as DocsProvidersRouteImport } from './routes/docs.providers'
+import { Route as DocsQuickstartRouteImport } from './routes/docs.quickstart'
+import { Route as DocsRemoteRouteImport } from './routes/docs.remote'
+import { Route as DocsSafetyRouteImport } from './routes/docs.safety'
+import { Route as DocsSelfHostingRouteImport } from './routes/docs.self-hosting'
+import { Route as DocsSubagentsRouteImport } from './routes/docs.subagents'
+import { Route as DocsUsageRouteImport } from './routes/docs.usage'
+import { Route as DocsWebsearchRouteImport } from './routes/docs.websearch'
 import { Route as DocsProvidersAnthropicRouteImport } from './routes/docs.providers.anthropic'
+import { Route as DocsProvidersCopilotRouteImport } from './routes/docs.providers.copilot'
+import { Route as DocsProvidersCustomRouteImport } from './routes/docs.providers.custom'
+import { Route as DocsProvidersGoogleRouteImport } from './routes/docs.providers.google'
+import { Route as DocsProvidersGroqRouteImport } from './routes/docs.providers.groq'
+import { Route as DocsProvidersOpenaiRouteImport } from './routes/docs.providers.openai'
+import { Route as DocsProvidersOpenrouterRouteImport } from './routes/docs.providers.openrouter'
+import { Route as DocsProvidersXaiRouteImport } from './routes/docs.providers.xai'
 
-const StarGazersRoute = StarGazersRouteImport.update({
-  id: '/star-gazers',
-  path: '/star-gazers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProvidersRoute = ProvidersRouteImport.update({
-  id: '/providers',
-  path: '/providers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeaturesRoute = FeaturesRouteImport.update({
-  id: '/features',
-  path: '/features',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EnterpriseRoute = EnterpriseRouteImport.update({
-  id: '/enterprise',
-  path: '/enterprise',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContributorsRoute = ContributorsRouteImport.update({
-  id: '/contributors',
-  path: '/contributors',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CommunityRoute = CommunityRouteImport.update({
-  id: '/community',
-  path: '/community',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChangelogRoute = ChangelogRouteImport.update({
-  id: '/changelog',
-  path: '/changelog',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrandRoute = BrandRouteImport.update({
@@ -93,104 +62,44 @@ const BrandRoute = BrandRouteImport.update({
   path: '/brand',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsIndexRoute = DocsIndexRouteImport.update({
-  id: '/docs/',
-  path: '/docs/',
+const CommunityRoute = CommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsWebsearchRoute = DocsWebsearchRouteImport.update({
-  id: '/docs/websearch',
-  path: '/docs/websearch',
+const ContributorsRoute = ContributorsRouteImport.update({
+  id: '/contributors',
+  path: '/contributors',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsUsageRoute = DocsUsageRouteImport.update({
-  id: '/docs/usage',
-  path: '/docs/usage',
+const EnterpriseRoute = EnterpriseRouteImport.update({
+  id: '/enterprise',
+  path: '/enterprise',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsSubagentsRoute = DocsSubagentsRouteImport.update({
-  id: '/docs/subagents',
-  path: '/docs/subagents',
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsSelfHostingRoute = DocsSelfHostingRouteImport.update({
-  id: '/docs/self-hosting',
-  path: '/docs/self-hosting',
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsQuickstartRoute = DocsQuickstartRouteImport.update({
-  id: '/docs/quickstart',
-  path: '/docs/quickstart',
+const ProvidersRoute = ProvidersRouteImport.update({
+  id: '/providers',
+  path: '/providers',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsProvidersRoute = DocsProvidersRouteImport.update({
-  id: '/docs/providers',
-  path: '/docs/providers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsPluginsRoute = DocsPluginsRouteImport.update({
-  id: '/docs/plugins',
-  path: '/docs/plugins',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsMigrationRoute = DocsMigrationRouteImport.update({
-  id: '/docs/migration',
-  path: '/docs/migration',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsMemoryRoute = DocsMemoryRouteImport.update({
-  id: '/docs/memory',
-  path: '/docs/memory',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsMcpRoute = DocsMcpRouteImport.update({
-  id: '/docs/mcp',
-  path: '/docs/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsFaqRoute = DocsFaqRouteImport.update({
-  id: '/docs/faq',
-  path: '/docs/faq',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsDreamDistillRoute = DocsDreamDistillRouteImport.update({
-  id: '/docs/dream-distill',
-  path: '/docs/dream-distill',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsConfigurationRoute = DocsConfigurationRouteImport.update({
-  id: '/docs/configuration',
-  path: '/docs/configuration',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsComposeRoute = DocsComposeRouteImport.update({
-  id: '/docs/compose',
-  path: '/docs/compose',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsCommandsRoute = DocsCommandsRouteImport.update({
-  id: '/docs/commands',
-  path: '/docs/commands',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsApiRoute = DocsApiRouteImport.update({
-  id: '/docs/api',
-  path: '/docs/api',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsAgentsRoute = DocsAgentsRouteImport.update({
-  id: '/docs/agents',
-  path: '/docs/agents',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsSplatRoute = DocsSplatRouteImport.update({
-  id: '/docs/$',
-  path: '/docs/$',
+const StarGazersRoute = StarGazersRouteImport.update({
+  id: '/star-gazers',
+  path: '/star-gazers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChangelogVersionRoute = ChangelogVersionRouteImport.update({
@@ -198,34 +107,124 @@ const ChangelogVersionRoute = ChangelogVersionRouteImport.update({
   path: '/$version',
   getParentRoute: () => ChangelogRoute,
 } as any)
-const DocsProvidersXaiRoute = DocsProvidersXaiRouteImport.update({
-  id: '/xai',
-  path: '/xai',
-  getParentRoute: () => DocsProvidersRoute,
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/docs/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const DocsProvidersOpenrouterRoute = DocsProvidersOpenrouterRouteImport.update({
-  id: '/openrouter',
-  path: '/openrouter',
-  getParentRoute: () => DocsProvidersRoute,
+const DocsSplatRoute = DocsSplatRouteImport.update({
+  id: '/docs/$',
+  path: '/docs/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const DocsProvidersOpenaiRoute = DocsProvidersOpenaiRouteImport.update({
-  id: '/openai',
-  path: '/openai',
-  getParentRoute: () => DocsProvidersRoute,
+const DocsAgentsRoute = DocsAgentsRouteImport.update({
+  id: '/docs/agents',
+  path: '/docs/agents',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const DocsProvidersGroqRoute = DocsProvidersGroqRouteImport.update({
-  id: '/groq',
-  path: '/groq',
-  getParentRoute: () => DocsProvidersRoute,
+const DocsApiRoute = DocsApiRouteImport.update({
+  id: '/docs/api',
+  path: '/docs/api',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const DocsProvidersGoogleRoute = DocsProvidersGoogleRouteImport.update({
-  id: '/google',
-  path: '/google',
-  getParentRoute: () => DocsProvidersRoute,
+const DocsBudgetsRoute = DocsBudgetsRouteImport.update({
+  id: '/docs/budgets',
+  path: '/docs/budgets',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const DocsProvidersCustomRoute = DocsProvidersCustomRouteImport.update({
-  id: '/custom',
-  path: '/custom',
+const DocsCommandsRoute = DocsCommandsRouteImport.update({
+  id: '/docs/commands',
+  path: '/docs/commands',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsComposeRoute = DocsComposeRouteImport.update({
+  id: '/docs/compose',
+  path: '/docs/compose',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsConfigurationRoute = DocsConfigurationRouteImport.update({
+  id: '/docs/configuration',
+  path: '/docs/configuration',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsDreamDistillRoute = DocsDreamDistillRouteImport.update({
+  id: '/docs/dream-distill',
+  path: '/docs/dream-distill',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsFaqRoute = DocsFaqRouteImport.update({
+  id: '/docs/faq',
+  path: '/docs/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsJobsRoute = DocsJobsRouteImport.update({
+  id: '/docs/jobs',
+  path: '/docs/jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsMcpRoute = DocsMcpRouteImport.update({
+  id: '/docs/mcp',
+  path: '/docs/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsMemoryRoute = DocsMemoryRouteImport.update({
+  id: '/docs/memory',
+  path: '/docs/memory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsMigrationRoute = DocsMigrationRouteImport.update({
+  id: '/docs/migration',
+  path: '/docs/migration',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsPluginsRoute = DocsPluginsRouteImport.update({
+  id: '/docs/plugins',
+  path: '/docs/plugins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsProvidersRoute = DocsProvidersRouteImport.update({
+  id: '/docs/providers',
+  path: '/docs/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsQuickstartRoute = DocsQuickstartRouteImport.update({
+  id: '/docs/quickstart',
+  path: '/docs/quickstart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRemoteRoute = DocsRemoteRouteImport.update({
+  id: '/docs/remote',
+  path: '/docs/remote',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsSafetyRoute = DocsSafetyRouteImport.update({
+  id: '/docs/safety',
+  path: '/docs/safety',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsSelfHostingRoute = DocsSelfHostingRouteImport.update({
+  id: '/docs/self-hosting',
+  path: '/docs/self-hosting',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsSubagentsRoute = DocsSubagentsRouteImport.update({
+  id: '/docs/subagents',
+  path: '/docs/subagents',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsUsageRoute = DocsUsageRouteImport.update({
+  id: '/docs/usage',
+  path: '/docs/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsWebsearchRoute = DocsWebsearchRouteImport.update({
+  id: '/docs/websearch',
+  path: '/docs/websearch',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsProvidersAnthropicRoute = DocsProvidersAnthropicRouteImport.update({
+  id: '/anthropic',
+  path: '/anthropic',
   getParentRoute: () => DocsProvidersRoute,
 } as any)
 const DocsProvidersCopilotRoute = DocsProvidersCopilotRouteImport.update({
@@ -233,9 +232,34 @@ const DocsProvidersCopilotRoute = DocsProvidersCopilotRouteImport.update({
   path: '/copilot',
   getParentRoute: () => DocsProvidersRoute,
 } as any)
-const DocsProvidersAnthropicRoute = DocsProvidersAnthropicRouteImport.update({
-  id: '/anthropic',
-  path: '/anthropic',
+const DocsProvidersCustomRoute = DocsProvidersCustomRouteImport.update({
+  id: '/custom',
+  path: '/custom',
+  getParentRoute: () => DocsProvidersRoute,
+} as any)
+const DocsProvidersGoogleRoute = DocsProvidersGoogleRouteImport.update({
+  id: '/google',
+  path: '/google',
+  getParentRoute: () => DocsProvidersRoute,
+} as any)
+const DocsProvidersGroqRoute = DocsProvidersGroqRouteImport.update({
+  id: '/groq',
+  path: '/groq',
+  getParentRoute: () => DocsProvidersRoute,
+} as any)
+const DocsProvidersOpenaiRoute = DocsProvidersOpenaiRouteImport.update({
+  id: '/openai',
+  path: '/openai',
+  getParentRoute: () => DocsProvidersRoute,
+} as any)
+const DocsProvidersOpenrouterRoute = DocsProvidersOpenrouterRouteImport.update({
+  id: '/openrouter',
+  path: '/openrouter',
+  getParentRoute: () => DocsProvidersRoute,
+} as any)
+const DocsProvidersXaiRoute = DocsProvidersXaiRouteImport.update({
+  id: '/xai',
+  path: '/xai',
   getParentRoute: () => DocsProvidersRoute,
 } as any)
 
@@ -254,17 +278,21 @@ export interface FileRoutesByFullPath {
   '/docs/$': typeof DocsSplatRoute
   '/docs/agents': typeof DocsAgentsRoute
   '/docs/api': typeof DocsApiRoute
+  '/docs/budgets': typeof DocsBudgetsRoute
   '/docs/commands': typeof DocsCommandsRoute
   '/docs/compose': typeof DocsComposeRoute
   '/docs/configuration': typeof DocsConfigurationRoute
   '/docs/dream-distill': typeof DocsDreamDistillRoute
   '/docs/faq': typeof DocsFaqRoute
+  '/docs/jobs': typeof DocsJobsRoute
   '/docs/mcp': typeof DocsMcpRoute
   '/docs/memory': typeof DocsMemoryRoute
   '/docs/migration': typeof DocsMigrationRoute
   '/docs/plugins': typeof DocsPluginsRoute
   '/docs/providers': typeof DocsProvidersRouteWithChildren
   '/docs/quickstart': typeof DocsQuickstartRoute
+  '/docs/remote': typeof DocsRemoteRoute
+  '/docs/safety': typeof DocsSafetyRoute
   '/docs/self-hosting': typeof DocsSelfHostingRoute
   '/docs/subagents': typeof DocsSubagentsRoute
   '/docs/usage': typeof DocsUsageRoute
@@ -294,17 +322,21 @@ export interface FileRoutesByTo {
   '/docs/$': typeof DocsSplatRoute
   '/docs/agents': typeof DocsAgentsRoute
   '/docs/api': typeof DocsApiRoute
+  '/docs/budgets': typeof DocsBudgetsRoute
   '/docs/commands': typeof DocsCommandsRoute
   '/docs/compose': typeof DocsComposeRoute
   '/docs/configuration': typeof DocsConfigurationRoute
   '/docs/dream-distill': typeof DocsDreamDistillRoute
   '/docs/faq': typeof DocsFaqRoute
+  '/docs/jobs': typeof DocsJobsRoute
   '/docs/mcp': typeof DocsMcpRoute
   '/docs/memory': typeof DocsMemoryRoute
   '/docs/migration': typeof DocsMigrationRoute
   '/docs/plugins': typeof DocsPluginsRoute
   '/docs/providers': typeof DocsProvidersRouteWithChildren
   '/docs/quickstart': typeof DocsQuickstartRoute
+  '/docs/remote': typeof DocsRemoteRoute
+  '/docs/safety': typeof DocsSafetyRoute
   '/docs/self-hosting': typeof DocsSelfHostingRoute
   '/docs/subagents': typeof DocsSubagentsRoute
   '/docs/usage': typeof DocsUsageRoute
@@ -335,17 +367,21 @@ export interface FileRoutesById {
   '/docs/$': typeof DocsSplatRoute
   '/docs/agents': typeof DocsAgentsRoute
   '/docs/api': typeof DocsApiRoute
+  '/docs/budgets': typeof DocsBudgetsRoute
   '/docs/commands': typeof DocsCommandsRoute
   '/docs/compose': typeof DocsComposeRoute
   '/docs/configuration': typeof DocsConfigurationRoute
   '/docs/dream-distill': typeof DocsDreamDistillRoute
   '/docs/faq': typeof DocsFaqRoute
+  '/docs/jobs': typeof DocsJobsRoute
   '/docs/mcp': typeof DocsMcpRoute
   '/docs/memory': typeof DocsMemoryRoute
   '/docs/migration': typeof DocsMigrationRoute
   '/docs/plugins': typeof DocsPluginsRoute
   '/docs/providers': typeof DocsProvidersRouteWithChildren
   '/docs/quickstart': typeof DocsQuickstartRoute
+  '/docs/remote': typeof DocsRemoteRoute
+  '/docs/safety': typeof DocsSafetyRoute
   '/docs/self-hosting': typeof DocsSelfHostingRoute
   '/docs/subagents': typeof DocsSubagentsRoute
   '/docs/usage': typeof DocsUsageRoute
@@ -377,17 +413,21 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/docs/agents'
     | '/docs/api'
+    | '/docs/budgets'
     | '/docs/commands'
     | '/docs/compose'
     | '/docs/configuration'
     | '/docs/dream-distill'
     | '/docs/faq'
+    | '/docs/jobs'
     | '/docs/mcp'
     | '/docs/memory'
     | '/docs/migration'
     | '/docs/plugins'
     | '/docs/providers'
     | '/docs/quickstart'
+    | '/docs/remote'
+    | '/docs/safety'
     | '/docs/self-hosting'
     | '/docs/subagents'
     | '/docs/usage'
@@ -417,17 +457,21 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/docs/agents'
     | '/docs/api'
+    | '/docs/budgets'
     | '/docs/commands'
     | '/docs/compose'
     | '/docs/configuration'
     | '/docs/dream-distill'
     | '/docs/faq'
+    | '/docs/jobs'
     | '/docs/mcp'
     | '/docs/memory'
     | '/docs/migration'
     | '/docs/plugins'
     | '/docs/providers'
     | '/docs/quickstart'
+    | '/docs/remote'
+    | '/docs/safety'
     | '/docs/self-hosting'
     | '/docs/subagents'
     | '/docs/usage'
@@ -457,17 +501,21 @@ export interface FileRouteTypes {
     | '/docs/$'
     | '/docs/agents'
     | '/docs/api'
+    | '/docs/budgets'
     | '/docs/commands'
     | '/docs/compose'
     | '/docs/configuration'
     | '/docs/dream-distill'
     | '/docs/faq'
+    | '/docs/jobs'
     | '/docs/mcp'
     | '/docs/memory'
     | '/docs/migration'
     | '/docs/plugins'
     | '/docs/providers'
     | '/docs/quickstart'
+    | '/docs/remote'
+    | '/docs/safety'
     | '/docs/self-hosting'
     | '/docs/subagents'
     | '/docs/usage'
@@ -497,17 +545,21 @@ export interface RootRouteChildren {
   DocsSplatRoute: typeof DocsSplatRoute
   DocsAgentsRoute: typeof DocsAgentsRoute
   DocsApiRoute: typeof DocsApiRoute
+  DocsBudgetsRoute: typeof DocsBudgetsRoute
   DocsCommandsRoute: typeof DocsCommandsRoute
   DocsComposeRoute: typeof DocsComposeRoute
   DocsConfigurationRoute: typeof DocsConfigurationRoute
   DocsDreamDistillRoute: typeof DocsDreamDistillRoute
   DocsFaqRoute: typeof DocsFaqRoute
+  DocsJobsRoute: typeof DocsJobsRoute
   DocsMcpRoute: typeof DocsMcpRoute
   DocsMemoryRoute: typeof DocsMemoryRoute
   DocsMigrationRoute: typeof DocsMigrationRoute
   DocsPluginsRoute: typeof DocsPluginsRoute
   DocsProvidersRoute: typeof DocsProvidersRouteWithChildren
   DocsQuickstartRoute: typeof DocsQuickstartRoute
+  DocsRemoteRoute: typeof DocsRemoteRoute
+  DocsSafetyRoute: typeof DocsSafetyRoute
   DocsSelfHostingRoute: typeof DocsSelfHostingRoute
   DocsSubagentsRoute: typeof DocsSubagentsRoute
   DocsUsageRoute: typeof DocsUsageRoute
@@ -517,60 +569,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/star-gazers': {
-      id: '/star-gazers'
-      path: '/star-gazers'
-      fullPath: '/star-gazers'
-      preLoaderRoute: typeof StarGazersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/providers': {
-      id: '/providers'
-      path: '/providers'
-      fullPath: '/providers'
-      preLoaderRoute: typeof ProvidersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/features': {
-      id: '/features'
-      path: '/features'
-      fullPath: '/features'
-      preLoaderRoute: typeof FeaturesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/enterprise': {
-      id: '/enterprise'
-      path: '/enterprise'
-      fullPath: '/enterprise'
-      preLoaderRoute: typeof EnterpriseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contributors': {
-      id: '/contributors'
-      path: '/contributors'
-      fullPath: '/contributors'
-      preLoaderRoute: typeof ContributorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/community': {
-      id: '/community'
-      path: '/community'
-      fullPath: '/community'
-      preLoaderRoute: typeof CommunityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/changelog': {
-      id: '/changelog'
-      path: '/changelog'
-      fullPath: '/changelog'
-      preLoaderRoute: typeof ChangelogRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/brand': {
@@ -580,144 +583,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrandRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/': {
-      id: '/docs/'
-      path: '/docs'
-      fullPath: '/docs/'
-      preLoaderRoute: typeof DocsIndexRouteImport
+    '/community': {
+      id: '/community'
+      path: '/community'
+      fullPath: '/community'
+      preLoaderRoute: typeof CommunityRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/websearch': {
-      id: '/docs/websearch'
-      path: '/docs/websearch'
-      fullPath: '/docs/websearch'
-      preLoaderRoute: typeof DocsWebsearchRouteImport
+    '/contributors': {
+      id: '/contributors'
+      path: '/contributors'
+      fullPath: '/contributors'
+      preLoaderRoute: typeof ContributorsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/usage': {
-      id: '/docs/usage'
-      path: '/docs/usage'
-      fullPath: '/docs/usage'
-      preLoaderRoute: typeof DocsUsageRouteImport
+    '/enterprise': {
+      id: '/enterprise'
+      path: '/enterprise'
+      fullPath: '/enterprise'
+      preLoaderRoute: typeof EnterpriseRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/subagents': {
-      id: '/docs/subagents'
-      path: '/docs/subagents'
-      fullPath: '/docs/subagents'
-      preLoaderRoute: typeof DocsSubagentsRouteImport
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/self-hosting': {
-      id: '/docs/self-hosting'
-      path: '/docs/self-hosting'
-      fullPath: '/docs/self-hosting'
-      preLoaderRoute: typeof DocsSelfHostingRouteImport
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/quickstart': {
-      id: '/docs/quickstart'
-      path: '/docs/quickstart'
-      fullPath: '/docs/quickstart'
-      preLoaderRoute: typeof DocsQuickstartRouteImport
+    '/providers': {
+      id: '/providers'
+      path: '/providers'
+      fullPath: '/providers'
+      preLoaderRoute: typeof ProvidersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/providers': {
-      id: '/docs/providers'
-      path: '/docs/providers'
-      fullPath: '/docs/providers'
-      preLoaderRoute: typeof DocsProvidersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/plugins': {
-      id: '/docs/plugins'
-      path: '/docs/plugins'
-      fullPath: '/docs/plugins'
-      preLoaderRoute: typeof DocsPluginsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/migration': {
-      id: '/docs/migration'
-      path: '/docs/migration'
-      fullPath: '/docs/migration'
-      preLoaderRoute: typeof DocsMigrationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/memory': {
-      id: '/docs/memory'
-      path: '/docs/memory'
-      fullPath: '/docs/memory'
-      preLoaderRoute: typeof DocsMemoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/mcp': {
-      id: '/docs/mcp'
-      path: '/docs/mcp'
-      fullPath: '/docs/mcp'
-      preLoaderRoute: typeof DocsMcpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/faq': {
-      id: '/docs/faq'
-      path: '/docs/faq'
-      fullPath: '/docs/faq'
-      preLoaderRoute: typeof DocsFaqRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/dream-distill': {
-      id: '/docs/dream-distill'
-      path: '/docs/dream-distill'
-      fullPath: '/docs/dream-distill'
-      preLoaderRoute: typeof DocsDreamDistillRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/configuration': {
-      id: '/docs/configuration'
-      path: '/docs/configuration'
-      fullPath: '/docs/configuration'
-      preLoaderRoute: typeof DocsConfigurationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/compose': {
-      id: '/docs/compose'
-      path: '/docs/compose'
-      fullPath: '/docs/compose'
-      preLoaderRoute: typeof DocsComposeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/commands': {
-      id: '/docs/commands'
-      path: '/docs/commands'
-      fullPath: '/docs/commands'
-      preLoaderRoute: typeof DocsCommandsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/api': {
-      id: '/docs/api'
-      path: '/docs/api'
-      fullPath: '/docs/api'
-      preLoaderRoute: typeof DocsApiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/agents': {
-      id: '/docs/agents'
-      path: '/docs/agents'
-      fullPath: '/docs/agents'
-      preLoaderRoute: typeof DocsAgentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/$': {
-      id: '/docs/$'
-      path: '/docs/$'
-      fullPath: '/docs/$'
-      preLoaderRoute: typeof DocsSplatRouteImport
+    '/star-gazers': {
+      id: '/star-gazers'
+      path: '/star-gazers'
+      fullPath: '/star-gazers'
+      preLoaderRoute: typeof StarGazersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/changelog/$version': {
@@ -727,46 +646,172 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChangelogVersionRouteImport
       parentRoute: typeof ChangelogRoute
     }
-    '/docs/providers/xai': {
-      id: '/docs/providers/xai'
-      path: '/xai'
-      fullPath: '/docs/providers/xai'
-      preLoaderRoute: typeof DocsProvidersXaiRouteImport
-      parentRoute: typeof DocsProvidersRoute
+    '/docs/': {
+      id: '/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/docs/providers/openrouter': {
-      id: '/docs/providers/openrouter'
-      path: '/openrouter'
-      fullPath: '/docs/providers/openrouter'
-      preLoaderRoute: typeof DocsProvidersOpenrouterRouteImport
-      parentRoute: typeof DocsProvidersRoute
+    '/docs/$': {
+      id: '/docs/$'
+      path: '/docs/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DocsSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/docs/providers/openai': {
-      id: '/docs/providers/openai'
-      path: '/openai'
-      fullPath: '/docs/providers/openai'
-      preLoaderRoute: typeof DocsProvidersOpenaiRouteImport
-      parentRoute: typeof DocsProvidersRoute
+    '/docs/agents': {
+      id: '/docs/agents'
+      path: '/docs/agents'
+      fullPath: '/docs/agents'
+      preLoaderRoute: typeof DocsAgentsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/docs/providers/groq': {
-      id: '/docs/providers/groq'
-      path: '/groq'
-      fullPath: '/docs/providers/groq'
-      preLoaderRoute: typeof DocsProvidersGroqRouteImport
-      parentRoute: typeof DocsProvidersRoute
+    '/docs/api': {
+      id: '/docs/api'
+      path: '/docs/api'
+      fullPath: '/docs/api'
+      preLoaderRoute: typeof DocsApiRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/docs/providers/google': {
-      id: '/docs/providers/google'
-      path: '/google'
-      fullPath: '/docs/providers/google'
-      preLoaderRoute: typeof DocsProvidersGoogleRouteImport
-      parentRoute: typeof DocsProvidersRoute
+    '/docs/budgets': {
+      id: '/docs/budgets'
+      path: '/docs/budgets'
+      fullPath: '/docs/budgets'
+      preLoaderRoute: typeof DocsBudgetsRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/docs/providers/custom': {
-      id: '/docs/providers/custom'
-      path: '/custom'
-      fullPath: '/docs/providers/custom'
-      preLoaderRoute: typeof DocsProvidersCustomRouteImport
+    '/docs/commands': {
+      id: '/docs/commands'
+      path: '/docs/commands'
+      fullPath: '/docs/commands'
+      preLoaderRoute: typeof DocsCommandsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/compose': {
+      id: '/docs/compose'
+      path: '/docs/compose'
+      fullPath: '/docs/compose'
+      preLoaderRoute: typeof DocsComposeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/configuration': {
+      id: '/docs/configuration'
+      path: '/docs/configuration'
+      fullPath: '/docs/configuration'
+      preLoaderRoute: typeof DocsConfigurationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/dream-distill': {
+      id: '/docs/dream-distill'
+      path: '/docs/dream-distill'
+      fullPath: '/docs/dream-distill'
+      preLoaderRoute: typeof DocsDreamDistillRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/faq': {
+      id: '/docs/faq'
+      path: '/docs/faq'
+      fullPath: '/docs/faq'
+      preLoaderRoute: typeof DocsFaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/jobs': {
+      id: '/docs/jobs'
+      path: '/docs/jobs'
+      fullPath: '/docs/jobs'
+      preLoaderRoute: typeof DocsJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/mcp': {
+      id: '/docs/mcp'
+      path: '/docs/mcp'
+      fullPath: '/docs/mcp'
+      preLoaderRoute: typeof DocsMcpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/memory': {
+      id: '/docs/memory'
+      path: '/docs/memory'
+      fullPath: '/docs/memory'
+      preLoaderRoute: typeof DocsMemoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/migration': {
+      id: '/docs/migration'
+      path: '/docs/migration'
+      fullPath: '/docs/migration'
+      preLoaderRoute: typeof DocsMigrationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/plugins': {
+      id: '/docs/plugins'
+      path: '/docs/plugins'
+      fullPath: '/docs/plugins'
+      preLoaderRoute: typeof DocsPluginsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/providers': {
+      id: '/docs/providers'
+      path: '/docs/providers'
+      fullPath: '/docs/providers'
+      preLoaderRoute: typeof DocsProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/quickstart': {
+      id: '/docs/quickstart'
+      path: '/docs/quickstart'
+      fullPath: '/docs/quickstart'
+      preLoaderRoute: typeof DocsQuickstartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/remote': {
+      id: '/docs/remote'
+      path: '/docs/remote'
+      fullPath: '/docs/remote'
+      preLoaderRoute: typeof DocsRemoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/safety': {
+      id: '/docs/safety'
+      path: '/docs/safety'
+      fullPath: '/docs/safety'
+      preLoaderRoute: typeof DocsSafetyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/self-hosting': {
+      id: '/docs/self-hosting'
+      path: '/docs/self-hosting'
+      fullPath: '/docs/self-hosting'
+      preLoaderRoute: typeof DocsSelfHostingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/subagents': {
+      id: '/docs/subagents'
+      path: '/docs/subagents'
+      fullPath: '/docs/subagents'
+      preLoaderRoute: typeof DocsSubagentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/usage': {
+      id: '/docs/usage'
+      path: '/docs/usage'
+      fullPath: '/docs/usage'
+      preLoaderRoute: typeof DocsUsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/websearch': {
+      id: '/docs/websearch'
+      path: '/docs/websearch'
+      fullPath: '/docs/websearch'
+      preLoaderRoute: typeof DocsWebsearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/providers/anthropic': {
+      id: '/docs/providers/anthropic'
+      path: '/anthropic'
+      fullPath: '/docs/providers/anthropic'
+      preLoaderRoute: typeof DocsProvidersAnthropicRouteImport
       parentRoute: typeof DocsProvidersRoute
     }
     '/docs/providers/copilot': {
@@ -776,11 +821,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsProvidersCopilotRouteImport
       parentRoute: typeof DocsProvidersRoute
     }
-    '/docs/providers/anthropic': {
-      id: '/docs/providers/anthropic'
-      path: '/anthropic'
-      fullPath: '/docs/providers/anthropic'
-      preLoaderRoute: typeof DocsProvidersAnthropicRouteImport
+    '/docs/providers/custom': {
+      id: '/docs/providers/custom'
+      path: '/custom'
+      fullPath: '/docs/providers/custom'
+      preLoaderRoute: typeof DocsProvidersCustomRouteImport
+      parentRoute: typeof DocsProvidersRoute
+    }
+    '/docs/providers/google': {
+      id: '/docs/providers/google'
+      path: '/google'
+      fullPath: '/docs/providers/google'
+      preLoaderRoute: typeof DocsProvidersGoogleRouteImport
+      parentRoute: typeof DocsProvidersRoute
+    }
+    '/docs/providers/groq': {
+      id: '/docs/providers/groq'
+      path: '/groq'
+      fullPath: '/docs/providers/groq'
+      preLoaderRoute: typeof DocsProvidersGroqRouteImport
+      parentRoute: typeof DocsProvidersRoute
+    }
+    '/docs/providers/openai': {
+      id: '/docs/providers/openai'
+      path: '/openai'
+      fullPath: '/docs/providers/openai'
+      preLoaderRoute: typeof DocsProvidersOpenaiRouteImport
+      parentRoute: typeof DocsProvidersRoute
+    }
+    '/docs/providers/openrouter': {
+      id: '/docs/providers/openrouter'
+      path: '/openrouter'
+      fullPath: '/docs/providers/openrouter'
+      preLoaderRoute: typeof DocsProvidersOpenrouterRouteImport
+      parentRoute: typeof DocsProvidersRoute
+    }
+    '/docs/providers/xai': {
+      id: '/docs/providers/xai'
+      path: '/xai'
+      fullPath: '/docs/providers/xai'
+      preLoaderRoute: typeof DocsProvidersXaiRouteImport
       parentRoute: typeof DocsProvidersRoute
     }
   }
@@ -838,17 +918,21 @@ const rootRouteChildren: RootRouteChildren = {
   DocsSplatRoute: DocsSplatRoute,
   DocsAgentsRoute: DocsAgentsRoute,
   DocsApiRoute: DocsApiRoute,
+  DocsBudgetsRoute: DocsBudgetsRoute,
   DocsCommandsRoute: DocsCommandsRoute,
   DocsComposeRoute: DocsComposeRoute,
   DocsConfigurationRoute: DocsConfigurationRoute,
   DocsDreamDistillRoute: DocsDreamDistillRoute,
   DocsFaqRoute: DocsFaqRoute,
+  DocsJobsRoute: DocsJobsRoute,
   DocsMcpRoute: DocsMcpRoute,
   DocsMemoryRoute: DocsMemoryRoute,
   DocsMigrationRoute: DocsMigrationRoute,
   DocsPluginsRoute: DocsPluginsRoute,
   DocsProvidersRoute: DocsProvidersRouteWithChildren,
   DocsQuickstartRoute: DocsQuickstartRoute,
+  DocsRemoteRoute: DocsRemoteRoute,
+  DocsSafetyRoute: DocsSafetyRoute,
   DocsSelfHostingRoute: DocsSelfHostingRoute,
   DocsSubagentsRoute: DocsSubagentsRoute,
   DocsUsageRoute: DocsUsageRoute,

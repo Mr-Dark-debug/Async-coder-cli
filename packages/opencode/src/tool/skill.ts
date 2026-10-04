@@ -53,6 +53,8 @@ export const SkillTool = Tool.define(
             output: [
               `<skill_content name="${info.name}">`,
               `# Skill: ${info.name}`,
+              ...(info.tools?.length ? [`Suggested tools: ${info.tools.join(", ")}`] : []),
+              ...(info.model ? [`Preferred model: ${info.model}`] : []),
               "",
               info.content.trim(),
               "",

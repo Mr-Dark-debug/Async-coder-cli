@@ -3,10 +3,13 @@ import {
   Brain,
   Globe,
   Key,
+  Lock,
   Network,
   Palette,
-  Shield,
+  ShieldCheck,
+  Smartphone,
   Sparkles,
+  Wallet,
   Workflow,
   ArrowUpRight,
 } from "lucide-react";
@@ -14,49 +17,64 @@ import { motion } from "framer-motion";
 
 const FEATURES = [
   {
-    icon: Key,
-    title: "Bring your own key",
-    body: "Groq first-class. OpenRouter one-key-many-models. OpenAI, Anthropic, Google, xAI, Copilot. Or any custom OpenAI-compatible endpoint.",
+    icon: Network,
+    title: "Background jobs",
+    body: "Detached sessions in their own git worktree, under a spend cap, with a /jobs panel, notifications and cron routines. Teams run workers in parallel and merge them one by one.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Verified completion",
+    body: "A job is done only when its gate passes. Failures are fed back for retry, every job gets a cost and gate receipt, and a draft pull request opens only when you ask.",
+  },
+  {
+    icon: Wallet,
+    title: "Budgets that act",
+    body: "Cap spend per session, agent, day or month and choose to warn, downgrade to a cheaper tier, or stop. Per-agent caps and model fallback chains keep runaways in check.",
   },
   {
     icon: BarChart3,
-    title: "Per-model cost dashboard",
-    body: "See dollars spent, tokens in/out/cache/reasoning, and context-window usage — per model, per provider, per session. Live in the sidebar.",
-  },
-  {
-    icon: Globe,
-    title: "Pluggable web search",
-    body: "DuckDuckGo (default, no key), Tavily, Brave, Google CSE, or Exa. One config switch. Falls back gracefully.",
+    title: "Usage and context",
+    body: "Cost per model and agent for this session, today and this month with a projection, plus a /context inspector showing what fills the window and when it compacts.",
   },
   {
     icon: Brain,
-    title: "Persistent memory",
-    body: "SQLite FTS5-powered cross-session memory. Project memory, session checkpoints, scratch notes. Auto-injected on resume.",
+    title: "Memory you control",
+    body: "Relevant notes are recalled into each turn within a token budget. Browse, pin or forget them at /memory; nothing is written behind your back.",
   },
   {
-    icon: Network,
-    title: "Subagent orchestration",
-    body: "Primary agent spawns subagents on demand. Parallel execution, lifecycle tracking, cancellation, background work, autonomous loops.",
-  },
-  {
-    icon: Workflow,
-    title: "Compose workflows",
-    body: "Specs-driven development with built-in skills: planning, execution, code review, TDD, debugging, verification, merging.",
+    icon: Lock,
+    title: "Safer by default",
+    body: "No implicit share host, repository skills load only after you trust the project, and OS sandbox modes confine shell commands and file writes on Linux and macOS.",
   },
   {
     icon: Sparkles,
-    title: "Dream & Distill",
-    body: "Self-improvement: /dream extracts persistent knowledge from session traces. /distill packages repeated workflows into reusable skills.",
+    title: "Sage second opinions",
+    body: "Ask a second model with /consult, or let a job consult Sage only when its gate fails or the change is risky. A green, low-risk job costs no extra model call.",
+  },
+  {
+    icon: Key,
+    title: "Bring your own key",
+    body: "Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, Copilot, Ollama and any OpenAI-compatible endpoint. Aliases like cheap, local and long-context pick from what is connected.",
+  },
+  {
+    icon: Smartphone,
+    title: "Remote and chat bridges",
+    body: "Pair a phone or another machine with a one-time code, or drive a server from Telegram, Discord or Slack with an allowlist and permission prompts in chat.",
+  },
+  {
+    icon: Globe,
+    title: "Web search",
+    body: "DuckDuckGo (default, no key), Tavily, Brave, Google CSE, or Exa with one config switch.",
+  },
+  {
+    icon: Workflow,
+    title: "Hooks, skills and a signed marketplace",
+    body: "Shell hooks on lifecycle events, skills and agents you can share, and a marketplace whose registry signature and file checksums are verified before install.",
   },
   {
     icon: Palette,
-    title: "Lavender identity",
-    body: "A calm lavender palette replacing the upstream orange. Same layout, same keybindings, same dialogs — reskinned and extended.",
-  },
-  {
-    icon: Shield,
-    title: "Zero telemetry",
-    body: "No phone-home. All Xiaomi/MiMo platform calls removed. Local SQLite metrics power /stats and /usage. Your data stays on your machine.",
+    title: "Local-first, no telemetry",
+    body: "Your sessions, usage and memory stay in local SQLite. An eval harness lets you compare models on your own tasks and catch regressions.",
   },
 ];
 
@@ -72,8 +90,8 @@ export function Features() {
             A fork of OpenCode — extended.
           </h2>
           <p className="mt-4 text-muted-foreground text-base md:text-lg leading-relaxed">
-            Multi-provider onboarding, per-model cost dashboards, pluggable web search, and a
-            calm lavender identity — all in one terminal-native agent.
+            Hand it a ticket, close the laptop, and come back to work that already passed its
+            gates, with a receipt of what it cost — on whichever model you chose.
           </p>
         </div>
 

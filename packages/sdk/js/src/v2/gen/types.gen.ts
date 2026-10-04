@@ -558,99 +558,10 @@ export type EventTeamMemberJoined = {
   }
 }
 
-export type SessionStatus =
-  | {
-      type: "idle"
-    }
-  | {
-      type: "retry"
-      attempt: number
-      message: string
-      next: number
-    }
-  | {
-      type: "busy"
-      message?: string
-    }
-
-export type EventSessionStatus = {
-  type: "session.status"
+export type EventVcsBranchUpdated = {
+  type: "vcs.branch.updated"
   properties: {
-    sessionID: string
-    status: SessionStatus
-  }
-}
-
-export type EventSessionIdle = {
-  type: "session.idle"
-  properties: {
-    sessionID: string
-  }
-}
-
-export type EventSessionGoal = {
-  type: "session.goal"
-  properties: {
-    sessionID: string
-    goal?: {
-      condition: string
-    }
-    lastVerdict?: {
-      ok: boolean
-      impossible?: boolean
-      reason: string
-      attempt: number
-      messageID?: string
-      error?: boolean
-    }
-  }
-}
-
-export type EventMetricsModelCall = {
-  type: "metrics.model_call"
-  properties: {
-    sessionID: string
-    finish_reason: string
-    ttft_ms?: number
-    latency_ms: number
-    cached_read_tokens: number
-    model_id: string
-    provider: string
-    total_tokens_in: number
-    total_tokens_out: number
-  }
-}
-
-export type EventMetricsToolCall = {
-  type: "metrics.tool_call"
-  properties: {
-    sessionID: string
-    tool_name: string
-    input_bytes: number
-    output_bytes: number
-    tool_call_id: string
-    tool_call_status: "success" | "error" | "cancelled"
-  }
-}
-
-export type EventMetricsAgentRequest = {
-  type: "metrics.agent_request"
-  properties: {
-    sessionID: string
-    phase: string
-    task_type: string
-    surface: string
-    total_tokens_in: number
-    total_tokens_out: number
-    files_changed: number
-    validation_status: string
-  }
-}
-
-export type EventSessionCompacted = {
-  type: "session.compacted"
-  properties: {
-    sessionID: string
+    branch?: string
   }
 }
 
@@ -743,10 +654,44 @@ export type EventCommandExecuted = {
   }
 }
 
-export type EventVcsBranchUpdated = {
-  type: "vcs.branch.updated"
+export type EventMetricsModelCall = {
+  type: "metrics.model_call"
   properties: {
-    branch?: string
+    sessionID: string
+    finish_reason: string
+    ttft_ms?: number
+    latency_ms: number
+    cached_read_tokens: number
+    model_id: string
+    provider: string
+    total_tokens_in: number
+    total_tokens_out: number
+  }
+}
+
+export type EventMetricsToolCall = {
+  type: "metrics.tool_call"
+  properties: {
+    sessionID: string
+    tool_name: string
+    input_bytes: number
+    output_bytes: number
+    tool_call_id: string
+    tool_call_status: "success" | "error" | "cancelled"
+  }
+}
+
+export type EventMetricsAgentRequest = {
+  type: "metrics.agent_request"
+  properties: {
+    sessionID: string
+    phase: string
+    task_type: string
+    surface: string
+    total_tokens_in: number
+    total_tokens_out: number
+    files_changed: number
+    validation_status: string
   }
 }
 
@@ -762,6 +707,61 @@ export type EventWorktreeFailed = {
   type: "worktree.failed"
   properties: {
     message: string
+  }
+}
+
+export type SessionStatus =
+  | {
+      type: "idle"
+    }
+  | {
+      type: "retry"
+      attempt: number
+      message: string
+      next: number
+    }
+  | {
+      type: "busy"
+      message?: string
+    }
+
+export type EventSessionStatus = {
+  type: "session.status"
+  properties: {
+    sessionID: string
+    status: SessionStatus
+  }
+}
+
+export type EventSessionIdle = {
+  type: "session.idle"
+  properties: {
+    sessionID: string
+  }
+}
+
+export type EventSessionGoal = {
+  type: "session.goal"
+  properties: {
+    sessionID: string
+    goal?: {
+      condition: string
+    }
+    lastVerdict?: {
+      ok: boolean
+      impossible?: boolean
+      reason: string
+      attempt: number
+      messageID?: string
+      error?: boolean
+    }
+  }
+}
+
+export type EventSessionCompacted = {
+  type: "session.compacted"
+  properties: {
+    sessionID: string
   }
 }
 
@@ -1374,6 +1374,25 @@ export type EventSessionDeleted = {
   }
 }
 
+export type EventJobUpdated = {
+  type: "job.updated"
+  properties: {
+    jobID: string
+    status: string
+    name: string
+  }
+}
+
+export type EventJobNotify = {
+  type: "job.notify"
+  properties: {
+    jobID: string
+    title: string
+    status: string
+    sequences: string
+  }
+}
+
 export type SyncEventMessageUpdated = {
   type: "sync"
   name: "message.updated.1"
@@ -1533,13 +1552,7 @@ export type GlobalEvent = {
     | EventTodoUpdated
     | EventTeamCreated
     | EventTeamMemberJoined
-    | EventSessionStatus
-    | EventSessionIdle
-    | EventSessionGoal
-    | EventMetricsModelCall
-    | EventMetricsToolCall
-    | EventMetricsAgentRequest
-    | EventSessionCompacted
+    | EventVcsBranchUpdated
     | EventTuiPromptAppend
     | EventTuiCommandExecute
     | EventTuiToastShow
@@ -1548,9 +1561,15 @@ export type GlobalEvent = {
     | EventMcpToolsChanged
     | EventMcpBrowserOpenFailed
     | EventCommandExecuted
-    | EventVcsBranchUpdated
+    | EventMetricsModelCall
+    | EventMetricsToolCall
+    | EventMetricsAgentRequest
     | EventWorktreeReady
     | EventWorktreeFailed
+    | EventSessionStatus
+    | EventSessionIdle
+    | EventSessionGoal
+    | EventSessionCompacted
     | EventPtyCreated
     | EventPtyUpdated
     | EventPtyExited
@@ -1572,6 +1591,8 @@ export type GlobalEvent = {
     | EventSessionCreated
     | EventSessionUpdated
     | EventSessionDeleted
+    | EventJobUpdated
+    | EventJobNotify
     | SyncEventMessageUpdated
     | SyncEventMessageRemoved
     | SyncEventMessagePartUpdated
@@ -1683,6 +1704,14 @@ export type AgentConfig = {
    */
   steps?: number
   /**
+   * Spend cap in USD for this agent. The agent stops before its next model call once it is reached.
+   */
+  max_usd?: number
+  /**
+   * Ordered provider/model fallbacks tried when this agent's model fails with a retryable error.
+   */
+  fallback?: Array<string>
+  /**
    * Optional list of tool IDs allowed for this agent. When set, only these tools are available.
    */
   tool_allowlist?: Array<string>
@@ -1714,6 +1743,8 @@ export type AgentConfig = {
     | "error"
     | "info"
     | number
+    | number
+    | Array<string>
     | Array<string>
     | PermissionConfig
     | undefined
@@ -1870,6 +1901,10 @@ export type McpRemoteConfig = {
    */
   url: string
   /**
+   * Explicit remote transport. Omit to try Streamable HTTP followed by SSE.
+   */
+  transport?: "http" | "sse"
+  /**
    * Enable or disable the MCP server on startup
    */
   enabled?: boolean
@@ -1925,6 +1960,181 @@ export type Config = {
      * URLs to fetch skills from (e.g., https://example.com/.well-known/skills/)
      */
     urls?: Array<string>
+    /**
+     * Load skills from a project's own .claude/.codex/.opencode directories. Off by default: a cloned repository could otherwise inject instructions. User-level skills are always loaded.
+     */
+    trust_project?: boolean
+  }
+  hooks?: Array<{
+    id?: string
+    /**
+     * Set false to keep a hook configured but switched off. Default true.
+     */
+    enabled?: boolean
+    event:
+      | "pre_tool_use"
+      | "post_tool_use"
+      | "pre_file_edit"
+      | "post_file_edit"
+      | "pre_command"
+      | "post_command"
+      | "session_start"
+      | "session_end"
+      | "message_sent"
+      | "message_received"
+      | "agent_start"
+      | "agent_end"
+      | "error"
+      | "user_prompt_submit"
+      | "permission_request"
+      | "subagent_start"
+      | "subagent_stop"
+      | "compact_before"
+      | "compact_after"
+      | "notification"
+    command: string
+    timeout?: number
+    /**
+     * Optional tool-name condition, for example tool === 'bash'. No JavaScript is evaluated.
+     */
+    condition?: string
+  }>
+  /**
+   * Risk-gated Sage review for background jobs. Needs `advisor` to be configured.
+   */
+  sage?: {
+    /**
+     * Run the risk-gated verification pipeline for background jobs.
+     */
+    enabled?: boolean
+    /**
+     * When Sage critiques a job's result. Default gate-fail-or-high-risk: green, low-risk jobs never cost an extra model call.
+     */
+    critique_on?: "gate-fail-or-high-risk" | "gate-fail" | "high-risk" | "never"
+    /**
+     * Risk score (0 to 1) at or above which a change counts as high risk. Default 0.5.
+     */
+    risk_threshold?: number
+    /**
+     * Largest share of a job's budget Sage may spend. Default 0.25.
+     */
+    budget_share?: number
+  }
+  /**
+   * Scheduled routines: cron-triggered background jobs that inherit worktree isolation, gates and budgets.
+   */
+  routines?: {
+    [key: string]: {
+      /**
+       * 5-field cron expression in local time, e.g. '0 3 * * *'.
+       */
+      cron: string
+      prompt: string
+      agent?: string
+      /**
+       * provider/model
+       */
+      model?: string
+      budget_usd?: number
+      /**
+       * Run each firing in its own worktree. Default true.
+       */
+      worktree?: boolean
+      /**
+       * Gate commands that must pass before a run counts as done.
+       */
+      verify?: Array<string>
+      verify_retries?: number
+      enabled?: boolean
+    }
+  }
+  /**
+   * Signed skill/agent/command registry used by `async-coder market`.
+   */
+  marketplace?: {
+    /**
+     * URL of a signed marketplace registry (JSON).
+     */
+    registry_url?: string
+    /**
+     * The registry's ed25519 public key (64 hex characters). A registry that does not verify against it is refused.
+     */
+    public_key?: string
+  }
+  /**
+   * Notification preferences for background jobs.
+   */
+  notification?: {
+    /**
+     * Suppress job-completion notifications between these local times, e.g. { start: '22:00', end: '07:00' }.
+     */
+    quiet_hours?: {
+      start: string
+      end: string
+    }
+  }
+  /**
+   * OS-level confinement for shell commands and file writes.
+   */
+  sandbox?: {
+    /**
+     * off: no confinement. writes: shell commands may only write inside the project, temp dirs and writable_paths. full: writes confinement plus no outbound network.
+     */
+    mode?: "off" | "writes" | "full"
+    /**
+     * Extra directories shell commands and file tools may write to in writes/full mode.
+     */
+    writable_paths?: Array<string>
+    /**
+     * Hosts reachable in full mode. macOS enforces IP addresses and localhost only; Linux cannot filter by host, so a non-empty list there is refused rather than silently ignored.
+     */
+    allowed_hosts?: Array<string>
+  }
+  /**
+   * Usage accounting and spend budgets. Caps are checked before every model call.
+   */
+  usage?: {
+    budget?: {
+      /**
+       * Spend cap for one session, subagents included.
+       */
+      per_session_usd?: number
+      /**
+       * Spend cap for a single agent (main or subagent) within a session.
+       */
+      per_agent_usd?: number
+      /**
+       * Spend cap across all sessions since local midnight.
+       */
+      daily_usd?: number
+      /**
+       * Spend cap across all sessions since the first of the month.
+       */
+      monthly_usd?: number
+      /**
+       * What happens when a cap is reached: warn keeps going, downgrade continues on the lite model tier, stop ends the turn. Default stop.
+       */
+      default_action?: "warn" | "downgrade" | "stop"
+      /**
+       * Fraction of a cap at which a warning is raised. Default 0.8.
+       */
+      warn_at?: number
+    }
+  }
+  checkpoints?: {
+    enabled?: boolean
+    retention?: number
+  }
+  reliability?: {
+    provider_concurrency?: number
+    max_retries?: number
+    fallback_models?: Array<string>
+  }
+  /**
+   * MCP server definitions in command/args/env or native mcp format. Native mcp entries take precedence.
+   */
+  mcpServers?: {
+    [key: string]: unknown
   }
   watcher?: {
     ignore?: Array<string>
@@ -2133,6 +2343,10 @@ export type Config = {
      * Token buffer for compaction. Leaves enough window to avoid overflow during compaction.
      */
     reserved?: number
+    /**
+     * Fraction of the usable context window at which automatic compaction starts (default: 1, i.e. only when full). Set 0.85 to compact earlier.
+     */
+    threshold?: number
   }
   checkpoint?: {
     /**
@@ -2214,6 +2428,18 @@ export type Config = {
     memory_search_score_floor?: number
   }
   memory?: {
+    /**
+     * Automatically recall relevant memory notes into each new user turn (bounded by recall_limit and token_budget). Default: true.
+     */
+    auto?: boolean
+    /**
+     * Maximum notes recalled per turn. Default: 12.
+     */
+    recall_limit?: number
+    /**
+     * Maximum tokens the recalled block may use. Default: 1500.
+     */
+    token_budget?: number
     /**
      * Index Claude Code memory (~/.claude/projects/<slug>/memory) and expose under scope='cc'. Default: false. Note: when enabled, every async-coder agent (build/explore/subagents) can search these memories via the builtin `memory` tool — including CC's `type: user` (your role/preferences) and `type: feedback` (your guidance) categories. CC originally writes them for future CC sessions; flipping this on widens the consumer set to async-coder agents on the same machine. Leave disabled (default) if you don't want personal context recallable from a prompt-injection-vulnerable agent.
      */
@@ -2464,10 +2690,13 @@ export type Worktree = {
   name: string
   branch: string
   directory: string
+  baseBranch?: string
 }
 
 export type WorktreeCreateInput = {
   name?: string
+  branch?: string
+  baseBranch?: string
   /**
    * Additional startup script to run after the project's start command
    */
@@ -2532,6 +2761,26 @@ export type McpResource = {
   client: string
 }
 
+export type SessionCheckpointSummary = {
+  id: string
+  session_id: string
+  directory: string
+  description: string
+  snapshot: string
+  time_created: number
+  automatic: boolean
+  files: Array<string>
+  status: "ready" | "restoring" | "restored"
+  messages: number
+}
+
+export type SessionCheckpointRestore = {
+  id: string
+  restored: Array<string>
+  preserved: Array<string>
+  messageCount: number
+}
+
 export type ConflictError = {
   name: "UnknownError"
   data: {
@@ -2585,6 +2834,32 @@ export type SubtaskPartInput = {
     modelID: string
   }
   command?: string
+}
+
+export type Job = {
+  id: string
+  session_id: string | null
+  name: string
+  prompt: string
+  agent: string | null
+  model: string | null
+  status: "queued" | "running" | "done" | "failed" | "cancelled"
+  directory: string | null
+  branch: string | null
+  team_id: string | null
+  role: string | null
+  budget_usd: number | null
+  cost_usd: number
+  error: string | null
+  result: string | null
+  verify: Array<string> | null
+  verify_retries: number
+  verify_result: unknown | null
+  tokens_in: number
+  tokens_out: number
+  time_created: number
+  time_started: number | null
+  time_finished: number | null
 }
 
 export type ProviderAuthMethod = {
@@ -2708,13 +2983,7 @@ export type Event =
   | EventTodoUpdated
   | EventTeamCreated
   | EventTeamMemberJoined
-  | EventSessionStatus
-  | EventSessionIdle
-  | EventSessionGoal
-  | EventMetricsModelCall
-  | EventMetricsToolCall
-  | EventMetricsAgentRequest
-  | EventSessionCompacted
+  | EventVcsBranchUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
@@ -2723,9 +2992,15 @@ export type Event =
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
   | EventCommandExecuted
-  | EventVcsBranchUpdated
+  | EventMetricsModelCall
+  | EventMetricsToolCall
+  | EventMetricsAgentRequest
   | EventWorktreeReady
   | EventWorktreeFailed
+  | EventSessionStatus
+  | EventSessionIdle
+  | EventSessionGoal
+  | EventSessionCompacted
   | EventPtyCreated
   | EventPtyUpdated
   | EventPtyExited
@@ -2747,9 +3022,12 @@ export type Event =
   | EventSessionCreated
   | EventSessionUpdated
   | EventSessionDeleted
+  | EventJobUpdated
+  | EventJobNotify
 
 export type McpStatusConnected = {
   status: "connected"
+  tools?: Array<string>
 }
 
 export type McpStatusDisabled = {
@@ -2835,6 +3113,8 @@ export type Agent = {
     [key: string]: unknown
   }
   steps?: number
+  maxUsd?: number
+  fallback?: Array<string>
   toolAllowlist?: Array<string>
 }
 
@@ -2843,6 +3123,7 @@ export type LspStatus = {
   name: string
   root: string
   status: "connected" | "error"
+  diagnostics?: number
 }
 
 export type FormatterStatus = {
@@ -3035,6 +3316,81 @@ export type GlobalImportRunResponses = {
 }
 
 export type GlobalImportRunResponse = GlobalImportRunResponses[keyof GlobalImportRunResponses]
+
+export type PairCreateData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/pair"
+}
+
+export type PairCreateResponses = {
+  /**
+   * Pairing code
+   */
+  200: {
+    code: string
+    expires: number
+  }
+}
+
+export type PairCreateResponse = PairCreateResponses[keyof PairCreateResponses]
+
+export type PairExchangeData = {
+  body?: {
+    code: string
+    name?: string
+  }
+  path?: never
+  query?: never
+  url: "/pair/exchange"
+}
+
+export type PairExchangeResponses = {
+  /**
+   * Device token
+   */
+  200: {
+    id: string
+    token: string
+  }
+}
+
+export type PairExchangeResponse = PairExchangeResponses[keyof PairExchangeResponses]
+
+export type PairDevicesData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/pair/devices"
+}
+
+export type PairDevicesResponses = {
+  /**
+   * Devices
+   */
+  200: Array<unknown>
+}
+
+export type PairDevicesResponse = PairDevicesResponses[keyof PairDevicesResponses]
+
+export type PairRevokeData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/pair/devices/{id}"
+}
+
+export type PairRevokeResponses = {
+  /**
+   * Revoked
+   */
+  200: boolean
+}
+
+export type PairRevokeResponse = PairRevokeResponses[keyof PairRevokeResponses]
 
 export type AuthRemoveData = {
   body?: never
@@ -4000,6 +4356,110 @@ export type ExperimentalResourceListResponses = {
 export type ExperimentalResourceListResponse =
   ExperimentalResourceListResponses[keyof ExperimentalResourceListResponses]
 
+export type SessionCheckpointListData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/checkpoint"
+}
+
+export type SessionCheckpointListResponses = {
+  /**
+   * Checkpoints
+   */
+  200: Array<SessionCheckpointSummary>
+}
+
+export type SessionCheckpointListResponse = SessionCheckpointListResponses[keyof SessionCheckpointListResponses]
+
+export type SessionCheckpointCreateData = {
+  body?: {
+    description?: string
+    files?: Array<string>
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/checkpoint"
+}
+
+export type SessionCheckpointCreateResponses = {
+  /**
+   * Checkpoint
+   */
+  200: SessionCheckpointSummary
+}
+
+export type SessionCheckpointCreateResponse = SessionCheckpointCreateResponses[keyof SessionCheckpointCreateResponses]
+
+export type SessionCheckpointRestoreData = {
+  body?: {
+    files?: Array<string>
+    allFiles?: boolean
+  }
+  path: {
+    sessionID: string
+    checkpointID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/checkpoint/{checkpointID}/restore"
+}
+
+export type SessionCheckpointRestoreResponses = {
+  /**
+   * Restored files and preserved unrelated changes
+   */
+  200: SessionCheckpointRestore
+}
+
+export type SessionCheckpointRestoreResponse =
+  SessionCheckpointRestoreResponses[keyof SessionCheckpointRestoreResponses]
+
+export type SessionExportOfflineData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+    format?: "html" | "json"
+  }
+  url: "/session/{sessionID}/export"
+}
+
+export type SessionExportOfflineResponses = {
+  /**
+   * Offline session document
+   */
+  200: {
+    format: "async-coder-session"
+    version: 1
+    exportedAt: string
+    readOnly: true
+    info: Session
+    messages: Array<{
+      info: Message
+      parts: Array<Part>
+    }>
+    diffs: Array<SnapshotFileDiff>
+  }
+}
+
+export type SessionExportOfflineResponse = SessionExportOfflineResponses[keyof SessionExportOfflineResponses]
+
 export type SessionListData = {
   body?: never
   path?: never
@@ -4418,6 +4878,50 @@ export type SessionAbortResponses = {
 }
 
 export type SessionAbortResponse = SessionAbortResponses[keyof SessionAbortResponses]
+
+export type SessionBtwData = {
+  body?: {
+    text: string
+    /**
+     * Target a running subagent instead of the main agent
+     */
+    agentID?: string
+    /**
+     * Frame the note as a course correction
+     */
+    steer?: boolean
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/session/{sessionID}/btw"
+}
+
+export type SessionBtwErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionBtwError = SessionBtwErrors[keyof SessionBtwErrors]
+
+export type SessionBtwResponses = {
+  /**
+   * Whether the note was queued
+   */
+  200: boolean
+}
+
+export type SessionBtwResponse = SessionBtwResponses[keyof SessionBtwResponses]
 
 export type SessionUnshareData = {
   body?: never
@@ -5247,6 +5751,479 @@ export type WorkflowResumeResponses = {
 }
 
 export type WorkflowResumeResponse = WorkflowResumeResponses[keyof WorkflowResumeResponses]
+
+export type JobListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/job"
+}
+
+export type JobListResponses = {
+  /**
+   * Jobs
+   */
+  200: Array<Job>
+}
+
+export type JobListResponse = JobListResponses[keyof JobListResponses]
+
+export type JobCreateData = {
+  body?: {
+    prompt: string
+    agent?: string
+    /**
+     * provider/model
+     */
+    model?: string
+    budget_usd?: number
+    worktree?: boolean
+    /**
+     * Gate commands that must pass before the job is done
+     */
+    verify?: Array<string>
+    verify_retries?: number
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/job"
+}
+
+export type JobCreateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type JobCreateError = JobCreateErrors[keyof JobCreateErrors]
+
+export type JobCreateResponses = {
+  /**
+   * Queued job
+   */
+  200: Job
+}
+
+export type JobCreateResponse = JobCreateResponses[keyof JobCreateResponses]
+
+export type JobGetData = {
+  body?: never
+  path: {
+    jobID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/job/{jobID}"
+}
+
+export type JobGetErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type JobGetError = JobGetErrors[keyof JobGetErrors]
+
+export type JobGetResponses = {
+  /**
+   * Job
+   */
+  200: Job
+}
+
+export type JobGetResponse = JobGetResponses[keyof JobGetResponses]
+
+export type JobCancelData = {
+  body?: never
+  path: {
+    jobID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/job/{jobID}/cancel"
+}
+
+export type JobCancelErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type JobCancelError = JobCancelErrors[keyof JobCancelErrors]
+
+export type JobCancelResponses = {
+  /**
+   * Job
+   */
+  200: Job
+}
+
+export type JobCancelResponse = JobCancelResponses[keyof JobCancelResponses]
+
+export type JobReceiptData = {
+  body?: never
+  path: {
+    jobID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/job/{jobID}/receipt"
+}
+
+export type JobReceiptErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type JobReceiptError = JobReceiptErrors[keyof JobReceiptErrors]
+
+export type JobReceiptResponses = {
+  /**
+   * Receipt
+   */
+  200: {
+    markdown: string
+  }
+}
+
+export type JobReceiptResponse = JobReceiptResponses[keyof JobReceiptResponses]
+
+export type JobPrData = {
+  body?: never
+  path: {
+    jobID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/job/{jobID}/pr"
+}
+
+export type JobPrErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type JobPrError = JobPrErrors[keyof JobPrErrors]
+
+export type JobPrResponses = {
+  /**
+   * Pull request
+   */
+  200: {
+    url: string
+    branch: string
+  }
+}
+
+export type JobPrResponse = JobPrResponses[keyof JobPrResponses]
+
+export type UsageSummaryData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+    range?: "day" | "month"
+  }
+  url: "/usage/summary"
+}
+
+export type UsageSummaryResponses = {
+  /**
+   * Usage summary
+   */
+  200: {
+    range: "day" | "month"
+    from: number
+    rows: Array<{
+      provider: string
+      model: string
+      agent: string
+      messages: number
+      input: number
+      output: number
+      reasoning: number
+      cache_read: number
+      cache_write: number
+      cost: number
+    }>
+    daily: Array<{
+      day: string
+      cost: number
+    }>
+    total: number
+    projected_month?: number
+  }
+}
+
+export type UsageSummaryResponse = UsageSummaryResponses[keyof UsageSummaryResponses]
+
+export type TeamManifestsData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/team"
+}
+
+export type TeamManifestsResponses = {
+  /**
+   * Manifest names
+   */
+  200: Array<string>
+}
+
+export type TeamManifestsResponse = TeamManifestsResponses[keyof TeamManifestsResponses]
+
+export type TeamStartData = {
+  body?: {
+    manifest: string
+    budget_usd?: number
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/team/start"
+}
+
+export type TeamStartErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TeamStartError = TeamStartErrors[keyof TeamStartErrors]
+
+export type TeamStartResponses = {
+  /**
+   * Team id and worker jobs
+   */
+  200: unknown
+}
+
+export type TeamStatusData = {
+  body?: never
+  path: {
+    teamID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/team/{teamID}"
+}
+
+export type TeamStatusResponses = {
+  /**
+   * Team jobs
+   */
+  200: unknown
+}
+
+export type TeamMergeData = {
+  body?: never
+  path: {
+    teamID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/team/{teamID}/merge"
+}
+
+export type TeamMergeErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TeamMergeError = TeamMergeErrors[keyof TeamMergeErrors]
+
+export type TeamMergeResponses = {
+  /**
+   * Merge result
+   */
+  200: unknown
+}
+
+export type TeamReassignData = {
+  body?: never
+  path: {
+    jobID: string
+  }
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/team/reassign/{jobID}"
+}
+
+export type TeamReassignErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+}
+
+export type TeamReassignError = TeamReassignErrors[keyof TeamReassignErrors]
+
+export type TeamReassignResponses = {
+  /**
+   * Replacement job
+   */
+  200: unknown
+}
+
+export type MemoryListData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory"
+}
+
+export type MemoryListResponses = {
+  /**
+   * Notes
+   */
+  200: Array<{
+    path: string
+    scope: string
+    scope_id: string
+    type: string
+    pinned: boolean
+    bytes: number
+  }>
+}
+
+export type MemoryListResponse = MemoryListResponses[keyof MemoryListResponses]
+
+export type MemorySearchData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    workspace?: string
+    query: string
+  }
+  url: "/memory/search"
+}
+
+export type MemorySearchResponses = {
+  /**
+   * Matches
+   */
+  200: Array<unknown>
+}
+
+export type MemorySearchResponse = MemorySearchResponses[keyof MemorySearchResponses]
+
+export type MemoryForgetData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    workspace?: string
+    path: string
+  }
+  url: "/memory/note"
+}
+
+export type MemoryForgetResponses = {
+  /**
+   * Whether a note was removed
+   */
+  200: boolean
+}
+
+export type MemoryForgetResponse = MemoryForgetResponses[keyof MemoryForgetResponses]
+
+export type MemoryReadData = {
+  body?: never
+  path?: never
+  query: {
+    directory?: string
+    workspace?: string
+    path: string
+  }
+  url: "/memory/note"
+}
+
+export type MemoryReadErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type MemoryReadError = MemoryReadErrors[keyof MemoryReadErrors]
+
+export type MemoryReadResponses = {
+  /**
+   * Note text
+   */
+  200: {
+    text: string
+  }
+}
+
+export type MemoryReadResponse = MemoryReadResponses[keyof MemoryReadResponses]
+
+export type MemoryPinData = {
+  body?: {
+    path: string
+    pinned: boolean
+  }
+  path?: never
+  query?: {
+    directory?: string
+    workspace?: string
+  }
+  url: "/memory/pin"
+}
+
+export type MemoryPinResponses = {
+  /**
+   * Result
+   */
+  200: boolean
+}
+
+export type MemoryPinResponse = MemoryPinResponses[keyof MemoryPinResponses]
 
 export type QuestionListData = {
   body?: never
@@ -6707,6 +7684,9 @@ export type AppSkillsResponses = {
     location: string
     content: string
     hidden?: boolean
+    tools?: Array<string>
+    model?: string
+    triggers?: Array<string>
   }>
 }
 

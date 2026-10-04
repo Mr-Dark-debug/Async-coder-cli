@@ -74,6 +74,7 @@ export const Status = z
     z
       .object({
         status: z.literal("connected"),
+        tools: z.array(z.string()).optional(),
       })
       .meta({
         ref: "MCPStatusConnected",
@@ -330,7 +331,9 @@ export const layer = Layer.effect(
       const connectTimeout = mcp.timeout ?? DEFAULT_TIMEOUT
       let lastStatus: Status | undefined
 
-      for (const { name, transport } of transports) {
+      for (const { name, transport } of transports.filter((item) =>
+        !mcp.transport || item.name === (mcp.transport === "http" ? "StreamableHTTP" : "SSE"),
+      )) {
         const result = yield* connectTransport(transport, connectTimeout).pipe(
           Effect.map((client) => ({ client, transportName: name })),
           Effect.catch((error) => {
@@ -595,7 +598,8 @@ export const layer = Layer.effect(
 
       for (const [key, mcp] of Object.entries(config)) {
         if (!isMcpConfigured(mcp)) continue
-        result[key] = s.status[key] ?? { status: "disabled" }
+        const current = s.status[key] ?? { status: "disabled" as const }
+        result[key] = current.status === "connected" ? { ...current, tools: (s.defs[key] ?? []).map((tool) => tool.name) } : current
       }
 
       return result

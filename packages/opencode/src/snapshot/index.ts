@@ -48,6 +48,8 @@ export interface Interface {
   readonly init: () => Effect.Effect<void>
   readonly cleanup: () => Effect.Effect<void>
   readonly track: () => Effect.Effect<string | undefined>
+  readonly retain: (id: string, snapshot: string) => Effect.Effect<void>
+  readonly release: (id: string) => Effect.Effect<void>
   readonly patch: (hash: string) => Effect.Effect<Patch>
   readonly restore: (snapshot: string) => Effect.Effect<void>
   readonly revert: (patches: Patch[]) => Effect.Effect<void>
@@ -735,7 +737,17 @@ export const layer: Layer.Layer<
           Effect.forkScoped,
         )
 
-        return { cleanup, track, patch, restore, revert, diff, diffFull }
+        const retain = Effect.fnUntraced(function* (id: string, snapshot: string) {
+          if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error("Invalid checkpoint reference")
+          const result = yield* git(args(["update-ref", `refs/checkpoints/${id}`, snapshot]))
+          if (result.code !== 0) throw new Error(result.stderr || "Failed to retain checkpoint snapshot")
+        })
+        const release = Effect.fnUntraced(function* (id: string) {
+          if (!/^[a-zA-Z0-9_-]+$/.test(id)) throw new Error("Invalid checkpoint reference")
+          const result = yield* git(args(["update-ref", "-d", `refs/checkpoints/${id}`]))
+          if (result.code !== 0) throw new Error(result.stderr || "Failed to release checkpoint snapshot")
+        })
+        return { cleanup, track, retain, release, patch, restore, revert, diff, diffFull }
       }),
     )
 
@@ -748,6 +760,12 @@ export const layer: Layer.Layer<
       }),
       track: Effect.fn("Snapshot.track")(function* () {
         return yield* InstanceState.useEffect(state, (s) => s.track())
+      }),
+      retain: Effect.fn("Snapshot.retain")(function* (id: string, snapshot: string) {
+        return yield* InstanceState.useEffect(state, (s) => s.retain(id, snapshot))
+      }),
+      release: Effect.fn("Snapshot.release")(function* (id: string) {
+        return yield* InstanceState.useEffect(state, (s) => s.release(id))
       }),
       patch: Effect.fn("Snapshot.patch")(function* (hash: string) {
         return yield* InstanceState.useEffect(state, (s) => s.patch(hash))

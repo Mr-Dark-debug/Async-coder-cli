@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Bring your own key — Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, Copilot. Per-model cost dashboards. Pluggable web search. MIT-licensed, zero telemetry.",
+          "Bring your own key — Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, Copilot. Background jobs in isolated worktrees with spend caps and verification gates. Per-model cost dashboards. MIT-licensed, zero telemetry.",
       },
       { property: "og:title", content: "async-coder" },
       {

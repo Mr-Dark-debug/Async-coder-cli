@@ -6,6 +6,7 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  type ErrorRouteComponent,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -84,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Terminal-native AI coding agent. Bring your own key — Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, Copilot. No telemetry, MIT-licensed.",
+          "Terminal-native AI coding agent. Bring your own key. Background jobs with spend caps and verification gates. No telemetry, MIT-licensed.",
       },
       { property: "og:site_name", content: "async-coder" },
       { property: "og:type", content: "website" },
@@ -95,7 +96,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
-  errorComponent: ErrorComponent,
+  errorComponent: ErrorComponent as unknown as ErrorRouteComponent,
 });
 
 function RootShell({ children }: { children: ReactNode }) {

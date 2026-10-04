@@ -224,7 +224,7 @@ test("loads Claude Code MCP servers from home and project config", async () => {
   })
 })
 
-test("skips unsupported Claude Code MCP servers", async () => {
+test("loads SSE Claude Code MCP servers and skips invalid servers", async () => {
   await writeClaudeConfig(path.join(Global.Path.home, ".claude.json"), {
     mcpServers: {
       legacy: {
@@ -252,7 +252,7 @@ test("skips unsupported Claude Code MCP servers", async () => {
         url: "https://good.example.com/mcp",
         enabled: true,
       })
-      expect(config.mcp?.legacy).toBeUndefined()
+      expect(config.mcp?.legacy).toEqual({ type: "remote", url: "https://example.com/sse", transport: "sse", enabled: true })
       expect(config.mcp?.badArgs).toBeUndefined()
     },
   })

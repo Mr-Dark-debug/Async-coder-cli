@@ -2,10 +2,11 @@ import { describe, expect, test } from "bun:test"
 import { resolveInWorkspace, makeFileHooks } from "../../src/workflow/workspace"
 import { tmpdir } from "os"
 import { mkdtempSync } from "fs"
+import path from "node:path"
 
 describe("resolveInWorkspace", () => {
   test("resolves a relative path inside the root", () => {
-    expect(resolveInWorkspace("/ws", "a/b.txt")).toBe("/ws/a/b.txt")
+    expect(resolveInWorkspace("/ws", "a/b.txt")).toBe(path.resolve("/ws", "a/b.txt"))
   })
 
   test("rejects a parent-traversal escape", () => {
@@ -17,8 +18,8 @@ describe("resolveInWorkspace", () => {
   })
 
   test("allows the root itself and nested dirs", () => {
-    expect(resolveInWorkspace("/ws", ".")).toBe("/ws")
-    expect(resolveInWorkspace("/ws", "deep/nested/x")).toBe("/ws/deep/nested/x")
+    expect(resolveInWorkspace("/ws", ".")).toBe(path.resolve("/ws"))
+    expect(resolveInWorkspace("/ws", "deep/nested/x")).toBe(path.resolve("/ws", "deep/nested/x"))
   })
 })
 

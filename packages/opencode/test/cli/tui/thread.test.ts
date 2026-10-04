@@ -61,7 +61,9 @@ describe("tui thread", () => {
       fork: false,
       "never-ask": false,
       neverAsk: false,
-      trust: false,
+      // This fixture is created by the test; keep the directory resolution test
+      // independent of interactive workspace trust prompts.
+      trust: true,
       port: 0,
       hostname: "127.0.0.1",
       mdns: false,

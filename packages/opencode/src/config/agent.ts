@@ -56,6 +56,12 @@ const AgentSchema = Schema.StructWithRest(
     steps: Schema.optional(PositiveInt).annotate({
       description: "Maximum number of agentic iterations before forcing text-only response",
     }),
+    max_usd: Schema.optional(Schema.Number.check(Schema.isGreaterThan(0))).annotate({
+      description: "Spend cap in USD for this agent. The agent stops before its next model call once it is reached.",
+    }),
+    fallback: Schema.optional(Schema.Array(Schema.String)).annotate({
+      description: "Ordered provider/model fallbacks tried when this agent's model fails with a retryable error.",
+    }),
     tool_allowlist: Schema.optional(Schema.Array(Schema.String)).annotate({
       description: "Optional list of tool IDs allowed for this agent. When set, only these tools are available.",
     }),
@@ -77,6 +83,8 @@ const KNOWN_KEYS = new Set([
   "hidden",
   "color",
   "steps",
+  "max_usd",
+  "fallback",
   "maxSteps",
   "options",
   "permission",

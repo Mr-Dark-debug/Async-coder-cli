@@ -171,7 +171,9 @@ export const make = <A, E = never>(
         return [
           Effect.gen(function* () {
             yield* Fiber.interrupt(st.run.fiber)
-            yield* Deferred.await(st.run.done).pipe(Effect.exit, Effect.asVoid)
+            // A fiber interrupted before its onExit handler is installed cannot
+            // complete this latch. Cancellation owns the fallback completion.
+            yield* Deferred.fail(st.run.done, new Cancelled()).pipe(Effect.asVoid)
             yield* idleIfCurrent()
           }),
           { _tag: "Idle" } as const,

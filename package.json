@@ -1,6 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "async-coder-workspace",
+  "version": "0.2.0",
   "description": "async-coder: a multi-provider async coding agent",
   "private": true,
   "type": "module",

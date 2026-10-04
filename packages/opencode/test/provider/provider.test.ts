@@ -499,6 +499,21 @@ test("defaultModel returns first available model when no config set", async () =
   })
 })
 
+test("defaultModel skips speech-only models when selecting a coding chat default", async () => {
+  await using tmp = await tmpdir({ init: async (dir) => {
+    await Bun.write(path.join(dir, "async-coder.json"), JSON.stringify({
+      enabled_providers: ["chat-fixture"],
+      provider: { "chat-fixture": { npm: "@ai-sdk/openai-compatible", options: { apiKey: "fixture" }, models: {
+        "z-whisper": { name: "Speech", modalities: { input: ["audio"], output: ["text"] }, tool_call: false },
+        "a-chat": { name: "Chat", modalities: { input: ["text"], output: ["text"] }, tool_call: true },
+      } } },
+    }))
+  } })
+  await Instance.provide({ directory: tmp.path, fn: async () => {
+    expect(String((await defaultModel()).modelID)).toBe("a-chat")
+  } })
+})
+
 test("defaultModel respects config model setting", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {
@@ -2872,7 +2887,7 @@ test("plugin config enabled and disabled providers are honored", async () => {
   })
 })
 
-test("opencode and opencode-go providers are disabled by MimoFreeAuthPlugin", async () => {
+test("explicit OpenCode provider configuration is retained without the retired free-provider override", async () => {
   await using base = await tmpdir({
     init: async (dir) => {
       await Bun.write(
@@ -2896,13 +2911,6 @@ test("opencode and opencode-go providers are disabled by MimoFreeAuthPlugin", as
     fn: async () => list(),
   })
 
-  // MimoFreeAuthPlugin always pushes opencode/opencode-go into disabled_providers,
-  // so they should not appear even when the user supplies an apiKey or auth record.
-  expect(opencodeProviderPresent(providers)).toBe(false)
-  expect(providers[ProviderID.make("opencode-go")]).toBeUndefined()
-  // The replacement free provider should be present.
-  expect(providers[ProviderID.make("mimo")]).toBeDefined()
-  expect(providers[ProviderID.make("mimo")].models[ModelID.make("deprecated-mimo-auto")]).toBeDefined()
-  expect(providers[ProviderID.make("mimo")].models[ModelID.make("deprecated-mimo-auto")].limit.context).toBe(1_000_000)
-  expect(providers[ProviderID.make("mimo")].models[ModelID.make("deprecated-mimo-auto")].limit.output).toBe(128_000)
+  expect(opencodeProviderPresent(providers)).toBe(true)
+  expect(providers[ProviderID.make("mimo")]?.models[ModelID.make("deprecated-mimo-auto")]).toBeUndefined()
 })

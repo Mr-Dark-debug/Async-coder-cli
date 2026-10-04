@@ -11,6 +11,7 @@ import type {
 } from "@async-coder/plugin"
 import { z } from "zod"
 import { matchesActor } from "./matcher"
+import * as ShellHooks from "./shell-hooks"
 import { Config } from "../config"
 import { Bus } from "../bus"
 import { BusEvent } from "../bus/bus-event"
@@ -387,7 +388,11 @@ export const layer = Layer.effect(
         // Subscribe to bus events, fiber interrupted when scope closes
         yield* bus.subscribeAll().pipe(
           Stream.runForEach((input) =>
-            Effect.sync(() => {
+            Effect.gen(function* () {
+              yield* ShellHooks.run(cfg.hooks, input.type, input.properties).pipe(Effect.catchCause((cause) => {
+                log.warn("lifecycle hook failed", { event: input.type, cause: String(cause) })
+                return Effect.void
+              }))
               for (const hook of hooks) {
                 void hook["event"]?.({ event: input as any })
               }
@@ -549,6 +554,7 @@ export const layer = Layer.effect(
       if (!name) return output
       const s = yield* InstanceState.get(state)
       const fh = yield* InstanceState.get(fileHookState)
+      yield* ShellHooks.run((yield* config.get()).hooks, name, input, output)
       for (const hook of [...s.hooks, ...fh.hooks]) {
         const fn = hook[name] as any
         if (!fn) continue

@@ -35,6 +35,10 @@ export const DOCS_NAV = [
       { to: "/docs/subagents", label: "Subagents" },
       { to: "/docs/compose", label: "Compose" },
       { to: "/docs/dream-distill", label: "Dream & Distill" },
+      { to: "/docs/jobs", label: "Background jobs" },
+      { to: "/docs/budgets", label: "Budgets & context" },
+      { to: "/docs/safety", label: "Safety & sandbox" },
+      { to: "/docs/remote", label: "Remote & ecosystem" },
     ],
   },
   {

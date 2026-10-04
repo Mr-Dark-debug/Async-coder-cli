@@ -166,7 +166,8 @@ const targets = singleFlag
     })
   : allTargets
 
-await $`rm -rf dist`
+// The release output is fixed beneath this package; never delete a shell-derived path.
+await fs.promises.rm(path.join(dir, "dist"), { recursive: true, force: true })
 
 // Optional private overlay (internal-only legacy channels).
 // The open-source tree has no src/private/. When present (injected by the
@@ -175,7 +176,8 @@ await $`rm -rf dist`
 // see them and they'd be dropped from the compiled binary. Absent → no-op.
 const privateDir = path.join(dir, "src", "private")
 const privateEntrypoints = fs.existsSync(privateDir)
-  ? fs.readdirSync(privateDir)
+  ? fs
+      .readdirSync(privateDir)
       .filter((f) => f.endsWith(".ts") && !f.endsWith(".d.ts"))
       .map((f) => `./src/private/${f}`)
   : []
@@ -224,13 +226,36 @@ for (const item of targets) {
       autoloadDotenv: false,
       autoloadTsconfig: true,
       autoloadPackageJson: true,
-      target: name.replace(BINARY_PREFIX, "bun") as any,
+      target: name.replace(BINARY_PREFIX, "bun") as Bun.Build.CompileTarget,
+      ...(process.env.ASYNC_CODER_BUILD_RUNTIME_DIR
+        ? {
+            executablePath: path.join(
+              process.env.ASYNC_CODER_BUILD_RUNTIME_DIR,
+              [
+                "bun",
+                item.os === "win32" ? "windows" : item.os,
+                item.arch === "arm64" ? "aarch64" : item.arch,
+                item.abi,
+                item.avx2 === false ? "baseline" : undefined,
+              ]
+                .filter(Boolean)
+                .join("-"),
+              item.os === "win32" ? "bun.exe" : "bun",
+            ),
+          }
+        : {}),
       outfile: `dist/${name}/bin/async-coder`,
       execArgv: [`--user-agent=async-coder/${Script.version}`, "--use-system-ca", "--"],
       windows: {},
     },
     files: embeddedFileMap ? { "opencode-web-ui.gen.ts": embeddedFileMap } : {},
-    entrypoints: ["./src/index.ts", parserWorker, workerPath, ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : []), ...privateEntrypoints],
+    entrypoints: [
+      "./src/index.ts",
+      parserWorker,
+      workerPath,
+      ...(embeddedFileMap ? ["opencode-web-ui.gen.ts"] : []),
+      ...privateEntrypoints,
+    ],
     define: {
       ASYNC_CODER_VERSION: `'${Script.version}'`,
       OPENCODE_MIGRATIONS: JSON.stringify(migrations),
@@ -255,6 +280,7 @@ for (const item of targets) {
   }
 
   await $`rm -rf ./dist/${name}/bin/tui`
+  await fs.promises.copyFile(path.join(dir, "../../LICENSE"), path.join(dir, "dist", name, "LICENSE"))
   await Bun.file(`dist/${name}/README.md`).write(
     [
       "# async-coder runtime package",

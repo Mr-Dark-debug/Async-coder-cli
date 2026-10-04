@@ -5,6 +5,7 @@ import * as LSPClient from "./client"
 import path from "path"
 import { pathToFileURL, fileURLToPath } from "url"
 import * as LSPServer from "./server"
+import { discover, SERVERS } from "./discovery"
 import z from "zod"
 import { Config } from "../config"
 import { Flag } from "@/flag/flag"
@@ -69,6 +70,7 @@ export const Status = z
     name: z.string(),
     root: z.string(),
     status: z.union([z.literal("connected"), z.literal("error")]),
+    diagnostics: z.number().int().nonnegative().optional(),
   })
   .meta({
     ref: "LSPStatus",
@@ -144,6 +146,9 @@ export interface Interface {
   readonly touchFile: (input: string, waitForDiagnostics?: boolean) => Effect.Effect<void>
   readonly diagnostics: () => Effect.Effect<Record<string, LSPClient.Diagnostic[]>>
   readonly hover: (input: LocInput) => Effect.Effect<any>
+  readonly completion: (input: LocInput) => Effect.Effect<unknown[]>
+  readonly prepareRename: (input: LocInput) => Effect.Effect<unknown[]>
+  readonly rename: (input: LocInput & { newName: string }) => Effect.Effect<unknown[]>
   readonly definition: (input: LocInput) => Effect.Effect<any[]>
   readonly references: (input: LocInput) => Effect.Effect<any[]>
   readonly implementation: (input: LocInput) => Effect.Effect<any[]>
@@ -167,8 +172,27 @@ export const layer = Layer.effect(
 
         const servers: Record<string, LSPServer.Info> = {}
 
-        if (!cfg.lsp) {
+        if (cfg.lsp === false) {
           log.info("all LSPs are disabled")
+        } else if (cfg.lsp === undefined) {
+          const commands = new Map<string, string | undefined>()
+          const executable = (id: string) => {
+            if (!commands.has(id)) commands.set(id, discover(ctx.directory, id)[0]?.command)
+            return commands.get(id)
+          }
+          for (const found of SERVERS) {
+            const builtin = Object.values(LSPServer).find((server) => server.id === found.id)
+            servers[found.id] = {
+              id: found.id,
+              extensions: [...found.extensions],
+              root: builtin?.root ?? (async (_file, ctx) => ctx.directory),
+              available: () => Boolean(executable(found.id)),
+              spawn: async (root) => {
+                const command = executable(found.id)
+                return command ? { process: lspspawn(command, [...found.args], { cwd: root }) } : undefined
+              },
+            }
+          }
         } else {
           for (const server of Object.values(LSPServer)) {
             servers[server.id] = server
@@ -258,6 +282,7 @@ export const layer = Layer.effect(
             server: handle,
             root,
             directory: ctx.directory,
+            onDiagnostics: () => { void Bus.publish(Event.Updated, {}) },
           }).catch(async (err) => {
             s.broken.add(key)
             await Process.stop(handle.process)
@@ -279,11 +304,18 @@ export const layer = Layer.effect(
 
         for (const server of Object.values(s.servers)) {
           if (server.extensions.length && !server.extensions.includes(extension)) continue
+          if (server.available?.() === false) continue
 
           const root = await server.root(file, ctx)
           if (!root) continue
           if (s.broken.has(root + server.id)) continue
 
+          const stale = s.clients.find((x) => x.root === root && x.serverID === server.id && !x.isAlive())
+          if (stale) {
+            await stale.shutdown()
+            s.clients.splice(s.clients.indexOf(stale), 1)
+            s.broken.delete(root + server.id)
+          }
           const match = s.clients.find((x) => x.root === root && x.serverID === server.id)
           if (match) {
             result.push(match)
@@ -341,7 +373,8 @@ export const layer = Layer.effect(
           id: client.serverID,
           name: s.servers[client.serverID].id,
           root: path.relative(ctx.directory, client.root),
-          status: "connected",
+          status: client.isAlive() ? "connected" : "error",
+          diagnostics: [...client.diagnostics.values()].reduce((total, items) => total + items.length, 0),
         })
       }
       return result
@@ -354,6 +387,7 @@ export const layer = Layer.effect(
         const extension = path.parse(file).ext || file
         for (const server of Object.values(s.servers)) {
           if (server.extensions.length && !server.extensions.includes(extension)) continue
+          if (server.available?.() === false) continue
           const root = await server.root(file, ctx)
           if (!root) continue
           if (s.broken.has(root + server.id)) continue
@@ -402,6 +436,17 @@ export const layer = Layer.effect(
           .catch(() => null),
       )
     })
+
+    const symbolRequest = Effect.fn("LSP.symbolRequest")(function* (input: LocInput, method: string, extra: Record<string, string> = {}) {
+      return (yield* run(input.file, (client) => client.connection.sendRequest<unknown>(method, {
+        textDocument: { uri: pathToFileURL(input.file).href },
+        position: { line: input.line, character: input.character },
+        ...extra,
+      }).catch(() => null))).filter((result) => result !== null)
+    })
+    const completion = (input: LocInput) => symbolRequest(input, "textDocument/completion")
+    const prepareRename = (input: LocInput) => symbolRequest(input, "textDocument/prepareRename")
+    const rename = (input: LocInput & { newName: string }) => symbolRequest(input, "textDocument/rename", { newName: input.newName })
 
     const definition = Effect.fn("LSP.definition")(function* (input: LocInput) {
       const results = yield* run(input.file, (client) =>
@@ -502,6 +547,9 @@ export const layer = Layer.effect(
       touchFile,
       diagnostics,
       hover,
+      completion,
+      prepareRename,
+      rename,
       definition,
       references,
       implementation,

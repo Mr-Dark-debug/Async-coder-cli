@@ -120,8 +120,10 @@ describe("memory: abort controller leak", () => {
     handlers2.length = 0
 
     console.log(`NEW pattern (bind): ${newGrowth.toFixed(2)} MB growth`)
-    console.log(`Improvement: ${(oldGrowth - newGrowth).toFixed(2)} MB saved`)
-
-    expect(newGrowth).toBeLessThanOrEqual(oldGrowth)
+    // Heap deltas can be negative when GC reclaims allocations from earlier
+    // work. Comparing two noisy deltas would reject 0 MB against -6 MB.
+    // Bound actual positive growth instead: retaining 500 response payloads
+    // would cost roughly 25 MB, well above this 5 MB noise allowance.
+    expect(Math.max(0, newGrowth)).toBeLessThan(5)
   })
 })

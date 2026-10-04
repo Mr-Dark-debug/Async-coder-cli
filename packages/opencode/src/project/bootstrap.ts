@@ -56,4 +56,9 @@ export const InstanceBootstrap = Effect.gen(function* () {
   )
 
   yield* Metrics.subscribe()
+
+  // Scheduled routines (cron-triggered jobs). Only the long-lived server needs the timer.
+  yield* Effect.promise(async () => (await import("@/routines")).Routines.arm()).pipe(
+    Effect.catch((err: unknown) => Effect.sync(() => Log.Default.warn("routines not armed", { error: String(err) }))),
+  )
 }).pipe(Effect.withSpan("InstanceBootstrap"))

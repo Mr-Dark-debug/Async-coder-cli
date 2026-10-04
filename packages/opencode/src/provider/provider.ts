@@ -1,3 +1,4 @@
+import { isAlias, isLocal as isLocalModel, pick as pickAlias } from "./alias"
 import z from "zod"
 import os from "os"
 import fuzzysort from "fuzzysort"
@@ -19,6 +20,7 @@ import { zod } from "@/util/effect-zod"
 import { iife } from "@/util/iife"
 import { Global } from "../global"
 import path from "path"
+import { ProviderQueue } from "./queue"
 import { pathToFileURL } from "url"
 import { Effect, Layer, Context, Schema, Types } from "effect"
 import { EffectBridge } from "@/effect"
@@ -32,7 +34,7 @@ import * as ProviderDiscovery from "./discovery"
 import { ModelID, ProviderID } from "./schema"
 
 const log = Log.create({ service: "provider" })
-const DEFAULT_CONTEXT_WINDOW = 1_000_000
+const DEFAULT_CONTEXT_WINDOW = 200_000
 // Reserved built-in model tiers: always resolve, falling back to the default
 // model when not configured in `model_groups` (zero-config never errors).
 const BUILTIN_TIERS = new Set(["ultra", "standard", "lite"])
@@ -1281,6 +1283,7 @@ export interface Interface {
 }
 
 interface State {
+  concurrency: number
   models: Map<string, LanguageModelV3>
   providers: Record<ProviderID, Info>
   sdk: Map<string, BundledSDK>
@@ -1773,6 +1776,7 @@ const layer: Layer.Layer<
 
         return {
           models: languages,
+          concurrency: cfg.reliability?.provider_concurrency ?? 4,
           providers,
           sdk,
           modelLoaders,
@@ -1875,7 +1879,7 @@ const layer: Layer.Layer<
             }
           }
 
-          const res = await fetchFn(input, {
+          const res = await ProviderQueue.pooled(model.providerID, s.concurrency).fetch(fetchFn, input, {
             ...opts,
             // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
             timeout: false,
@@ -2012,6 +2016,25 @@ const layer: Layer.Layer<
           const fallback = yield* defaultModel()
           return yield* getModel(fallback.providerID, fallback.modelID)
         }
+        // Capability aliases (cheap, local, long-context) resolve from the models that are connected now.
+        if (isAlias(ref)) {
+          const providers = Object.values(yield* list())
+          const picked = pickAlias(
+            ref,
+            providers.flatMap((item) =>
+              Object.values(item.models).map((model) => ({
+                providerID: item.id,
+                id: model.id,
+                status: model.status,
+                toolcall: model.capabilities.toolcall,
+                context: model.limit.context,
+                cost: { input: model.cost.input, output: model.cost.output },
+                local: isLocalModel({ providerID: item.id, baseURL: item.options?.baseURL }),
+              })),
+            ),
+          )
+          if (picked) return yield* getModel(ProviderID.make(picked.model.providerID), ModelID.make(picked.model.id))
+        }
         const names = Object.keys(cfg.model_groups ?? {})
         const matches = fuzzysort.go(ref, names, { limit: 3, threshold: -10000 })
         throw new ModelGroupNotFoundError({ group: ref, suggestions: matches.map((m) => m.target) })
@@ -2069,23 +2092,24 @@ const layer: Layer.Layer<
       for (const entry of recent) {
         const provider = s.providers[entry.providerID]
         if (!provider) continue
-        if (!provider.models[entry.modelID]) continue
+        const model = provider.models[entry.modelID]
+        if (!model || !isChatModel(model)) continue
         return { providerID: entry.providerID, modelID: entry.modelID }
       }
 
       const legacyProvider = "mi" + "mo"
       const legacyModel = `deprecated-${legacyProvider}-auto`
       const legacyFree = s.providers[ProviderID.make(legacyProvider)]
-      if (legacyFree?.models[ModelID.make(legacyModel)]) {
+      if (legacyFree?.models[ModelID.make(legacyModel)] && isChatModel(legacyFree.models[ModelID.make(legacyModel)])) {
         return { providerID: legacyFree.id, modelID: ModelID.make(legacyModel) }
       }
 
-      const provider = Object.values(s.providers).find((p) => !cfg.provider || Object.keys(cfg.provider).includes(p.id))
-      if (!provider) throw new Error("no providers found")
-      const [model] = sort(Object.values(provider.models))
-      if (!model) throw new Error("no models found")
+      const [model] = Object.values(s.providers)
+        .filter((provider) => !cfg.provider || Object.keys(cfg.provider).includes(provider.id))
+        .flatMap((provider) => sort(Object.values(provider.models).filter(isChatModel)))
+      if (!model) throw new Error("No text chat models found. Connect a provider with a text-input and text-output model.")
       return {
-        providerID: provider.id,
+        providerID: model.providerID,
         modelID: model.id,
       }
     })
@@ -2114,6 +2138,9 @@ export const defaultLayer = Layer.suspend(() =>
 )
 
 const priority = ["gpt-5", "claude-sonnet-4", "big-pickle", "gemini-3-pro"]
+export function isChatModel(model: Pick<Model, "capabilities" | "status">) {
+  return model.status !== "deprecated" && model.capabilities.input.text && model.capabilities.output.text
+}
 export function sort<T extends { id: string }>(models: T[]) {
   return sortBy(
     models,

@@ -126,11 +126,19 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
         const ctx = yield* InstanceState.context
         const paths = new Set<string>()
 
+        // User defaults precede project instructions; later, more specific guidance wins.
+        for (const file of globalFiles()) {
+          if (yield* fs.existsSafe(file)) {
+            paths.add(path.resolve(file))
+            break
+          }
+        }
+
         // The first project-level match wins so we don't stack AGENTS.md/CLAUDE.md from every ancestor.
         if (!Flag.ASYNC_CODER_DISABLE_PROJECT_CONFIG) {
           const agents = yield* fs.findUp("AGENTS.md", ctx.directory, ctx.worktree)
           if (agents.length > 0) {
-            agents.forEach((item) => paths.add(path.resolve(item)))
+            agents.toReversed().forEach((item) => paths.add(path.resolve(item)))
             // A sparse AGENTS.md likely doesn't carry the full project guidance, so pull in CLAUDE.md too.
             if (!Flag.ASYNC_CODER_DISABLE_CLAUDE_CODE_PROMPT) {
               const content = (yield* Effect.forEach(agents, read, { concurrency: 8 })).join("").trim()
@@ -151,10 +159,13 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
           }
         }
 
-        for (const file of globalFiles()) {
-          if (yield* fs.existsSafe(file)) {
-            paths.add(path.resolve(file))
-            break
+        if (!Flag.ASYNC_CODER_DISABLE_PROJECT_CONFIG) {
+          const directories = yield* fs.up({ targets: [".async-coder"], start: ctx.directory, stop: ctx.worktree })
+          for (const dir of directories.toReversed()) {
+            for (const name of ["AGENTS.md", "AGENTS.local.md"]) {
+              const file = path.join(dir, name)
+              if (yield* fs.existsSafe(file)) paths.add(path.resolve(file))
+            }
           }
         }
 
@@ -219,7 +230,7 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
         let current = path.dirname(target)
 
         // Walk upward from the file being read and attach nearby instruction files once per message.
-        while (current.startsWith(root) && current !== root) {
+        while (current !== root && !path.relative(root, current).startsWith("..") && !path.isAbsolute(path.relative(root, current))) {
           const found = yield* find(current)
           if (!found || found === target || sys.has(found) || already.has(found)) {
             current = path.dirname(current)
@@ -245,7 +256,7 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
           current = path.dirname(current)
         }
 
-        return results
+        return results.toReversed()
       })
 
       return Service.of({ clear, systemPaths, system, find, resolve })

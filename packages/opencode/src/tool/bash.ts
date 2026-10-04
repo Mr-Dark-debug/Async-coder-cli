@@ -18,6 +18,8 @@ import { SessionCwd } from "./session-cwd"
 import { BashArity } from "@/permission/arity"
 import * as Truncate from "./truncate"
 import { Plugin } from "@/plugin"
+import { Config } from "@/config"
+import { Sandbox } from "@/sandbox"
 import { Effect, Stream } from "effect"
 import { ChildProcess } from "effect/unstable/process"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
@@ -360,6 +362,7 @@ export const BashTool = Tool.define(
     const fs = yield* AppFileSystem.Service
     const trunc = yield* Truncate.Service
     const plugin = yield* Plugin.Service
+    const config = yield* Config.Service
 
     const cygpath = Effect.fn("BashTool.cygpath")(function* (shell: string, text: string) {
       const lines = yield* spawner
@@ -467,7 +470,23 @@ export const BashTool = Tool.define(
 
       const code: number | null = yield* Effect.scoped(
         Effect.gen(function* () {
-          const handle = yield* spawner.spawn(cmd(input.shell, input.name, input.command, input.cwd, input.env))
+          const profile = Sandbox.build({ cfg: (yield* config.get()).sandbox, root: Instance.directory })
+          const plan = Sandbox.plan({
+            profile,
+            command: [input.shell, "-c", input.command],
+            disabled: Flag.ASYNC_CODER_DISABLE_SANDBOX,
+          })
+          if (plan.type === "denied") throw new Error(`Command not run: ${plan.reason}`)
+          const handle = yield* spawner.spawn(
+            plan.type === "wrapped"
+              ? ChildProcess.make(plan.argv[0], plan.argv.slice(1), {
+                  cwd: input.cwd,
+                  env: input.env,
+                  stdin: "ignore",
+                  detached: true,
+                })
+              : cmd(input.shell, input.name, input.command, input.cwd, input.env),
+          )
 
           yield* Effect.forkScoped(
             Stream.runForEach(Stream.decodeText(handle.all), (chunk) => {
@@ -648,6 +667,9 @@ export const BashTool = Tool.define(
 
               // Interactive mode: hand terminal to user for direct interaction
               if (params.interactive) {
+                const mode = (yield* config.get()).sandbox?.mode ?? "off"
+                if (mode !== "off" && !Flag.ASYNC_CODER_DISABLE_SANDBOX)
+                  throw new Error(`Interactive commands are disabled while sandbox.mode is ${mode}.`)
                 const env = yield* shellEnv(ctx, cwd)
                 yield* ctx.metadata({
                   metadata: {

@@ -193,12 +193,13 @@ export const layer = Layer.effect(
     })
 
     const status = Effect.fn("Git.status")(function* (cwd: string) {
+      const base = yield* prefix(cwd)
       return nuls(
         yield* text(["status", "--porcelain=v1", "--untracked-files=all", "--no-renames", "-z", "--", "."], {
           cwd,
         }),
       ).flatMap((item) => {
-        const file = item.slice(3)
+        const file = base && item.slice(3).startsWith(base) ? item.slice(3 + base.length) : item.slice(3)
         if (!file) return []
         const code = item.slice(0, 2)
         return [{ file, code, status: kind(code) } satisfies Item]
@@ -207,7 +208,7 @@ export const layer = Layer.effect(
 
     const diff = Effect.fn("Git.diff")(function* (cwd: string, ref: string) {
       const list = nuls(
-        yield* text(["diff", "--no-ext-diff", "--no-renames", "--name-status", "-z", ref, "--", "."], { cwd }),
+        yield* text(["diff", "--relative", "--no-ext-diff", "--no-renames", "--name-status", "-z", ref, "--", "."], { cwd }),
       )
       return list.flatMap((code, idx) => {
         if (idx % 2 !== 0) return []
@@ -219,7 +220,7 @@ export const layer = Layer.effect(
 
     const stats = Effect.fn("Git.stats")(function* (cwd: string, ref: string) {
       return nuls(
-        yield* text(["diff", "--no-ext-diff", "--no-renames", "--numstat", "-z", ref, "--", "."], { cwd }),
+        yield* text(["diff", "--relative", "--no-ext-diff", "--no-renames", "--numstat", "-z", ref, "--", "."], { cwd }),
       ).flatMap((item) => {
         const a = item.indexOf("\t")
         const b = item.indexOf("\t", a + 1)

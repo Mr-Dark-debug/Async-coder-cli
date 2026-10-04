@@ -38,7 +38,9 @@ export function DialogMcp() {
       map(([name, status]) => ({
         value: name,
         title: name,
-        description: status.status === "failed" ? "failed" : status.status,
+        description: status.status === "connected" && status.tools?.length
+          ? `${status.tools.length} tools · ${status.tools.join(", ")}`
+          : status.status === "failed" ? status.error : status.status,
         footer: <Status enabled={local.mcp.isEnabled(name)} loading={loadingMcp === name} />,
         category: undefined,
       })),

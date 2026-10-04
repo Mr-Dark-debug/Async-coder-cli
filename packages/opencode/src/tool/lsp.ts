@@ -3,6 +3,7 @@ import { Effect } from "effect"
 import * as Tool from "./tool"
 import path from "path"
 import { LSP } from "../lsp"
+import { installHint } from "../lsp/discovery"
 import DESCRIPTION from "./lsp.txt"
 import { Instance } from "../project/instance"
 import { pathToFileURL } from "url"
@@ -10,9 +11,13 @@ import { assertExternalDirectoryEffect } from "./external-directory"
 import { AppFileSystem } from "@async-coder/shared/filesystem"
 
 const operations = [
+  "diagnostics",
   "goToDefinition",
   "findReferences",
   "hover",
+  "completion",
+  "prepareRename",
+  "rename",
   "documentSymbol",
   "workspaceSymbol",
   "goToImplementation",
@@ -32,11 +37,13 @@ export const LspTool = Tool.define(
       parameters: z.object({
         operation: z.enum(operations).describe("The LSP operation to perform"),
         filePath: z.string().describe("The absolute or relative path to the file"),
-        line: z.number().int().min(1).describe("The line number (1-based, as shown in editors)"),
-        character: z.number().int().min(1).describe("The character offset (1-based, as shown in editors)"),
+        line: z.number().int().min(1).default(1).describe("The line number (1-based, as shown in editors)"),
+        character: z.number().int().min(1).default(1).describe("The character offset (1-based, as shown in editors)"),
+        query: z.string().optional().describe("Symbol name query for workspaceSymbol"),
+        newName: z.string().min(1).optional().describe("Replacement name for rename; returns proposed edits without changing files"),
       }),
       execute: (
-        args: { operation: (typeof operations)[number]; filePath: string; line: number; character: number },
+        args: { operation: (typeof operations)[number]; filePath: string; line: number; character: number; query?: string; newName?: string },
         ctx: Tool.Context,
       ) =>
         Effect.gen(function* () {
@@ -45,30 +52,39 @@ export const LspTool = Tool.define(
           yield* ctx.ask({ permission: "lsp", patterns: ["*"], always: ["*"], metadata: {} })
 
           const uri = pathToFileURL(file).href
-          const position = { file, line: args.line - 1, character: args.character - 1 }
+          const position = { file, line: (args.line ?? 1) - 1, character: (args.character ?? 1) - 1 }
           const relPath = path.relative(Instance.worktree, file)
-          const title = `${args.operation} ${relPath}:${args.line}:${args.character}`
+          const title = `${args.operation} ${relPath}:${args.line ?? 1}:${args.character ?? 1}`
 
           const exists = yield* fs.existsSafe(file)
           if (!exists) throw new Error(`File not found: ${file}`)
 
           const available = yield* lsp.hasClients(file)
-          if (!available) throw new Error("No LSP server available for this file type.")
+          if (!available) throw new Error(`No LSP server available for this file type.\n${installHint(file) || "Configure a custom server with lsp in async-coder.json."}`)
 
           yield* lsp.touchFile(file, true)
 
           const result: unknown[] = yield* (() => {
             switch (args.operation) {
+              case "diagnostics":
+                return lsp.diagnostics().pipe(Effect.map((all) => all[file] ?? []))
               case "goToDefinition":
                 return lsp.definition(position)
               case "findReferences":
                 return lsp.references(position)
               case "hover":
                 return lsp.hover(position)
+              case "completion":
+                return lsp.completion(position)
+              case "prepareRename":
+                return lsp.prepareRename(position)
+              case "rename":
+                if (!args.newName) throw new Error("newName is required for rename")
+                return lsp.rename({ ...position, newName: args.newName })
               case "documentSymbol":
                 return lsp.documentSymbol(uri)
               case "workspaceSymbol":
-                return lsp.workspaceSymbol("")
+                return lsp.workspaceSymbol(args.query ?? "")
               case "goToImplementation":
                 return lsp.implementation(position)
               case "prepareCallHierarchy":

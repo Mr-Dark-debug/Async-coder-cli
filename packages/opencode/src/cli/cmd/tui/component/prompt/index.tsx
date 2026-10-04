@@ -1,3 +1,4 @@
+import * as Whisper from "../../util/whisper"
 import { BoxRenderable, RGBA, TextareaRenderable, MouseEvent, PasteEvent, decodePasteBytes } from "@opentui/core"
 import { createEffect, createMemo, onMount, createSignal, onCleanup, on, Show, Switch, Match } from "solid-js"
 import "opentui-spinner/solid"
@@ -8,7 +9,7 @@ import { useLocal } from "@tui/context/local"
 import { tint, useTheme } from "@tui/context/theme"
 import { EmptyBorder, SplitBorder } from "@tui/component/border"
 import { useSDK } from "@tui/context/sdk"
-import { useRoute } from "@tui/context/route"
+import { useRoute, useCurrentAgentID } from "@tui/context/route"
 import { useProject } from "@tui/context/project"
 import { useSync } from "@tui/context/sync"
 import { useEvent } from "@tui/context/event"
@@ -47,6 +48,7 @@ import { DialogAgreement, FREE_AGREEMENT_KEY, FREE_MODEL_IDS } from "../dialog-a
 import { useArgs } from "@tui/context/args"
 import { formatCost, formatTokens } from "../../feature-plugins/sidebar/usage-data"
 import { DialogAdvisorSetup, needsAdvisorSetup } from "../dialog-advisor-setup"
+import { parseFeatureCommand } from "../../util/feature-command"
 
 export type PromptProps = {
   sessionID?: string
@@ -116,6 +118,7 @@ export function Prompt(props: PromptProps) {
   const args = useArgs()
   const sdk = useSDK()
   const route = useRoute()
+  const agentID = useCurrentAgentID()
   const project = useProject()
   const sync = useSync()
   const dialog = useDialog()
@@ -303,11 +306,9 @@ export function Prompt(props: PromptProps) {
             })
             .catch(() => {})
         } else {
-          Voice.transcribeAudio({
-            audio: segment.audio,
-            apiKey,
-            baseUrl,
-          })
+          // On-device whisper.cpp first (audio stays local); the cloud endpoint is the fallback.
+          Whisper.find()
+            .then((local) => (local ? Whisper.transcribe(segment.audio, local) : Voice.transcribeAudio({ audio: segment.audio, apiKey, baseUrl })))
             .then((text) => {
               if (text) {
                 if (voiceSendEnabled() && Voice.SEND_RE.test(text.replace(/[\s。.!！？?，,]+$/g, "").trim())) {
@@ -690,6 +691,7 @@ export function Prompt(props: PromptProps) {
         category: "prompt",
         slash: {
           name: "skills",
+          aliases: ["skill"],
         },
         onSelect: () => {
           dialog.replace(() => (
@@ -1019,6 +1021,47 @@ export function Prompt(props: PromptProps) {
       void exit()
       return true
     }
+    const feature = parseFeatureCommand(trimmed)
+    if (feature?.type === "error") {
+      toast.show({ message: feature.message, variant: "error" })
+      return false
+    }
+    if (feature?.type === "mcp") {
+      if (!(feature.name in sync.data.mcp)) {
+        toast.show({ message: `MCP server ${feature.name} was not found. Use /mcp to browse configured servers.`, variant: "error" })
+        return false
+      }
+      const result = await (feature.action === "connect" ? sdk.client.mcp.connect({ name: feature.name }) : sdk.client.mcp.disconnect({ name: feature.name })).catch((error: unknown) => {
+        toast.show({ message: error instanceof Error ? error.message : String(error), variant: "error" })
+        return undefined
+      })
+      if (!result?.data || result.error) {
+        if (result?.error) toast.show({ message: JSON.stringify(result.error), variant: "error" })
+        return false
+      }
+      const status = await sdk.client.mcp.status().catch((error: unknown) => {
+        toast.show({ message: error instanceof Error ? error.message : String(error), variant: "error" })
+        return undefined
+      })
+      if (!status?.data || status.error) return false
+      if (status.data) sync.set("mcp", status.data)
+      const current = status.data?.[feature.name]
+      toast.show({ message: `${feature.name}: ${current?.status ?? feature.action}`, variant: current?.status === "failed" ? "error" : "info" })
+      input.extmarks.clear()
+      setStore("prompt", { input: "", parts: [] })
+      setStore("extmarkToPartIndex", new Map())
+      input.clear()
+      return true
+    }
+    if (feature?.type === "skill") {
+      if (!sync.data.command.some((item) => item.source === "skill" && item.name === feature.name)) {
+        toast.show({ message: `Skill ${feature.name} was not found. Use /skills to browse available skills.`, variant: "error" })
+        return false
+      }
+      const text = `/${feature.name}${feature.arguments ? ` ${feature.arguments}` : ""}`
+      input.setText(text)
+      setStore("prompt", "input", text)
+    }
     if (needsAdvisorSetup(store.prompt.input, sync.data.config.advisor)) {
       if (advisorSetupPending) return false
       advisorSetupPending = true
@@ -1156,6 +1199,19 @@ export function Prompt(props: PromptProps) {
         command: inputText,
       })
       setStore("mode", "normal")
+    } else if (/^\/(btw|steer)\s+\S/i.test(inputText)) {
+      // Side-channel: inject into the running turn instead of queueing a new user message.
+      const match = /^\/(btw|steer)\s+([\s\S]+)/i.exec(inputText)!
+      if (sync.data.session_status[sessionID]?.type === "busy" || sync.data.session_status[sessionID]?.type === "retry") {
+        void sdk.client.session
+          .btw({ sessionID, text: match[2].trim(), steer: match[1].toLowerCase() === "steer", agentID: agentID() === "main" ? undefined : agentID() })
+          .then(() => toast.show({ message: "Note sent to the running agent", variant: "info", duration: 2000 }))
+          .catch((err) =>
+            toast.show({ message: err instanceof Error ? err.message : "Failed to send note", variant: "error" }),
+          )
+      } else {
+        toast.show({ message: "Nothing is running. /btw and /steer talk to a running agent.", variant: "warning" })
+      }
     } else if (
       inputText.startsWith("/") &&
       iife(() => {

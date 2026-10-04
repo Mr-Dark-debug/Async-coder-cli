@@ -32,6 +32,8 @@ import * as OtelTracer from "@effect/opentelemetry/Tracer"
 import { ActorRegistry } from "@/actor/registry"
 import { Memory } from "@/memory"
 import { isRetryableTransientError } from "./retry"
+import { streamWithFallback } from "@/provider/fallback"
+import { RepoMap } from "@/repo-map"
 
 const log = Log.create({ service: "llm" })
 export const OUTPUT_TOKEN_MAX = ProviderTransform.OUTPUT_TOKEN_MAX
@@ -210,7 +212,8 @@ export type StreamRequest = StreamInput & {
   abort: AbortSignal
 }
 
-export type Event = Result["fullStream"] extends AsyncIterable<infer T> ? T : never
+type SDKEvent = Result["fullStream"] extends AsyncIterable<infer T> ? T : never
+export type Event = SDKEvent | { type: "provider-switch"; model: Provider.Model }
 
 export interface Interface {
   readonly stream: (input: StreamInput) => Stream.Stream<Event, unknown>
@@ -246,6 +249,7 @@ const live: Layer.Layer<
     const perm = yield* Permission.Service
     const actorReg = yield* ActorRegistry.Service
     const memory = yield* Memory.Service
+    const repoMap = Option.getOrUndefined(yield* Effect.serviceOption(RepoMap.Service))
 
     const buildSystemArray = Effect.fn("LLM.buildSystemArray")(function* (input: {
       agent: Agent.Info
@@ -280,6 +284,19 @@ const live: Layer.Layer<
         ? yield* actorReg.isSystemSpawned(SessionID.make(input.sessionID), input.agentID)
         : false
       if (!isSystemActor) {
+        if (
+          repoMap &&
+          !input.agent.hidden &&
+          !Permission.disabled(["repo_map"], input.agent.permission).has("repo_map")
+        ) {
+          const summary = yield* repoMap.get().pipe(
+            Effect.map((map) => RepoMap.format(map, { tokens: 1500 })),
+            Effect.timeout("3 seconds"),
+            Effect.catch(() => Effect.succeed("")),
+          )
+          if (summary)
+            system.push(`Repository structure (signatures only; use repo_map to query current details):\n${summary}`)
+        }
         const projectID =
           (yield* Effect.try({
             try: () => Instance.current?.project?.id as ProjectID | undefined,
@@ -636,7 +653,7 @@ const live: Layer.Layer<
         // VISIBLE processor-level SessionRetry.policy own long-haul resilience —
         // it publishes `type: "retry"` so the `[retrying attempt #N]` banner
         // shows, and its per-attempt delay is capped at 30s.
-        maxRetries: input.retries ?? 2,
+        maxRetries: input.retries ?? cfg.reliability?.max_retries ?? 2,
         messages,
         model: wrapLanguageModel({
           model: language,
@@ -673,24 +690,41 @@ const live: Layer.Layer<
               Effect.sync(() => new AbortController()),
               (ctrl) => Effect.sync(() => ctrl.abort()),
             )
+            // Effect closes async iterators before this scope's controller finalizer.
+            // Abort first so a blocked HTTP read can settle before iterator.return().
+            const abortable = (events: AsyncIterable<Event>): AsyncIterable<Event> => ({
+              [Symbol.asyncIterator]() {
+                const iterator = events[Symbol.asyncIterator]()
+                return {
+                  next: () => iterator.next(),
+                  return: () => {
+                    ctrl.abort()
+                    return iterator.return?.() ?? Promise.resolve({ done: true as const, value: undefined })
+                  },
+                }
+              },
+            })
             const attemptRef = yield* Ref.make(0)
+            const cfg = yield* config.get()
+            const maxAttempts = Math.min(cfg.reliability?.max_retries ?? 10, 10)
+            const bridge = yield* EffectBridge.make()
 
             const publishRetryEvent = (error: unknown, nextAttempt: number) =>
               Effect.gen(function* () {
+                if (nextAttempt > maxAttempts) return
                 log.debug("retry attempt", {
                   sessionID: input.sessionID,
                   messageID: input.user.id,
                   attempt: nextAttempt,
                   reason: error instanceof Error ? error.message : String(error),
                 })
-                if (nextAttempt > 10) return
                 const delayMs = Math.min(500 * 2 ** (nextAttempt - 1), 300_000)
                 yield* Effect.promise(() =>
                   Bus.publish(Session.Event.RetryAttempt, {
                     sessionID: SessionID.make(input.sessionID),
                     messageID: input.user.id,
                     attempt: nextAttempt,
-                    maxAttempts: 10,
+                    maxAttempts,
                     reason: error instanceof Error ? error.message : String(error),
                     nextDelayMs: delayMs,
                   }),
@@ -706,14 +740,46 @@ const live: Layer.Layer<
               }),
             )
 
-            const result = yield* streamWithTelemetry.pipe(
-              Effect.retry({
-                while: isTransientCapacityError,
-                schedule: persistentRetrySchedule,
-              }),
+            const chain = input.agent.fallback?.length ? input.agent.fallback : cfg.reliability?.fallback_models
+            if (!chain?.length) {
+              const result = yield* streamWithTelemetry.pipe(
+                Effect.retry({
+                  while: isTransientCapacityError,
+                  schedule: persistentRetrySchedule.pipe(
+                    Schedule.both(Schedule.recurs(maxAttempts)),
+                  ),
+                }),
+              )
+              return Stream.fromAsyncIterable(abortable(result.fullStream), (e) =>
+                e instanceof Error ? e : new Error(String(e)),
+              )
+            }
+            const fallbacks = yield* Effect.forEach(chain, (id) => {
+              const ref = Provider.parseModel(id)
+              return provider.getModel(ref.providerID, ref.modelID).pipe(
+                Effect.catchCause((cause) => {
+                  log.warn("configured fallback is unavailable", { model: id, cause })
+                  return Effect.succeed(undefined)
+                }),
+              )
+            })
+            return Stream.fromAsyncIterable(
+              abortable(
+                streamWithFallback<Provider.Model, Event>({
+                  models: [
+                    input.model,
+                    ...fallbacks
+                      .filter((model): model is Provider.Model => model !== undefined)
+                      .filter((model) => model.providerID !== input.model.providerID || model.id !== input.model.id),
+                  ],
+                  signal: ctrl.signal,
+                  open: (model) =>
+                    bridge.promise(run({ ...input, model, abort: ctrl.signal })).then((result) => result.fullStream),
+                  switched: (model) => ({ type: "provider-switch", model }),
+                }),
+              ),
+              (e) => (e instanceof Error ? e : new Error(String(e))),
             )
-
-            return Stream.fromAsyncIterable(result.fullStream, (e) => (e instanceof Error ? e : new Error(String(e))))
           }),
         ),
       )
@@ -732,6 +798,7 @@ export const defaultLayer = Layer.suspend(() =>
     Layer.provide(Plugin.defaultLayer),
     Layer.provide(ActorRegistry.defaultLayer),
     Layer.provide(Memory.defaultLayer),
+    Layer.provide(RepoMap.defaultLayer),
   ),
 )
 

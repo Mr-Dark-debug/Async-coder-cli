@@ -557,7 +557,8 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
       value: "mcp.list",
       category: "agent",
       slash: {
-        name: "mcps",
+        name: "mcp",
+        aliases: ["mcps"],
       },
       onSelect: () => {
         dialog.replace(() => <DialogMcp />)
@@ -680,6 +681,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     {
       title: t("tui.command.worktree.list.title"),
       value: "worktree.list",
+      keybind: "worktree_list",
       slash: {
         name: "worktree",
         aliases: ["wt"],

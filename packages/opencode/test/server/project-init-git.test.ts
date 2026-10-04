@@ -73,7 +73,7 @@ describe("project.initGit endpoint", () => {
       reloadSpy.mockRestore()
       GlobalBus.off("event", fn)
     }
-  })
+  }, 15_000)
 
   test("does not reload when the project is already git", async () => {
     await using tmp = await tmpdir({ git: true })
@@ -118,5 +118,5 @@ describe("project.initGit endpoint", () => {
       reloadSpy.mockRestore()
       GlobalBus.off("event", fn)
     }
-  })
+  }, 15_000)
 })

@@ -91,6 +91,9 @@ import { TuiPluginRuntime } from "../../plugin"
 import { DialogGoUpsell } from "../../component/dialog-go-upsell"
 import { SessionRetry } from "@/session/retry"
 import { getRevertDiffFiles } from "../../util/revert-diff"
+import { DialogConversationSearch } from "./dialog-search"
+import { Footer } from "./footer"
+import { DialogCheckpoint } from "./dialog-checkpoint"
 
 addDefaultParsers(parsers.parsers)
 
@@ -385,6 +388,27 @@ export function Session() {
   const command = useCommandDialog()
   const t = useLanguage().t
   command.register(() => [
+    {
+      title: "Create or browse checkpoints", value: "session.checkpoint", category: "session",
+      slash: { name: "checkpoint", aliases: ["checkpoints"] },
+      onSelect: () => dialog.replace(() => <DialogCheckpoint sessionID={route.sessionID} />),
+    },
+    {
+      title: "Rewind to checkpoint", value: "session.rewind", category: "session",
+      slash: { name: "rewind" },
+      onSelect: () => dialog.replace(() => <DialogCheckpoint sessionID={route.sessionID} rewind />),
+    },
+    {
+      title: "Search conversation",
+      value: "session.search",
+      keybind: "session_search",
+      category: "session",
+      slash: { name: "search" },
+      onSelect: () => dialog.replace(() => <DialogConversationSearch messages={messages().filter((message) => !revert()?.messageID || message.id < revert()!.messageID)} onSelect={(id) => {
+        const child = scroll.getChildren().find((item) => item.id === id)
+        if (child) scroll.scrollBy(child.y - scroll.y - 1)
+      }} />),
+    },
     {
       title: t(session()?.share?.url ? "tui.command.session.share.copy_link" : "tui.command.session.share.title"),
       value: "session.share",
@@ -1210,6 +1234,7 @@ export function Session() {
                     right={<TuiPluginRuntime.Slot name="session_prompt_right" session_id={route.sessionID} />}
                   />
                 </TuiPluginRuntime.Slot>
+                <Footer />
               </Show>
             </box>
           </Show>
@@ -1261,6 +1286,12 @@ function UserMessage(props: {
   const local = useLocal()
   const text = createMemo(() => props.parts.flatMap((x) => (x.type === "text" && !x.synthetic ? [x] : []))[0])
   const files = createMemo(() => props.parts.flatMap((x) => (x.type === "file" ? [x] : [])))
+  // /btw and /steer notes are stored as synthetic parts tagged with metadata.sideChannel.
+  const sideNotes = createMemo(() =>
+    props.parts.flatMap((x) =>
+      x.type === "text" && Array.isArray(x.metadata?.sideChannel) ? (x.metadata.sideChannel as string[]) : [],
+    ),
+  )
   const { theme } = useTheme()
   const [hover, setHover] = createSignal(false)
   const queued = createMemo(() => props.pending && props.message.id > props.pending)
@@ -1293,6 +1324,14 @@ function UserMessage(props: {
             flexShrink={0}
           >
             <text fg={theme.text}>{text()?.text}</text>
+            <For each={sideNotes()}>
+              {(note) => (
+                <text fg={theme.textMuted}>
+                  {"  ↳ "}
+                  {note}
+                </text>
+              )}
+            </For>
             <Show when={files().length}>
               <box flexDirection="row" paddingBottom={metadataVisible() ? 1 : 0} paddingTop={1} gap={1} flexWrap="wrap">
                 <For each={files()}>
@@ -1434,6 +1473,9 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
               <span style={{ fg: theme.textMuted }}> · {model()}</span>
               <Show when={duration()}>
                 <span style={{ fg: theme.textMuted }}> · {Locale.duration(duration())}</span>
+              </Show>
+              <Show when={props.message.tokens.output > 0}>
+                <span style={{ fg: theme.textMuted }}> · {Locale.number(props.message.tokens.input)} in / {Locale.number(props.message.tokens.output)} out</span>
               </Show>
               <Show when={props.message.error?.name === "MessageAbortedError"}>
                 <span style={{ fg: theme.textMuted }}> · interrupted</span>

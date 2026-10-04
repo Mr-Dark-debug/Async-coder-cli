@@ -214,7 +214,14 @@ export const layer = Layer.effect(
       const headers: Record<string, string> = {}
       const active = yield* account.active()
       if (Option.isNone(active) || !active.value.active_org_id) {
-        const baseUrl = (yield* cfg.get()).enterprise?.url ?? "https://opncd.ai"
+        // No implicit upstream host: sharing uploads the conversation, so the user must
+        // name the destination (enterprise.url or ASYNC_CODER_SHARE_URL). Offline export is always available.
+        const baseUrl = (yield* cfg.get()).enterprise?.url ?? process.env.ASYNC_CODER_SHARE_URL
+        if (!baseUrl) {
+          throw new Error(
+            "No share host configured. Set enterprise.url (or ASYNC_CODER_SHARE_URL), or use `export` for an offline copy.",
+          )
+        }
         return { headers, api: legacyApi, baseUrl } satisfies Req
       }
 

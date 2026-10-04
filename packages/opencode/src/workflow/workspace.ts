@@ -62,7 +62,8 @@ export function makeFileHooks(root: string) {
       // deterministic fan-out order.
       return abs
         .map((p) => path.relative(root, p))
-        .filter((rel) => rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel))
+        .filter((rel) => rel !== "" && rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel))
+        .map((rel) => rel.replaceAll("\\", "/"))
         .sort()
     },
   }

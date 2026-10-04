@@ -259,7 +259,7 @@ export const make = Effect.gen(function* () {
     if (Sink.isSink(out.stream)) stdout = Stream.transduce(stdout, out.stream)
     if (Sink.isSink(err.stream)) stderr = Stream.transduce(stderr, err.stream)
 
-    return { stdout, stderr, all: Stream.merge(stdout, stderr) }
+    return { stdout, stderr, all: Stream.merge(stdout, stderr, { haltStrategy: "both" }) }
   }
 
   const spawn = (command: ChildProcess.StandardCommand, opts: NodeChildProcess.SpawnOptions) =>

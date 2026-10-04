@@ -3,6 +3,7 @@ import * as Stream from "effect/Stream"
 import { Agent } from "@/agent/agent"
 import { SYSTEM_SPAWNED_AGENT_TYPES } from "@/agent/config"
 import { Bus } from "@/bus"
+import { TuiEvent } from "@/cli/cmd/tui/event"
 import { Metrics } from "@/metrics"
 import { Config } from "@/config"
 import { Permission } from "@/permission"
@@ -304,6 +305,21 @@ export const layer: Layer.Layer<
 
       const handleEvent = Effect.fnUntraced(function* (value: StreamEvent) {
         switch (value.type) {
+          case "provider-switch":
+            if (value.model.providerID !== ctx.assistantMessage.providerID || value.model.id !== ctx.assistantMessage.modelID)
+              yield* bus
+                .publish(TuiEvent.ToastShow, {
+                  title: "Model fallback",
+                  message: `${ctx.assistantMessage.providerID}/${ctx.assistantMessage.modelID} failed; continuing on ${value.model.providerID}/${value.model.id}`,
+                  variant: "warning",
+                  duration: 8000,
+                })
+                .pipe(Effect.ignore)
+            ctx.model = value.model
+            ctx.assistantMessage.providerID = value.model.providerID
+            ctx.assistantMessage.modelID = value.model.id
+            yield* session.updateMessage(ctx.assistantMessage)
+            return
           case "start":
             if (isMain) yield* status.set(ctx.sessionID, { type: "busy" })
             return
@@ -675,7 +691,8 @@ export const layer: Layer.Layer<
       const process = Effect.fn("SessionProcessor.process")(function* (streamInput: LLM.StreamInput) {
         slog.info("process")
         ctx.needsOverflowHandling = false
-        ctx.shouldBreak = (yield* config.get()).experimental?.continue_loop_on_deny !== true
+        const cfg = yield* config.get()
+        ctx.shouldBreak = cfg.experimental?.continue_loop_on_deny !== true
 
         return yield* Effect.gen(function* () {
           yield* Effect.gen(function* () {
@@ -717,6 +734,7 @@ export const layer: Layer.Layer<
             ),
             Effect.retry(
               SessionRetry.policy({
+                maxAttempts: cfg.reliability?.max_retries ?? 10,
                 parse,
                 set: (info) =>
                   isMain

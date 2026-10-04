@@ -24,14 +24,13 @@ function exists(dir: string) {
     .catch(() => false)
 }
 
-async function clean(dir: string) {
+async function clean(dir: string, attempts = 30): Promise<void> {
   Bun.gc(true)
   await sleep(100)
-  await fs.rm(dir, {
-    recursive: true,
-    force: true,
-    maxRetries: 30,
-    retryDelay: 100,
+  await fs.rm(dir, { recursive: true, force: true }).catch((error: unknown) => {
+    if (attempts <= 1 || !error || typeof error !== "object" || !("code" in error)) throw error
+    if (!["EBUSY", "ENOTEMPTY", "EPERM"].includes(String(error.code))) throw error
+    return clean(dir, attempts - 1)
   })
 }
 
@@ -57,7 +56,10 @@ type TmpDirOptions<T> = {
 }
 export async function tmpdir<T>(options?: TmpDirOptions<T>) {
   const dirpath = sanitizePath(
-    path.join(process.env["ASYNC_CODER_TEST_TMPDIR_ROOT"] ?? os.tmpdir(), "async-coder-test-" + Math.random().toString(36).slice(2)),
+    path.join(
+      process.env["ASYNC_CODER_TEST_TMPDIR_ROOT"] ?? os.tmpdir(),
+      "async-coder-test-" + Math.random().toString(36).slice(2),
+    ),
   )
   await fs.mkdir(dirpath, { recursive: true })
   if (options?.git) {
@@ -84,6 +86,7 @@ export async function tmpdir<T>(options?: TmpDirOptions<T>) {
       try {
         await options?.dispose?.(realpath)
       } finally {
+        await Instance.disposeDirectory(realpath)
         if (options?.git) await stop(realpath).catch(() => undefined)
         await cleanupTmpdir(realpath)
       }
@@ -99,7 +102,10 @@ export function tmpdirScoped(options?: { git?: boolean; config?: Partial<Config.
   return Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner
     const dirpath = sanitizePath(
-      path.join(process.env["ASYNC_CODER_TEST_TMPDIR_ROOT"] ?? os.tmpdir(), "async-coder-test-" + Math.random().toString(36).slice(2)),
+      path.join(
+        process.env["ASYNC_CODER_TEST_TMPDIR_ROOT"] ?? os.tmpdir(),
+        "async-coder-test-" + Math.random().toString(36).slice(2),
+      ),
     )
     yield* Effect.promise(() => fs.mkdir(dirpath, { recursive: true }))
     const dir = sanitizePath(yield* Effect.promise(() => fs.realpath(dirpath)))

@@ -1,4 +1,9 @@
 import type { Provider } from "@async-coder/sdk/v2"
+import { modelCostLabel } from "../feature-plugins/sidebar/usage-data"
+
+export function modelFooter(model: Provider["models"][string]) {
+  return [model.limit.context > 0 ? `${new Intl.NumberFormat("en", { notation: "compact" }).format(model.limit.context)} context` : "Context unknown", modelCostLabel(model.cost)].filter(Boolean).join(" | ")
+}
 
 export function index(list: Provider[] | undefined) {
   return new Map((list ?? []).map((item) => [item.id, item] as const))

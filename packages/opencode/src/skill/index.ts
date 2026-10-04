@@ -12,6 +12,7 @@ import { Global } from "@/global"
 import { Permission } from "@/permission"
 import { AppFileSystem } from "@async-coder/shared/filesystem"
 import { Config } from "../config"
+import * as ProjectTrust from "../project/trust"
 import { ConfigMarkdown } from "../config"
 import { Glob } from "@async-coder/shared/util/glob"
 import { Log } from "../util"
@@ -30,6 +31,9 @@ export const Info = z.object({
   location: z.string(),
   content: z.string(),
   hidden: z.boolean().optional(),
+  tools: z.array(z.string()).optional().catch(undefined),
+  model: z.string().optional().catch(undefined),
+  triggers: z.array(z.string()).optional().catch(undefined),
 })
 export type Info = z.infer<typeof Info>
 
@@ -94,7 +98,7 @@ const add = Effect.fnUntraced(function* (state: State, match: string, bus: Bus.I
 
   if (!md) return
 
-  const parsed = Info.pick({ name: true, description: true, hidden: true }).safeParse(md.data)
+  const parsed = Info.pick({ name: true, description: true, hidden: true, tools: true, model: true, triggers: true }).safeParse(md.data)
   if (!parsed.success) return
 
   if (state.skills[parsed.data.name]) {
@@ -112,6 +116,9 @@ const add = Effect.fnUntraced(function* (state: State, match: string, bus: Bus.I
     location: match,
     content: md.content,
     hidden: parsed.data.hidden,
+    tools: parsed.data.tools,
+    model: parsed.data.model,
+    triggers: parsed.data.triggers,
   }
 })
 
@@ -178,11 +185,17 @@ const discoverSkills = Effect.fnUntraced(function* (
       yield* scan(state, root, EXTERNAL_SKILL_PATTERN, { dot: true, scope: "global" })
     }
 
-    const upDirs = yield* fsys
-      .up({ targets: externalDirs, start: directory, stop: worktree })
-      .pipe(Effect.catch(() => Effect.succeed([] as string[])))
+    // Project-level external skills come from the repository itself, so they are
+    // untrusted until the user opts in (config skills.trust_project or env flag).
+    const trustProject =
+      Flag.ASYNC_CODER_TRUST_PROJECT_SKILLS || (yield* config.get()).skills?.trust_project === true || ProjectTrust.isTrusted(worktree)
+    const upDirs = trustProject
+      ? yield* fsys
+          .up({ targets: externalDirs, start: directory, stop: worktree })
+          .pipe(Effect.catch(() => Effect.succeed([] as string[])))
+      : []
 
-    for (const root of upDirs) {
+    for (const root of upDirs.toReversed()) {
       yield* scan(state, root, EXTERNAL_SKILL_PATTERN, { dot: true, scope: "project" })
     }
   }
@@ -219,7 +232,8 @@ const discoverSkills = Effect.fnUntraced(function* (
 
 const loadSkills = Effect.fnUntraced(function* (state: State, discovered: DiscoveryState, bus: Bus.Interface) {
   yield* Effect.forEach(discovered.matches, (match) => add(state, match, bus), {
-    concurrency: "unbounded",
+    // Each later file may override the same skill name; preserve discovery precedence.
+    concurrency: 1,
     discard: true,
   })
 

@@ -132,6 +132,8 @@ export interface SpawnInput {
   tools: ToolWhitelist
   model?: { providerID: ProviderID; modelID: ModelID }
   background: boolean
+  /** Return the actor handle before completion when the caller awaits its outcome itself. */
+  wait?: boolean
   notify?: boolean
   parentActorID?: string
   task_id?: string // Spec ②: bound user-task ID for postStop progress.md validation
@@ -624,7 +626,7 @@ export const layer = Layer.effect(
         task_id: input.task_id,
         format: input.format,
       })
-      if (!input.background) yield* Fiber.join(fiber).pipe(Effect.ignore)
+      if (!input.background && input.wait !== false) yield* Fiber.join(fiber).pipe(Effect.ignore)
       return { actorID: child.id, sessionID: child.id, outcome }
     })
 
@@ -681,7 +683,7 @@ export const layer = Layer.effect(
         gateEligible,
         format: input.format,
       })
-      if (!input.background) yield* Fiber.join(fiber).pipe(Effect.ignore)
+      if (!input.background && input.wait !== false) yield* Fiber.join(fiber).pipe(Effect.ignore)
       return { actorID, sessionID: input.sessionID, outcome }
     })
 

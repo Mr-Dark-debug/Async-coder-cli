@@ -46,7 +46,7 @@ export function isRetryableTransientError(error: unknown): boolean {
 }
 
 function cap(ms: number) {
-  return Math.min(ms, RETRY_MAX_DELAY)
+  return Math.max(0, Math.min(ms, RETRY_MAX_DELAY))
 }
 
 export function delay(attempt: number, error?: MessageV2.APIError) {
@@ -56,7 +56,7 @@ export function delay(attempt: number, error?: MessageV2.APIError) {
       const retryAfterMs = headers["retry-after-ms"]
       if (retryAfterMs) {
         const parsedMs = Number.parseFloat(retryAfterMs)
-        if (!Number.isNaN(parsedMs)) {
+        if (Number.isFinite(parsedMs) && parsedMs >= 0) {
           return cap(parsedMs)
         }
       }
@@ -64,7 +64,7 @@ export function delay(attempt: number, error?: MessageV2.APIError) {
       const retryAfter = headers["retry-after"]
       if (retryAfter) {
         const parsedSeconds = Number.parseFloat(retryAfter)
-        if (!Number.isNaN(parsedSeconds)) {
+        if (Number.isFinite(parsedSeconds) && parsedSeconds >= 0) {
           // convert seconds to milliseconds
           return cap(Math.ceil(parsedSeconds * 1000))
         }
@@ -75,7 +75,7 @@ export function delay(attempt: number, error?: MessageV2.APIError) {
         }
       }
 
-      return cap(RETRY_INITIAL_DELAY * Math.pow(RETRY_BACKOFF_FACTOR, attempt - 1))
+      return cap(Math.min(RETRY_INITIAL_DELAY * Math.pow(RETRY_BACKOFF_FACTOR, attempt - 1), RETRY_MAX_DELAY_NO_HEADERS))
     }
   }
 
@@ -145,12 +145,14 @@ export function retryable(error: Err) {
 }
 
 export function policy(opts: {
+  maxAttempts?: number
   parse: (error: unknown) => Err
   set: (input: { attempt: number; message: string; next: number }) => Effect.Effect<void>
 }) {
   return Schedule.fromStepWithMetadata(
     Effect.succeed((meta: Schedule.InputMetadata<unknown>) => {
       const error = opts.parse(meta.input)
+      if (meta.attempt > (opts.maxAttempts ?? 10)) return Cause.done(meta.attempt)
       const message = retryable(error)
       if (!message) return Cause.done(meta.attempt)
       return Effect.gen(function* () {

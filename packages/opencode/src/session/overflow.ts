@@ -29,7 +29,7 @@ export function isOverflow(input: { cfg: Config.Info; tokens: MessageV2.Assistan
 
   const count =
     input.tokens.total || input.tokens.input + input.tokens.output + input.tokens.cache.read + input.tokens.cache.write
-  return count >= usable(input)
+  return count >= usable(input) * (input.cfg.compaction?.threshold ?? 1)
 }
 
 export function pressureLevel(input: {
@@ -50,4 +50,25 @@ export function pressureLevel(input: {
   if (ratio < 0.70) return 1
   if (ratio < 0.85) return 2
   return 3
+}
+
+/** Context usage figures for the current window; `turnsLeft` projects from the average growth per turn. */
+export function stats(input: {
+  cfg: Config.Info
+  model: Provider.Model
+  /** Total context tokens after each finished turn, oldest first. */
+  history: number[]
+}) {
+  const limit = usable(input)
+  const used = input.history.at(-1) ?? 0
+  const threshold = input.cfg.compaction?.threshold ?? 1
+  const growth = input.history.length > 1 ? (used - input.history[0]) / (input.history.length - 1) : 0
+  const trigger = limit * threshold
+  return {
+    used,
+    limit,
+    percent: limit ? Math.min(100, Math.round((used / limit) * 100)) : 0,
+    compactAt: Math.round(trigger),
+    turnsLeft: growth > 0 ? Math.max(0, Math.ceil((trigger - used) / growth)) : undefined,
+  }
 }

@@ -5,6 +5,7 @@ import { filter, firstBy, flat, groupBy, mapValues, pipe, uniqueBy, values } fro
 import { createSimpleContext } from "@async-coder/ui/context"
 import { useProviders } from "@/hooks/use-providers"
 import { Persist, persisted } from "@/utils/persist"
+import { supportsChatModel } from "@/utils/chat-model"
 
 export type ModelKey = { providerID: string; modelID: string }
 
@@ -38,7 +39,7 @@ export const { use: useModels, provider: ModelsProvider } = createSimpleContext(
 
     const available = createMemo(() =>
       providers.connected().flatMap((p) =>
-        Object.values(p.models).map((m) => ({
+        Object.values(p.models).filter(supportsChatModel).map((m) => ({
           ...m,
           provider: p,
         })),

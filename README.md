@@ -6,6 +6,17 @@
 
 ## What It Provides
 
+- MCP servers over stdio, Streamable HTTP and SSE with tool permissions. [Guide](docs/mcp.md)
+- Installed language server discovery, diagnostics, definitions, references and symbols. [Guide](docs/lsp.md)
+- Specialized agents, bundled skills and bounded lifecycle hooks. [Agents](docs/agents.md), [skills](docs/skills.md), [hooks](docs/hooks.md)
+- Isolated Git worktrees and file/conversation checkpoints. [Worktrees](docs/worktrees.md), [checkpoints](docs/checkpoints.md)
+- Incremental tree-sitter repository maps across ten language families. [Guide](docs/repo-map.md)
+- Desktop session tabs, diffs, lavender theme, completion notifications and tray behavior. [Guide](docs/desktop.md)
+- Offline HTML/JSON session exports and existing hosted sharing. [Guide](docs/sharing.md)
+- Global, project, local and directory instructions. [Guide](docs/instructions.md)
+- Current catalogs, task recommendations and free-model discovery. [Models](docs/models.md), [Zen](docs/zen.md)
+- VS Code agent sidebar, editor actions, permission prompts, status and diffs. [Guide](docs/vscode.md)
+- TUI conversation search, checkpoint controls and direct shortcuts. [Guide](docs/tui.md)
 - Terminal-native coding workflow with the existing OpenCode-style TUI, commands, keybindings, sessions, and agent modes.
 - First-class provider onboarding for Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, GitHub Copilot, and custom OpenAI-compatible endpoints.
 - Local Ollama onboarding with live model discovery from the local Ollama server.
@@ -15,6 +26,18 @@
 - Configurable web search through DuckDuckGo, Tavily, Brave Search, Google Custom Search, or Exa.
 - Lavender `async-coder` branding with a clean terminal-first visual identity.
 - Local SQLite storage with migration support for existing data from the previous fork.
+
+## What's New
+
+- **Background jobs, teams and routines**: detached sessions with their own worktree, spend cap and verification gate; `/jobs`, `async-coder jobs run`, cron routines. [Guide](docs/jobs.md)
+- **Verified completion**: a job is done only when its gate passes; receipts with cost, tokens and gate results; draft pull requests on request. [Guide](docs/jobs.md)
+- **Budgets**: `usage.budget` caps (session, agent, day, month) with warn, downgrade or stop; per-agent `max_usd` and model fallback chains. [Guide](docs/budgets-and-context.md)
+- **`/usage` tabs** for today and this month with a month-end projection, and **`/context`** with a token breakdown and an early-compaction threshold. [Guide](docs/budgets-and-context.md)
+- **Auto-recall memory** with a pin/forget browser at `/memory`; `/btw` and `/steer` side notes to a running agent. [Guide](docs/budgets-and-context.md)
+- **Safer defaults**: no implicit share host, repository skills load only after `async-coder trust grant`, OS sandbox modes `writes` and `full` (Linux bubblewrap, macOS Seatbelt). [Guide](docs/security.md)
+- **More hook events**: user prompt, permission request, compaction, subagent start/stop, notification; `/hooks` toggles them. [Guide](docs/security.md)
+- **Sage review for jobs**, risk-gated so a green, low-risk job costs no extra model call; capability aliases `cheap`, `local`, `long-context`. [Guide](docs/remote-and-ecosystem.md)
+- **Remote and ecosystem**: device pairing for a running server, chat bridges for Telegram, Discord and Slack, a signed skill/agent/command marketplace, local whisper.cpp dictation, and an eval harness. [Guide](docs/remote-and-ecosystem.md)
 
 ## Installation
 
@@ -36,7 +59,7 @@ Run a non-interactive prompt:
 async-coder run "explain this repository"
 ```
 
-Version `0.1.3` publishes the scoped installer package `@async-coder/cli`. Platform packages such as `@async-coder/binary-windows-x64` are runtime payloads used by the installer and are not the normal user-facing install path.
+Version `0.2.0` publishes the scoped installer package `@async-coder/cli`. Platform packages such as `@async-coder/binary-windows-x64` are runtime payloads used by the installer and are not the normal user-facing install path.
 
 ## Sage Consultations
 
@@ -126,7 +149,7 @@ Build the current platform package:
 
 ```bash
 cd packages/opencode
-$env:ASYNC_CODER_VERSION="0.1.3"
+$env:ASYNC_CODER_VERSION="0.2.0"
 $env:ASYNC_CODER_CHANNEL="latest"
 bun run script/build.ts --single --skip-install
 ```

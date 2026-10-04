@@ -34,4 +34,15 @@ describe("session diff", () => {
     expect(text(view, "deletions")).toBe("one\n")
     expect(text(view, "additions")).toBe("two\n")
   })
+
+  test("preserves different trailing newlines on each side", () => {
+    const view = normalize({
+      file: "newline.ts",
+      patch: "--- newline.ts\n+++ newline.ts\n@@ -1 +1 @@\n-old\n\\ No newline at end of file\n+new\n",
+      additions: 1,
+      deletions: 1,
+    })
+    expect(text(view, "deletions")).toBe("old")
+    expect(text(view, "additions")).toBe("new\n")
+  })
 })

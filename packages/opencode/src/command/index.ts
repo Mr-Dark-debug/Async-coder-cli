@@ -259,6 +259,7 @@ export const layer = Layer.effect(
           name: item.name,
           description: item.description,
           source: "skill",
+          model: item.model,
           get template() {
             return item.content
           },

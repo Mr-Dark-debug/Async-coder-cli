@@ -32,13 +32,10 @@ function Quickstart() {
       <H2 id="install">1 · Install</H2>
       <P>Install globally via your package manager of choice.</P>
       <CodeBlock filename="bash" code={`# npm
-npm install -g async-coder
+npm install -g @async-coder/cli
 
 # bun
-bun add -g async-coder
-
-# curl installer (Linux/macOS)
-curl -fsSL https://async-coder.dev/install.sh | bash`} />
+bun add -g @async-coder/cli`} />
 
       <H2 id="add-key">2 · Add your key</H2>
       <P>
@@ -61,8 +58,10 @@ async-coder
       <UL>
         <li><code className="font-mono text-foreground">/help</code> — list every command</li>
         <li><code className="font-mono text-foreground">/usage</code> — open the usage dashboard</li>
-        <li><code className="font-mono text-foreground">/web</code> — run a web search</li>
-        <li><code className="font-mono text-foreground">/agents</code> — switch agent (build / plan / compose)</li>
+        <li><code className="font-mono text-foreground">/context</code> — see what fills the context window</li>
+        <li><code className="font-mono text-foreground">/jobs</code> — run and watch background jobs</li>
+        <li><code className="font-mono text-foreground">/memory</code> — browse, pin or forget notes</li>
+        <li><code className="font-mono text-foreground">/consult</code> — ask the Sage model for a second opinion</li>
         <li><code className="font-mono text-foreground">/dream</code> — extract knowledge from this session</li>
         <li><code className="font-mono text-foreground">/distill</code> — package a workflow into a skill</li>
       </UL>

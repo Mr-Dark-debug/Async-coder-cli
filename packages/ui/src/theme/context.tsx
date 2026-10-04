@@ -41,6 +41,7 @@ function knownThemes() {
 }
 
 const names: Record<string, string> = {
+  "async-coder": "async-coder Lavender",
   "oc-2": "OC-2",
   amoled: "AMOLED",
   aura: "Aura",

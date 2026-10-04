@@ -30,6 +30,11 @@ import { ConfigAdvisor } from "./advisor"
 import { ConfigCommand } from "./command"
 import { ConfigFormatter } from "./formatter"
 import { ConfigHistory } from "./history"
+import { ConfigHooks } from "./hooks"
+import { ConfigUsage } from "./usage"
+import { ConfigSandbox } from "./sandbox"
+import { ConfigRoutines } from "./routines"
+import { ConfigSage } from "./sage"
 import { ConfigLayout } from "./layout"
 import { ConfigLSP } from "./lsp"
 import { ConfigManaged } from "./managed"
@@ -59,6 +64,20 @@ function mergeConfigConcatArrays(target: Info, source: Info): Info {
 function normalizeLoadedConfig(data: unknown, source: string) {
   if (!isRecord(data)) return data
   const copy = { ...data }
+  if (isRecord(copy.mcpServers)) {
+    copy.mcp = {
+      ...Object.fromEntries(Object.entries(copy.mcpServers).map(([name, server]) => {
+        if (isRecord(server) && (server.type === "local" || server.type === "remote")) {
+          return [name, ConfigParse.schema(ConfigMCP.Info.zod, server, source)]
+        }
+        const converted = ConfigMCP.fromClaude(name, server)
+        if ("warning" in converted) throw new Error(`${source}: ${converted.warning}`)
+        return [name, converted.config]
+      })),
+      ...(isRecord(copy.mcp) ? copy.mcp : {}),
+    }
+    delete copy.mcpServers
+  }
   const hadLegacy = "theme" in copy || "keybinds" in copy || "tui" in copy
   if (!hadLegacy) return copy
   delete copy.theme
@@ -106,6 +125,46 @@ const InfoSchema = Schema.Struct({
     description: "Command configuration, see https://opencode.ai/docs/commands",
   }),
   skills: Schema.optional(ConfigSkills.Info).annotate({ description: "Additional skill folder paths" }),
+  hooks: Schema.optional(Schema.mutable(Schema.Array(ConfigHooks.Info))),
+  sage: Schema.optional(ConfigSage.Info).annotate({
+    description: "Risk-gated Sage review for background jobs. Needs `advisor` to be configured.",
+  }),
+  routines: Schema.optional(ConfigRoutines.Info).annotate({
+    description: "Scheduled routines: cron-triggered background jobs that inherit worktree isolation, gates and budgets.",
+  }),
+  marketplace: Schema.optional(
+    Schema.Struct({
+      registry_url: Schema.optional(Schema.String).annotate({ description: "URL of a signed marketplace registry (JSON)." }),
+      public_key: Schema.optional(Schema.String).annotate({
+        description: "The registry's ed25519 public key (64 hex characters). A registry that does not verify against it is refused.",
+      }),
+    }),
+  ).annotate({ description: "Signed skill/agent/command registry used by `async-coder market`." }),
+  notification: Schema.optional(
+    Schema.Struct({
+      quiet_hours: Schema.optional(Schema.Struct({ start: Schema.String, end: Schema.String })).annotate({
+        description: "Suppress job-completion notifications between these local times, e.g. { start: '22:00', end: '07:00' }.",
+      }),
+    }),
+  ).annotate({ description: "Notification preferences for background jobs." }),
+  sandbox: Schema.optional(ConfigSandbox.Info).annotate({
+    description: "OS-level confinement for shell commands and file writes.",
+  }),
+  usage: Schema.optional(ConfigUsage.Info).annotate({
+    description: "Usage accounting and spend budgets. Caps are checked before every model call.",
+  }),
+  checkpoints: Schema.optional(Schema.Struct({
+    enabled: Schema.optional(Schema.Boolean),
+    retention: Schema.optional(PositiveInt),
+  })),
+  reliability: Schema.optional(Schema.Struct({
+    provider_concurrency: Schema.optional(PositiveInt),
+    max_retries: Schema.optional(NonNegativeInt),
+    fallback_models: Schema.optional(Schema.mutable(Schema.Array(ConfigModelID))),
+  })),
+  mcpServers: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)).annotate({
+    description: "MCP server definitions in command/args/env or native mcp format. Native mcp entries take precedence.",
+  }),
   watcher: Schema.optional(
     Schema.Struct({
       ignore: Schema.optional(Schema.mutable(Schema.Array(Schema.String))),
@@ -267,6 +326,10 @@ const InfoSchema = Schema.Struct({
       reserved: Schema.optional(NonNegativeInt).annotate({
         description: "Token buffer for compaction. Leaves enough window to avoid overflow during compaction.",
       }),
+      threshold: Schema.optional(Schema.Number.check(Schema.isBetween({ minimum: 0.1, maximum: 1 }))).annotate({
+        description:
+          "Fraction of the usable context window at which automatic compaction starts (default: 1, i.e. only when full). Set 0.85 to compact earlier.",
+      }),
     }),
   ),
   checkpoint: Schema.optional(
@@ -345,6 +408,14 @@ const InfoSchema = Schema.Struct({
   ),
   memory: Schema.optional(
     Schema.Struct({
+      auto: Schema.optional(Schema.Boolean).annotate({
+        description:
+          "Automatically recall relevant memory notes into each new user turn (bounded by recall_limit and token_budget). Default: true.",
+      }),
+      recall_limit: Schema.optional(PositiveInt).annotate({ description: "Maximum notes recalled per turn. Default: 12." }),
+      token_budget: Schema.optional(PositiveInt).annotate({
+        description: "Maximum tokens the recalled block may use. Default: 1500.",
+      }),
       cc_index: Schema.optional(Schema.Boolean).annotate({
         description:
           "Index Claude Code memory (~/.claude/projects/<slug>/memory) and expose under scope='cc'. Default: false. Note: when enabled, every async-coder agent (build/explore/subagents) can search these memories via the builtin `memory` tool — including CC's `type: user` (your role/preferences) and `type: feedback` (your guidance) categories. CC originally writes them for future CC sessions; flipping this on widens the consumer set to async-coder agents on the same machine. Leave disabled (default) if you don't want personal context recallable from a prompt-injection-vulnerable agent.",
@@ -572,9 +643,24 @@ export const layer = Layer.effect(
       return yield* loadConfig(text, { path: filepath })
     })
 
+    const loadExtras = Effect.fnUntraced(function* (dir: string) {
+      const values = yield* Effect.forEach(["mcp.json", "hooks.json"], Effect.fnUntraced(function* (filename) {
+        const source = path.join(dir, filename)
+        const text = yield* readConfigFile(source)
+        if (!text) return {} as Info
+        const data = ConfigParse.jsonc(text, source)
+        const wrapped = filename === "mcp.json" && isRecord(data) && !data.mcp && !data.mcpServers
+          ? { mcpServers: data }
+          : data
+        return yield* loadConfig(JSON.stringify(wrapped), { dir, source })
+      }), { concurrency: 2 })
+      return values.reduce(mergeConfigConcatArrays, {})
+    })
+
     const loadGlobal = Effect.fnUntraced(function* () {
+      const extras = yield* loadExtras(Global.Path.config)
       let result: Info = pipe(
-        {},
+        extras,
         mergeDeep(yield* loadFile(path.join(Global.Path.config, "config.json"))),
         mergeDeep(yield* loadFile(path.join(Global.Path.config, "async-coder.json"))),
         mergeDeep(yield* loadFile(path.join(Global.Path.config, "async-coder.jsonc"))),
@@ -616,11 +702,19 @@ export const layer = Layer.effect(
     const ensureGitignore = Effect.fn("Config.ensureGitignore")(function* (dir: string) {
       const gitignore = path.join(dir, ".gitignore")
       const hasIgnore = yield* fs.existsSafe(gitignore)
+      if (hasIgnore) {
+        const content = yield* fs.readFileString(gitignore)
+        if (/^\/?AGENTS\.local\.md\r?$/m.test(content)) return
+        yield* fs.writeFileString(gitignore, `${content}${content.endsWith("\n") ? "" : "\n"}AGENTS.local.md\n`).pipe(
+          Effect.catchIf((error) => error.reason._tag === "PermissionDenied", () => Effect.void),
+        )
+        return
+      }
       if (!hasIgnore) {
         yield* fs
           .writeFileString(
             gitignore,
-            ["node_modules", "package.json", "package-lock.json", "bun.lock", ".gitignore"].join("\n"),
+            ["node_modules", "package.json", "package-lock.json", "bun.lock", "AGENTS.local.md", ".gitignore"].join("\n"),
           )
           .pipe(
             Effect.catchIf(
@@ -780,6 +874,7 @@ export const layer = Layer.effect(
         }
 
         for (const dir of directories) {
+          if (dir !== Global.Path.config) yield* merge(dir, yield* loadExtras(dir))
           if (dir.endsWith(".async-coder") || dir === Flag.ASYNC_CODER_CONFIG_DIR) {
             for (const file of ["async-coder.json", "async-coder.jsonc"]) {
               const source = path.join(dir, file)

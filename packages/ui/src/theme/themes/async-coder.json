@@ -1,0 +1,18 @@
+{
+  "name": "async-coder Lavender",
+  "id": "async-coder",
+  "light": {
+    "palette": {
+      "neutral": "#f8f6fc", "ink": "#211b32", "primary": "#9b80d5",
+      "success": "#3d986b", "warning": "#bd8726", "error": "#d75970",
+      "info": "#8a70c4", "interactive": "#876bc5", "diffAdd": "#8ecda9", "diffDelete": "#e890a0"
+    }
+  },
+  "dark": {
+    "palette": {
+      "neutral": "#211d2c", "ink": "#f0eafa", "primary": "#b4a4ef",
+      "success": "#82cbaa", "warning": "#d8b879", "error": "#ed98ac",
+      "info": "#c2b0ef", "interactive": "#b4a4ef", "diffAdd": "#82cbaa", "diffDelete": "#ed98ac"
+    }
+  }
+}

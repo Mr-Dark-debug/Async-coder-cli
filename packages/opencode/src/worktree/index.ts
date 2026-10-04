@@ -44,6 +44,7 @@ export const Info = z
     name: z.string(),
     branch: z.string(),
     directory: z.string(),
+    baseBranch: z.string().optional(),
   })
   .meta({
     ref: "Worktree",
@@ -54,6 +55,8 @@ export type Info = z.infer<typeof Info>
 export const CreateInput = z
   .object({
     name: z.string().optional(),
+    branch: z.string().optional(),
+    baseBranch: z.string().optional(),
     startCommand: z.string().optional().describe("Additional startup script to run after the project's start command"),
   })
   .meta({
@@ -232,7 +235,7 @@ export const layer: Layer.Layer<
 
     const setup = Effect.fnUntraced(function* (info: Info) {
       const ctx = yield* InstanceState.context
-      const created = yield* git(["worktree", "add", "--no-checkout", "-b", info.branch, info.directory], {
+      const created = yield* git(["worktree", "add", "--no-checkout", "-b", info.branch, info.directory, ...(info.baseBranch ? [info.baseBranch] : [])], {
         cwd: ctx.worktree,
       })
       if (created.code !== 0) {
@@ -301,7 +304,18 @@ export const layer: Layer.Layer<
     })
 
     const create = Effect.fn("Worktree.create")(function* (input?: CreateInput) {
-      const info = yield* makeWorktreeInfo(input?.name)
+      const ctx = yield* InstanceState.context
+      const defaults = input?.baseBranch ? [] : yield* Effect.all([
+        git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], { cwd: ctx.worktree }),
+        git(["rev-parse", "--verify", "origin/dev^{commit}"], { cwd: ctx.worktree }),
+        git(["rev-parse", "--verify", "dev^{commit}"], { cwd: ctx.worktree }),
+      ], { concurrency: 3 })
+      const baseBranch = input?.baseBranch ?? (defaults[0]?.code === 0 ? defaults[0].text.trim() : defaults[1]?.code === 0 ? "origin/dev" : defaults[2]?.code === 0 ? "dev" : "HEAD")
+      if (baseBranch.startsWith("-")) throw new CreateFailedError({ message: "Invalid base ref" })
+      const verified = yield* git(["rev-parse", "--verify", `${baseBranch}^{commit}`], { cwd: ctx.worktree })
+      if (verified.code !== 0) throw new CreateFailedError({ message: verified.stderr || "Base ref does not exist" })
+      const generated = yield* makeWorktreeInfo(input?.name)
+      const info = { ...generated, branch: input?.branch ?? generated.branch, baseBranch }
       yield* setup(info)
       yield* boot(info, input?.startCommand).pipe(
         Effect.catchCause((cause) => Effect.sync(() => log.error("worktree bootstrap failed", { cause }))),

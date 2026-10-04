@@ -5,8 +5,8 @@ const STEPS = [
   {
     n: "1",
     title: "Install",
-    body: "Grab the binary via npm, bun, or the curl installer.",
-    code: "npm install -g async-coder",
+    body: "Install the CLI from npm (or bun).",
+    code: "npm install -g @async-coder/cli",
   },
   {
     n: "2",
