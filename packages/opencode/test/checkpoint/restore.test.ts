@@ -73,6 +73,10 @@ test("rejects invalid retention, cross-workspace files and a running session", a
   await using tmp = await tmpdir({ git: true })
   await Instance.provide({ directory: tmp.path, fn: async () => {
     const session = await sessions.runPromise((svc) => svc.create())
+    // Automatic project snapshots must not prevent an otherwise permitted
+    // memory write. Explicit outside-workspace checkpoints remain rejected.
+    expect(await Checkpoint.auto({ sessionID: session.id, tool: "write", files: [path.join(Global.Path.data, "memory", "global", "probe.md")] })).toBeUndefined()
+    expect(Checkpoint.list(session.id)).toEqual([])
     await expect(Checkpoint.create({ sessionID: session.id, retention: 0 })).rejects.toThrow("retention")
     await expect(Checkpoint.create({ sessionID: session.id, files: ["../../outside"] })).rejects.toThrow("outside")
     const saved = await Checkpoint.create({ sessionID: session.id })

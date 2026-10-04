@@ -2,6 +2,7 @@ import { NodeFileSystem } from "@effect/platform-node"
 import { FetchHttpClient } from "effect/unstable/http"
 import { afterEach, describe, expect } from "bun:test"
 import { Deferred, Effect, Layer } from "effect"
+import path from "node:path"
 import { Agent as AgentSvc } from "../../src/agent/agent"
 import { Auth } from "../../src/auth"
 import { Bus } from "../../src/bus"
@@ -105,6 +106,9 @@ const lsp = Layer.succeed(
     prepareCallHierarchy: () => Effect.succeed([]),
     incomingCalls: () => Effect.succeed([]),
     outgoingCalls: () => Effect.succeed([]),
+    completion: () => Effect.succeed([]),
+    prepareRename: () => Effect.succeed([]),
+    rename: () => Effect.succeed([]),
   }),
 )
 
@@ -290,9 +294,10 @@ describe("spawn no-deadlock (F56)", () => {
     "checkpoint-writer settles (no hang) when session permission is '*':'ask' and a tool triggers an edit ask",
     () =>
       provideTmpdirServer(
-        Effect.fnUntraced(function* ({ llm }) {
+        Effect.fnUntraced(function* ({ dir, llm }) {
           const actor = yield* Actor.Service
           const session = yield* Session.Service
+          const permission = yield* Permission.Service
 
           // Session asks for everything. A non-system agent would block here
           // waiting for a human reply; a system-spawned checkpoint-writer must
@@ -325,16 +330,29 @@ describe("spawn no-deadlock (F56)", () => {
               background: false,
               model: ref,
             })
-            .pipe(Effect.timeout("10 seconds"))
+            // Includes real tool discovery, Git checkpoints and streamed turns.
+            .pipe(Effect.timeout("25 seconds"))
 
           // If we reach here within the timeout, no deadlock occurred.
           expect(result).toBeDefined()
           expect(result!.actorID).toBeDefined()
           const outcome = yield* Deferred.await(result!.outcome)
           expect(["success", "failure"]).toContain(outcome.status)
+          const messages = yield* session.messages({ sessionID: parent.id, agentID: result.actorID })
+          const write = messages
+            .flatMap((message) => message.parts)
+            .find((part) => part.type === "tool" && part.tool === "write")
+          expect(write?.type).toBe("tool")
+          if (write?.type === "tool") {
+            expect(write.state.status).toBe("error")
+            if (write.state.status === "error")
+              expect(write.state.error).toContain("prevents you from using this specific tool call")
+          }
+          expect(yield* permission.list()).toEqual([])
+          expect(yield* Effect.promise(() => Bun.file(path.join(dir, "notes.txt")).exists())).toBe(false)
         }),
         { git: true, config: providerCfg },
       ),
-    15_000,
+    30_000,
   )
 })

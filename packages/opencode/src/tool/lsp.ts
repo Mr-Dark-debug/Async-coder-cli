@@ -15,6 +15,9 @@ const operations = [
   "goToDefinition",
   "findReferences",
   "hover",
+  "completion",
+  "prepareRename",
+  "rename",
   "documentSymbol",
   "workspaceSymbol",
   "goToImplementation",
@@ -37,9 +40,10 @@ export const LspTool = Tool.define(
         line: z.number().int().min(1).default(1).describe("The line number (1-based, as shown in editors)"),
         character: z.number().int().min(1).default(1).describe("The character offset (1-based, as shown in editors)"),
         query: z.string().optional().describe("Symbol name query for workspaceSymbol"),
+        newName: z.string().min(1).optional().describe("Replacement name for rename; returns proposed edits without changing files"),
       }),
       execute: (
-        args: { operation: (typeof operations)[number]; filePath: string; line: number; character: number; query?: string },
+        args: { operation: (typeof operations)[number]; filePath: string; line: number; character: number; query?: string; newName?: string },
         ctx: Tool.Context,
       ) =>
         Effect.gen(function* () {
@@ -70,6 +74,13 @@ export const LspTool = Tool.define(
                 return lsp.references(position)
               case "hover":
                 return lsp.hover(position)
+              case "completion":
+                return lsp.completion(position)
+              case "prepareRename":
+                return lsp.prepareRename(position)
+              case "rename":
+                if (!args.newName) throw new Error("newName is required for rename")
+                return lsp.rename({ ...position, newName: args.newName })
               case "documentSymbol":
                 return lsp.documentSymbol(uri)
               case "workspaceSymbol":

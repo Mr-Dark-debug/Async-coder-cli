@@ -48,8 +48,14 @@ export function globalMemoryPath(): string {
 export async function migrateProjectMemory(projectID: ProjectID): Promise<void> {
   const upper = memoryPath(projectID)
   const lower = path.join(path.dirname(upper), "memory.md")
-  if (await Bun.file(upper).exists()) return
-  if (await Bun.file(lower).exists())
+  const entries = await fs.readdir(path.dirname(upper)).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return [] as string[]
+    throw error
+  })
+  // exists() resolves both casings to the same file on Windows/macOS. Inspect
+  // the stored directory entry so a case-only rename actually takes place.
+  if (entries.includes("MEMORY.md")) return
+  if (entries.includes("memory.md"))
     // Two migrators (e.g. concurrent sessions/writers on the same project) can
     // both pass the exists() checks; the loser's rename then sees lower already
     // gone. ENOENT means the peer won — treat as success. Re-throw real FS

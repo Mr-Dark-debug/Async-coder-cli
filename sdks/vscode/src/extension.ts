@@ -1,5 +1,5 @@
 import * as vscode from "vscode"
-import { spawn, type ChildProcess } from "node:child_process"
+import { execFile, spawn, type ChildProcess } from "node:child_process"
 import { createServer } from "node:net"
 import { randomBytes } from "node:crypto"
 import { AgentClient, type FileDiff } from "./client"
@@ -15,10 +15,17 @@ export function activate(context: vscode.ExtensionContext) {
   status.show()
   let child: ChildProcess | undefined
   let pending: Promise<AgentClient> | undefined
+  const stop = () => {
+    if (!child?.pid) return
+    if (process.platform !== "win32") { child.kill(); return }
+    // The npm .cmd launcher owns a child process tree on Windows.
+    // Dispose only this extension's captured server tree.
+    execFile("taskkill.exe", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true }, () => {})
+  }
   const documents = new Map<string, string>()
   context.subscriptions.push(output, status, vscode.workspace.registerTextDocumentContentProvider("async-coder-diff", {
     provideTextDocumentContent: (uri) => documents.get(uri.toString()) ?? "",
-  }), { dispose: () => child?.kill() })
+  }), { dispose: stop })
 
   const connect = () => {
     if (!vscode.workspace.isTrusted) return Promise.reject(new Error("Trust this workspace before starting an agent that can run commands."))
@@ -63,7 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (healthy?.healthy) return client
         await new Promise((resolve) => setTimeout(resolve, 250))
       }
-      child.kill()
+      stop()
       throw new Error("async-coder did not become ready. Install @async-coder/cli or set async-coder.executable; see the output channel.")
     })().catch((error: unknown) => { pending = undefined; throw error })
     return pending
@@ -103,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (!vscode.workspace.isTrusted) throw new Error("Trust this workspace before running async-coder.")
     const existing = vscode.window.terminals.find((item) => item.name === "async-coder" || item.name === "opencode")
     if (existing && !fresh) { existing.show(); return }
-    const value = vscode.window.createTerminal({ name: "async-coder", location: { viewColumn: vscode.ViewColumn.Beside }, env: { OPENCODE_CALLER: "vscode" } })
+    const value = vscode.window.createTerminal({ name: "async-coder", location: { viewColumn: vscode.ViewColumn.Beside }, env: { ASYNC_CODER_CALLER: "vscode" } })
     value.show()
     value.sendText("async-coder")
   }

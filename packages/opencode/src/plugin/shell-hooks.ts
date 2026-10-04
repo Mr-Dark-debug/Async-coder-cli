@@ -19,6 +19,10 @@ export function events(name: string, input: unknown): ConfigHooks.Info["event"][
   if (name === "session.created") return ["session_start"]
   if (name === "session.deleted") return ["session_end"]
   if (name === "session.idle") return ["agent_end"]
+  if (name === "actor.status" && isRecord(input)) {
+    if (input.status === "running") return ["agent_start"]
+    if (input.status === "idle") return ["agent_end", ...(input.lastOutcome === "failure" ? ["error" as const] : [])]
+  }
   if (name === "session.error") return ["error"]
   return []
 }
@@ -39,6 +43,7 @@ export const run = Effect.fn("ShellHooks.run")(function* (
   const selected = (hooks ?? []).filter((hook) => events(name, input).includes(hook.event) && matches(hook.condition, input))
   if (!selected.length) return
   const cwd = yield* InstanceState.directory
+  const args = isRecord(output) && isRecord(output.args) ? output.args : isRecord(input) && isRecord(input.args) ? input.args : input
   for (const hook of selected) {
     const before = hook.event.startsWith("pre_")
     const result = yield* Effect.tryPromise({
@@ -50,7 +55,8 @@ export const run = Effect.fn("ShellHooks.run")(function* (
           env: {
             ...process.env,
             ASYNC_CODER_HOOK_EVENT: hook.event,
-            TOOL_INPUT: JSON.stringify(isRecord(output) && "args" in output ? output.args : input),
+            TOOL_INPUT: JSON.stringify(args),
+            ...(isRecord(args) && typeof args.filePath === "string" ? { FILE_PATH: args.filePath } : {}),
             ASYNC_CODER_HOOK_INPUT: JSON.stringify(input),
             ASYNC_CODER_HOOK_OUTPUT: JSON.stringify(output ?? {}),
           },

@@ -1,102 +1,42 @@
 #!/usr/bin/env node
 
-import fs from "fs"
-import path from "path"
-import os from "os"
-import { fileURLToPath } from "url"
-import { createRequire } from "module"
+import fs from "node:fs"
+import path from "node:path"
+import os from "node:os"
+import { fileURLToPath } from "node:url"
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const require = createRequire(import.meta.url)
+const directory = path.dirname(fileURLToPath(import.meta.url))
 
-function detectPlatformAndArch() {
-  // Map platform names
-  let platform
-  switch (os.platform()) {
-    case "darwin":
-      platform = "darwin"
-      break
-    case "linux":
-      platform = "linux"
-      break
-    case "win32":
-      platform = "windows"
-      break
-    default:
-      platform = os.platform()
-      break
+function main() {
+  // Older installers cached the base binary here, bypassing the wrapper's
+  // CPU/libc selection. Remove only that generated file, including symlinks.
+  fs.rmSync(path.join(directory, "bin", ".async-coder"), { force: true })
+  if (os.platform() === "win32") return
+
+  const prefix = `binary-${os.platform()}-${os.arch()}`
+  const directories = [directory]
+  while (path.dirname(directories.at(-1)) !== directories.at(-1)) {
+    directories.push(path.dirname(directories.at(-1)))
   }
 
-  // Map architecture names
-  let arch
-  switch (os.arch()) {
-    case "x64":
-      arch = "x64"
-      break
-    case "arm64":
-      arch = "arm64"
-      break
-    case "arm":
-      arch = "arm"
-      break
-    default:
-      arch = os.arch()
-      break
-  }
-
-  return { platform, arch }
-}
-
-function findBinary() {
-  const { platform, arch } = detectPlatformAndArch()
-  const packageName = `@async-coder/binary-${platform}-${arch}`
-  const binaryName = platform === "windows" ? "async-coder.exe" : "async-coder"
-
-  try {
-    // Use require.resolve to find the package
-    const packageJsonPath = require.resolve(`${packageName}/package.json`)
-    const packageDir = path.dirname(packageJsonPath)
-    const binaryPath = path.join(packageDir, "bin", binaryName)
-
-    if (!fs.existsSync(binaryPath)) {
-      throw new Error(`Binary not found at ${binaryPath}`)
-    }
-
-    return { binaryPath, binaryName }
-  } catch (error) {
-    throw new Error(`Could not find package ${packageName}: ${error.message}`, { cause: error })
-  }
-}
-
-async function main() {
-  try {
-    if (os.platform() === "win32") {
-      // On Windows, the .exe is already included in the package and bin field points to it
-      // No postinstall setup needed
-      console.log("Windows detected: binary setup not needed (using packaged .exe)")
-      return
-    }
-
-    // On non-Windows platforms, just verify the binary package exists
-    // Don't replace the wrapper script - it handles binary execution
-    const { binaryPath } = findBinary()
-    const target = path.join(__dirname, "bin", ".async-coder")
-    if (fs.existsSync(target)) fs.unlinkSync(target)
-    try {
-      fs.linkSync(binaryPath, target)
-    } catch {
-      fs.copyFileSync(binaryPath, target)
-    }
-    fs.chmodSync(target, 0o755)
-  } catch (error) {
-    console.error("Failed to setup async-coder binary:", error.message)
-    process.exit(1)
-  }
+  // Prepare all installed candidates; the wrapper remains the sole owner of
+  // AVX2/baseline and glibc/musl selection. Source manifests need not contain
+  // the public package's full optional dependency matrix.
+  const candidates = directories.flatMap((current) => {
+    const scope = path.join(current, "node_modules", "@async-coder")
+    if (!fs.existsSync(scope)) return []
+    return fs.readdirSync(scope)
+      .filter((name) => name === prefix || name.startsWith(`${prefix}-`))
+      .map((name) => path.join(scope, name, "bin", "async-coder"))
+      .filter((file) => fs.existsSync(file) && fs.statSync(file).isFile())
+  })
+  if (!candidates.length) throw new Error(`Could not find an installed @async-coder/${prefix} runtime candidate`)
+  candidates.forEach((file) => fs.chmodSync(file, 0o755))
 }
 
 try {
-  void main()
+  main()
 } catch (error) {
-  console.error("Postinstall script error:", error.message)
-  process.exit(0)
+  console.error("Failed to setup async-coder binary:", error.message)
+  process.exit(1)
 }

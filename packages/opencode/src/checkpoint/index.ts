@@ -68,7 +68,13 @@ export async function create(input: { sessionID: SessionID; description?: string
 export async function auto(input: { sessionID: SessionID; tool: string; files?: string[] }) {
   const settings = await config.runPromise((svc) => svc.get())
   if (settings.checkpoints?.enabled === false || settings.snapshot === false || Instance.project.vcs !== "git") return
-  return create({ ...input, description: `Before ${input.tool}`, automatic: true })
+  const session = await sessions.runPromise((svc) => svc.get(input.sessionID))
+  // Isolated workflow actors can retain the parent's session id. Their per-step snapshots
+  // remain in the isolated workspace; an explicit parent-conversation checkpoint cannot.
+  if (path.resolve(session.directory) !== path.resolve(Instance.directory)) return
+  const files = input.files?.filter((file) => Instance.containsPath(path.resolve(Instance.directory, file)))
+  if (input.files?.length && !files?.length) return
+  return create({ ...input, files, description: `Before ${input.tool}`, automatic: true })
 }
 
 export function autoEffect(input: { sessionID: SessionID; tool: string; files?: string[] }) {

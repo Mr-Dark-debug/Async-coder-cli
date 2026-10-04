@@ -24,6 +24,17 @@ describe("shell lifecycle hooks", () => {
     if (result._tag === "Failure") expect(String(result.cause)).toContain("fixture block reason")
   })))
 
+  it.live("passes file paths and tool arguments to edit hooks before and after execution", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
+    yield* Effect.promise(() => Bun.write(path.join(dir, "arguments.ts"), 'await Bun.write("arguments.json", JSON.stringify({file:process.env.FILE_PATH,args:JSON.parse(process.env.TOOL_INPUT!)}))'))
+    const args = { filePath: path.join(dir, "example.ts"), content: "fixture" }
+    yield* run([{ event: "pre_file_edit", command: "bun arguments.ts" }], "tool.execute.before", { tool: "write" }, { args })
+    expect(yield* Effect.promise(() => Bun.file(path.join(dir, "arguments.json")).json())).toEqual({ file: args.filePath, args })
+    yield* run([{ event: "post_file_edit", command: "bun arguments.ts" }], "tool.execute.after", { tool: "write", args }, { output: "done" })
+    expect(yield* Effect.promise(() => Bun.file(path.join(dir, "arguments.json")).json())).toEqual({ file: args.filePath, args })
+    expect(events("actor.status", { status: "running" })).toEqual(["agent_start"])
+    expect(events("actor.status", { status: "idle", lastOutcome: "failure" })).toEqual(["agent_end", "error"])
+  })))
+
   it.live("kills timed-out pre-command hooks and fails closed", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
     yield* Effect.promise(() => Bun.write(path.join(dir, "wait.ts"), "await Bun.sleep(30000)"))
     const start = Date.now()

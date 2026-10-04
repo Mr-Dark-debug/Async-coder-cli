@@ -28,6 +28,7 @@ function decodeFrames(buffer) {
 
 let readBuffer = Buffer.alloc(0)
 let activeUri
+let activeDiagnostics = []
 
 process.stdin.on("data", (chunk) => {
   readBuffer = Buffer.concat([readBuffer, chunk])
@@ -54,7 +55,7 @@ function handle(raw) {
     return
   }
   if (data.method === "initialize") {
-    send({ jsonrpc: "2.0", id: data.id, result: { capabilities: {} } })
+    send({ jsonrpc: "2.0", id: data.id, result: { capabilities: process.env.FIXTURE_PULL_DIAGNOSTICS ? { diagnosticProvider: { interFileDependencies: false, workspaceDiagnostics: false } } : {} } })
     return
   }
   if (data.method === "initialized") {
@@ -63,15 +64,32 @@ function handle(raw) {
   if (data.method === "textDocument/didOpen" || data.method === "textDocument/didChange") {
     activeUri = data.params.textDocument.uri
     const text = data.method === "textDocument/didOpen" ? data.params.textDocument.text : data.params.contentChanges[0].text
-    send({ jsonrpc: "2.0", method: "textDocument/publishDiagnostics", params: { uri: activeUri, diagnostics: text.includes("BROKEN") ? [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } }, severity: 1, message: "Fixture syntax error" }] : [] } })
+    activeDiagnostics = text.includes("BROKEN") ? [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } }, severity: 1, message: "Fixture syntax error" }] : []
+    if (!process.env.FIXTURE_PULL_DIAGNOSTICS) send({ jsonrpc: "2.0", method: "textDocument/publishDiagnostics", params: { uri: activeUri, diagnostics: activeDiagnostics } })
     return
   }
   if (data.method === "textDocument/didClose") {
     activeUri = undefined
     return
   }
+  if (data.method === "textDocument/diagnostic") {
+    send({ jsonrpc: "2.0", id: data.id, result: { kind: "full", items: activeDiagnostics } })
+    return
+  }
   if (data.method === "textDocument/hover") {
     send({ jsonrpc: "2.0", id: data.id, result: { contents: { kind: "plaintext", value: "Fixture hover" }, pid: process.pid } })
+    return
+  }
+  if (data.method === "textDocument/completion") {
+    send({ jsonrpc: "2.0", id: data.id, result: { isIncomplete: false, items: [{ label: "fixtureSymbol", kind: 6 }] } })
+    return
+  }
+  if (data.method === "textDocument/prepareRename") {
+    send({ jsonrpc: "2.0", id: data.id, result: { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } }, placeholder: "BROKEN" } })
+    return
+  }
+  if (data.method === "textDocument/rename") {
+    send({ jsonrpc: "2.0", id: data.id, result: { changes: { [data.params.textDocument.uri]: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 6 } }, newText: data.params.newName }] } } })
     return
   }
   if (data.method === "textDocument/definition" || data.method === "textDocument/references") {

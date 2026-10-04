@@ -3,15 +3,14 @@
   "displayName": "async-coder",
   "description": "async-coder agent sidebar, code actions and terminal for VS Code",
   "version": "0.2.0",
-  "publisher": "sst-dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/anomalyco/opencode"
+    "url": "https://github.com/Mr-Dark-debug/Async-coder-cli"
   },
   "license": "MIT",
   "icon": "images/icon.png",
   "galleryBanner": {
-      "color": "#b4a4ef",
+    "color": "#b4a4ef",
     "theme": "dark"
   },
   "engines": {

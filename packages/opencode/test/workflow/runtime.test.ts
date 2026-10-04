@@ -263,28 +263,30 @@ describe("WorkflowRuntime error visibility", () => {
 })
 
 describe("WorkflowRuntime cancel cascade", () => {
-  it.live("cancel stops in-flight child agents and marks the run cancelled", () =>
-    provideTmpdirServer(
-      Effect.fnUntraced(function* ({ llm }) {
-        const runtime = yield* WorkflowRuntime.Service
-        const session = yield* Session.Service
-        const parent = yield* session.create({
-          title: "wf cancel",
-          permission: [{ permission: "*", pattern: "*", action: "allow" }],
-        })
-        yield* llm.hang // children hang so they're in-flight at cancel time
-        const script = [
-          `export const meta = { name: "t", description: "d" }`,
-          `return await parallel([() => agent("a"), () => agent("b"), () => agent("c")])`,
-        ].join("\n")
-        const { runID } = yield* runtime.start({ script, sessionID: parent.id, parentActorID: "main", model: ref })
-        yield* Effect.sleep("250 millis") // let the fan-out spawn children
-        yield* runtime.cancel({ runID })
-        const s = yield* runtime.status({ runID })
-        expect(s.status).toBe("cancelled")
-      }),
-      { git: true, config: providerCfg },
-    ),
+  it.live(
+    "cancel stops in-flight child agents and marks the run cancelled",
+    () =>
+      provideTmpdirServer(
+        Effect.fnUntraced(function* ({ llm }) {
+          const runtime = yield* WorkflowRuntime.Service
+          const session = yield* Session.Service
+          const parent = yield* session.create({
+            title: "wf cancel",
+            permission: [{ permission: "*", pattern: "*", action: "allow" }],
+          })
+          yield* llm.hang // children hang so they're in-flight at cancel time
+          const script = [
+            `export const meta = { name: "t", description: "d" }`,
+            `return await parallel([() => agent("a"), () => agent("b"), () => agent("c")])`,
+          ].join("\n")
+          const { runID } = yield* runtime.start({ script, sessionID: parent.id, parentActorID: "main", model: ref })
+          yield* Effect.sleep("250 millis") // let the fan-out spawn children
+          yield* runtime.cancel({ runID })
+          const s = yield* runtime.status({ runID })
+          expect(s.status).toBe("cancelled")
+        }),
+        { git: true, config: providerCfg },
+      ),
     // Headroom over the default 5s: this cancel test can run concurrently with the
     // heavyweight real-Instance worktree-isolation tests, where CI load occasionally
     // pushed it past 5s. Generous margin keeps it deterministic without masking hangs.
@@ -309,49 +311,51 @@ describe("WorkflowRuntime cancel cascade", () => {
   // graceful-cancelled child can be re-driven by the auto-answering test LLM and
   // bounce back to running:success later, which is a mock artifact unrelated to
   // the orphan bug; the cancel-stamp at t0 is the stable signal.
-  it.live("cancel during an in-flight fan-out reclaims every child (no orphan)", () =>
-    provideTmpdirServer(
-      Effect.fnUntraced(function* ({ llm }) {
-        const runtime = yield* WorkflowRuntime.Service
-        const session = yield* Session.Service
-        const registry = yield* ActorRegistry.Service
-        const parent = yield* session.create({
-          title: "wf cancel no-orphan",
-          permission: [{ permission: "*", pattern: "*", action: "allow" }],
-        })
-        yield* llm.hang // every child hangs at the LLM → in-flight at cancel time
-        // A wide fan-out keeps spawns resolving across the bridge so the cancel
-        // lands while children are registered but the post-resolve add (the bug)
-        // has not run.
-        const script = [
-          `export const meta = { name: "t", description: "d" }`,
-          `const ts = []`,
-          `for (let i = 0; i < 8; i++) ts.push(() => agent("child" + i))`,
-          `return await parallel(ts)`,
-        ].join("\n")
-        const { runID } = yield* runtime.start({
-          script,
-          sessionID: parent.id,
-          parentActorID: "main",
-          model: ref,
-          maxConcurrentAgents: 8,
-        })
-        // Let the fan-out register its children, then cancel mid-flight.
-        yield* Effect.sleep("150 millis")
-        yield* runtime.cancel({ runID })
+  it.live(
+    "cancel during an in-flight fan-out reclaims every child (no orphan)",
+    () =>
+      provideTmpdirServer(
+        Effect.fnUntraced(function* ({ llm }) {
+          const runtime = yield* WorkflowRuntime.Service
+          const session = yield* Session.Service
+          const registry = yield* ActorRegistry.Service
+          const parent = yield* session.create({
+            title: "wf cancel no-orphan",
+            permission: [{ permission: "*", pattern: "*", action: "allow" }],
+          })
+          yield* llm.hang // every child hangs at the LLM → in-flight at cancel time
+          // A wide fan-out keeps spawns resolving across the bridge so the cancel
+          // lands while children are registered but the post-resolve add (the bug)
+          // has not run.
+          const script = [
+            `export const meta = { name: "t", description: "d" }`,
+            `const ts = []`,
+            `for (let i = 0; i < 8; i++) ts.push(() => agent("child" + i))`,
+            `return await parallel(ts)`,
+          ].join("\n")
+          const { runID } = yield* runtime.start({
+            script,
+            sessionID: parent.id,
+            parentActorID: "main",
+            model: ref,
+            maxConcurrentAgents: 8,
+          })
+          // Let the fan-out register its children, then cancel mid-flight.
+          yield* Effect.sleep("150 millis")
+          yield* runtime.cancel({ runID })
 
-        const s = yield* runtime.status({ runID })
-        expect(s.status).toBe("cancelled")
+          const s = yield* runtime.status({ runID })
+          expect(s.status).toBe("cancelled")
 
-        // At least one child was actually spawned (else the test proves nothing).
-        const children = (yield* registry.listBySession(parent.id)).filter((a) => a.actorID !== "main")
-        expect(children.length).toBeGreaterThan(0)
-        // Every spawned child was reclaimed: cancel stamped lastOutcome="cancelled"
-        // on each. An orphan (never reclaimed) would have lastOutcome unset here.
-        expect(children.filter((a) => a.lastOutcome !== "cancelled")).toEqual([])
-      }),
-      { git: true, config: providerCfg },
-    ),
+          // At least one child was actually spawned (else the test proves nothing).
+          const children = (yield* registry.listBySession(parent.id)).filter((a) => a.actorID !== "main")
+          expect(children.length).toBeGreaterThan(0)
+          // Every spawned child was reclaimed: cancel stamped lastOutcome="cancelled"
+          // on each. An orphan (never reclaimed) would have lastOutcome unset here.
+          expect(children.filter((a) => a.lastOutcome !== "cancelled")).toEqual([])
+        }),
+        { git: true, config: providerCfg },
+      ),
     20000,
   )
 })
@@ -362,13 +366,23 @@ describe("WorkflowRuntime concurrency clamp", () => {
       Effect.fnUntraced(function* ({ llm }) {
         const runtime = yield* WorkflowRuntime.Service
         const session = yield* Session.Service
-        const parent = yield* session.create({ title: "wf clamp", permission: [{ permission: "*", pattern: "*", action: "allow" }] })
-        yield* llm.text("done"); yield* llm.text("done")
+        const parent = yield* session.create({
+          title: "wf clamp",
+          permission: [{ permission: "*", pattern: "*", action: "allow" }],
+        })
+        yield* llm.text("done")
+        yield* llm.text("done")
         const script = [
           `export const meta = { name: "t", description: "d" }`,
           `return (await parallel([() => agent("a"), () => agent("b")])).length`,
         ].join("\n")
-        const { runID } = yield* runtime.start({ script, sessionID: parent.id, parentActorID: "main", model: ref, maxConcurrentAgents: 100000 })
+        const { runID } = yield* runtime.start({
+          script,
+          sessionID: parent.id,
+          parentActorID: "main",
+          model: ref,
+          maxConcurrentAgents: 100000,
+        })
         const o = yield* runtime.wait({ runID })
         expect(o.status).toBe("completed")
         expect((o as { result: number }).result).toBe(2)
@@ -384,42 +398,44 @@ describe("WorkflowRuntime per-agent timeout (straggler-abort)", () => {
   // is gracefully cancelled and resolves to the never-throw null sentinel, so the
   // sibling's "ok" and the run COMPLETE — bounded by the per-agent timeout, NOT the
   // far-larger global scriptDeadline (a PASS proves the per-agent path fired).
-  it.live("a hung agent times out to null under agentTimeoutMs; the run completes", () =>
-    provideTmpdirServer(
-      Effect.fnUntraced(function* ({ llm }) {
-        const runtime = yield* WorkflowRuntime.Service
-        const session = yield* Session.Service
-        const parent = yield* session.create({
-          title: "wf agent-timeout",
-          permission: [{ permission: "*", pattern: "*", action: "allow" }],
-        })
-        // Queue ONE hang. The two agents race to dequeue it: whichever pulls it hangs
-        // forever; the other finds the queue empty and gets the server's auto-"ok".
-        // So exactly 1 hangs (→ times out → null) and 1 returns "ok", regardless of
-        // FIFO order — the assertion counts totals, so it's order-independent.
-        yield* llm.hang
-        const script = [
-          `export const meta = { name: "t", description: "d" }`,
-          `const r = await parallel([() => agent("a"), () => agent("b")])`,
-          `return r.map((x) => (x === null || x === undefined) ? "null" : "ok")`,
-        ].join("\n")
-        const { runID } = yield* runtime.start({
-          script,
-          sessionID: parent.id,
-          parentActorID: "main",
-          model: ref,
-          agentTimeoutMs: 1500,
-          scriptDeadlineMs: 60000, // far above the per-agent timeout
-        })
-        const outcome = yield* runtime.wait({ runID })
-        expect(outcome.status).toBe("completed")
-        const r = (outcome as { result: string[] }).result
-        expect(r.filter((x) => x === "null").length).toBe(1)
-        expect(r.filter((x) => x === "ok").length).toBe(1)
-      }),
-      { git: true, config: providerCfg },
-    ),
-    20000, // budget >> the 1500ms per-agent timeout, well under any true hang
+  it.live(
+    "a hung agent times out to null under agentTimeoutMs; the run completes",
+    () =>
+      provideTmpdirServer(
+        Effect.fnUntraced(function* ({ llm }) {
+          const runtime = yield* WorkflowRuntime.Service
+          const session = yield* Session.Service
+          const parent = yield* session.create({
+            title: "wf agent-timeout",
+            permission: [{ permission: "*", pattern: "*", action: "allow" }],
+          })
+          // Queue ONE hang. The two agents race to dequeue it: whichever pulls it hangs
+          // forever; the other finds the queue empty and gets the server's auto-"ok".
+          // So exactly 1 hangs (→ times out → null) and 1 returns "ok", regardless of
+          // FIFO order — the assertion counts totals, so it's order-independent.
+          yield* llm.hang
+          const script = [
+            `export const meta = { name: "t", description: "d" }`,
+            `const r = await parallel([() => agent("a"), () => agent("b")])`,
+            `return r.map((x) => (x === null || x === undefined) ? "null" : "ok")`,
+          ].join("\n")
+          const { runID } = yield* runtime.start({
+            script,
+            sessionID: parent.id,
+            parentActorID: "main",
+            model: ref,
+            agentTimeoutMs: 8000,
+            scriptDeadlineMs: 60000, // far above the per-agent timeout
+          })
+          const outcome = yield* runtime.wait({ runID })
+          expect(outcome.status).toBe("completed")
+          const r = (outcome as { result: string[] }).result
+          expect(r.filter((x) => x === "null").length).toBe(1)
+          expect(r.filter((x) => x === "ok").length).toBe(1)
+        }),
+        { git: true, config: providerCfg },
+      ),
+    30000, // Includes real provider/tool startup as well as the per-agent timeout.
   )
 })
 
@@ -478,10 +494,7 @@ describe("WorkflowRuntime deadline", () => {
           permission: [{ permission: "*", pattern: "*", action: "allow" }],
         })
         yield* llm.hang // the single agent hangs forever
-        const script = [
-          `export const meta = { name: "t", description: "d" }`,
-          `return await agent("x")`,
-        ].join("\n")
+        const script = [`export const meta = { name: "t", description: "d" }`, `return await agent("x")`].join("\n")
         const { runID } = yield* runtime.start({
           script,
           sessionID: parent.id,
@@ -504,7 +517,10 @@ describe("WorkflowRuntime counters", () => {
       Effect.fnUntraced(function* ({ llm }) {
         const runtime = yield* WorkflowRuntime.Service
         const session = yield* Session.Service
-        const parent = yield* session.create({ title: "wf counters", permission: [{ permission: "*", pattern: "*", action: "allow" }] })
+        const parent = yield* session.create({
+          title: "wf counters",
+          permission: [{ permission: "*", pattern: "*", action: "allow" }],
+        })
         yield* llm.error(400, { error: { message: "bad" } })
         yield* llm.text("ok")
         const script = [
@@ -530,8 +546,12 @@ describe("WorkflowRuntime list + resume", () => {
       Effect.fnUntraced(function* ({ llm }) {
         const runtime = yield* WorkflowRuntime.Service
         const session = yield* Session.Service
-        const parent = yield* session.create({ title: "wf list", permission: [{ permission: "*", pattern: "*", action: "allow" }] })
-        yield* llm.text("done"); yield* llm.text("done")
+        const parent = yield* session.create({
+          title: "wf list",
+          permission: [{ permission: "*", pattern: "*", action: "allow" }],
+        })
+        yield* llm.text("done")
+        yield* llm.text("done")
         const mk = () => [`export const meta = { name: "t", description: "d" }`, `return await agent("x")`].join("\n")
         const r1 = yield* runtime.start({ script: mk(), sessionID: parent.id, parentActorID: "main", model: ref })
         yield* runtime.wait({ runID: r1.runID })
@@ -550,7 +570,10 @@ describe("WorkflowRuntime list + resume", () => {
       Effect.fnUntraced(function* ({ llm }) {
         const runtime = yield* WorkflowRuntime.Service
         const session = yield* Session.Service
-        const parent = yield* session.create({ title: "wf resume", permission: [{ permission: "*", pattern: "*", action: "allow" }] })
+        const parent = yield* session.create({
+          title: "wf resume",
+          permission: [{ permission: "*", pattern: "*", action: "allow" }],
+        })
         yield* llm.text("done")
         const script = [`export const meta = { name: "t", description: "d" }`, `return await agent("x")`].join("\n")
         const { runID } = yield* runtime.start({ script, sessionID: parent.id, parentActorID: "main", model: ref })
@@ -577,7 +600,10 @@ describe("WorkflowRuntime list + resume", () => {
       Effect.fnUntraced(function* ({ llm }) {
         const runtime = yield* WorkflowRuntime.Service
         const session = yield* Session.Service
-        const parent = yield* session.create({ title: "wf resume live", permission: [{ permission: "*", pattern: "*", action: "allow" }] })
+        const parent = yield* session.create({
+          title: "wf resume live",
+          permission: [{ permission: "*", pattern: "*", action: "allow" }],
+        })
         yield* llm.hang
         const script = [`export const meta = { name: "t", description: "d" }`, `return await agent("x")`].join("\n")
         const { runID } = yield* runtime.start({ script, sessionID: parent.id, parentActorID: "main", model: ref })
@@ -610,55 +636,57 @@ describe("WorkflowRuntime list + resume", () => {
   // launch, so unlocked they both observe status "completed" and both relaunch.
   // (Verified empirically: against the unlocked code this assertion fails with
   // Received: 2, fast and repeatably — not flaky.)
-  it.live("two concurrent resumes of the same completed run launch exactly once (no double-launch)", () =>
-    provideTmpdirServer(
-      Effect.fnUntraced(function* ({ llm }) {
-        const runtime = yield* WorkflowRuntime.Service
-        const session = yield* Session.Service
-        const parent = yield* session.create({
-          title: "wf resume race",
-          permission: [{ permission: "*", pattern: "*", action: "allow" }],
-        })
-        // First run: one real spawn for agent("x"). It is journaled, so every resume
-        // replays from cache (zero new spawns).
-        yield* llm.text("done")
-        const script = [`export const meta = { name: "t", description: "d" }`, `return await agent("x")`].join("\n")
-        const { runID } = yield* runtime.start({ script, sessionID: parent.id, parentActorID: "main", model: ref })
-        const first = yield* runtime.wait({ runID })
-        expect(first.status).toBe("completed")
+  it.live(
+    "two concurrent resumes of the same completed run launch exactly once (no double-launch)",
+    () =>
+      provideTmpdirServer(
+        Effect.fnUntraced(function* ({ llm }) {
+          const runtime = yield* WorkflowRuntime.Service
+          const session = yield* Session.Service
+          const parent = yield* session.create({
+            title: "wf resume race",
+            permission: [{ permission: "*", pattern: "*", action: "allow" }],
+          })
+          // First run: one real spawn for agent("x"). It is journaled, so every resume
+          // replays from cache (zero new spawns).
+          yield* llm.text("done")
+          const script = [`export const meta = { name: "t", description: "d" }`, `return await agent("x")`].join("\n")
+          const { runID } = yield* runtime.start({ script, sessionID: parent.id, parentActorID: "main", model: ref })
+          const first = yield* runtime.wait({ runID })
+          expect(first.status).toBe("completed")
 
-        // Fire two resume(sameRunID) concurrently. Without the lock both pass the
-        // live-guard (status is "completed") and both re-launch. With the lock the
-        // second serializes behind the first and sees status "running" → resumed:false.
-        const results = yield* Effect.all([runtime.resume({ runID }), runtime.resume({ runID })], {
-          concurrency: "unbounded",
-        })
+          // Fire two resume(sameRunID) concurrently. Without the lock both pass the
+          // live-guard (status is "completed") and both re-launch. With the lock the
+          // second serializes behind the first and sees status "running" → resumed:false.
+          const results = yield* Effect.all([runtime.resume({ runID }), runtime.resume({ runID })], {
+            concurrency: "unbounded",
+          })
 
-        // PRIMARY (and discriminating): exactly one re-launch happened — locked: 1
-        // true + 1 false; unlocked: 2 true (double-launch).
-        expect(results.filter((r) => r.resumed).length).toBe(1)
-        expect(results.filter((r) => !r.resumed).length).toBe(1)
+          // PRIMARY (and discriminating): exactly one re-launch happened — locked: 1
+          // true + 1 false; unlocked: 2 true (double-launch).
+          expect(results.filter((r) => r.resumed).length).toBe(1)
+          expect(results.filter((r) => !r.resumed).length).toBe(1)
 
-        // The single relaunched pass replays cleanly to completion.
-        const out = yield* runtime.wait({ runID })
-        expect(out.status).toBe("completed")
-        expect((out as { result: unknown }).result).toBe("done") // replayed cached value
+          // The single relaunched pass replays cleanly to completion.
+          const out = yield* runtime.wait({ runID })
+          expect(out.status).toBe("completed")
+          expect((out as { result: unknown }).result).toBe("done") // replayed cached value
 
-        // SANITY: the surviving entry is a pure cache replay (no spawn) — a double-
-        // launch that re-spawned would show agentCount > 0.
-        const st = yield* runtime.status({ runID })
-        expect(st.agentCount).toBe(0)
+          // SANITY: the surviving entry is a pure cache replay (no spawn) — a double-
+          // launch that re-spawned would show agentCount > 0.
+          const st = yield* runtime.status({ runID })
+          expect(st.agentCount).toBe(0)
 
-        // Settle the relaunched fiber's terminal tail (bus.publish + inbox.send run
-        // AFTER Deferred.succeed, so wait() returns before the fiber is fully done)
-        // before the tmpdir fixture's Instance.disposeAll() tears the layer scope
-        // down. Without this drain, disposeAll can interrupt the fiber mid-tail and
-        // hang teardown — a PRE-EXISTING resume teardown flake (the upstream single-
-        // resume test exhibits it in isolation too), independent of the P2-1 lock.
-        yield* Effect.sleep("300 millis")
-      }),
-      { git: true, config: providerCfg },
-    ),
+          // Settle the relaunched fiber's terminal tail (bus.publish + inbox.send run
+          // AFTER Deferred.succeed, so wait() returns before the fiber is fully done)
+          // before the tmpdir fixture's Instance.disposeAll() tears the layer scope
+          // down. Without this drain, disposeAll can interrupt the fiber mid-tail and
+          // hang teardown — a PRE-EXISTING resume teardown flake (the upstream single-
+          // resume test exhibits it in isolation too), independent of the P2-1 lock.
+          yield* Effect.sleep("300 millis")
+        }),
+        { git: true, config: providerCfg },
+      ),
     15000,
   )
 })
@@ -796,64 +824,71 @@ describe("WorkflowRuntime replay journal", () => {
   // DISCRIMINATOR vs the same-script resume test above: same body → sha matches →
   // replay → agentCount 0. Changed body → sha differs → fresh → agentCount > 0, and
   // the old journal lines are gone (cleared, not interleaved with the new pass).
-  it.live("resume with an EDITED script discards the stale journal and re-spawns fresh", () =>
-    provideTmpdirServer(
-      Effect.fnUntraced(function* ({ llm }) {
-        const runtime = yield* WorkflowRuntime.Service
-        const session = yield* Session.Service
-        const parent = yield* session.create({
-          title: "wf script change",
-          permission: [{ permission: "*", pattern: "*", action: "allow" }],
-        })
-        const scriptA = [
-          `export const meta = { name: "t", description: "d" }`,
-          `const r = await parallel([() => agent("a"), () => agent("b")])`,
-          `return r`,
-        ].join("\n")
-        // First run under script A: 2 real spawns, both journaled.
-        yield* llm.text("done")
-        yield* llm.text("done")
-        const first = yield* runtime.start({ script: scriptA, sessionID: parent.id, parentActorID: "main", model: ref })
-        const out1 = yield* runtime.wait({ runID: first.runID })
-        expect(out1.status).toBe("completed")
-        const st1 = yield* runtime.status({ runID: first.runID })
-        expect(st1.agentCount).toBe(2)
+  it.live(
+    "resume with an EDITED script discards the stale journal and re-spawns fresh",
+    () =>
+      provideTmpdirServer(
+        Effect.fnUntraced(function* ({ llm }) {
+          const runtime = yield* WorkflowRuntime.Service
+          const session = yield* Session.Service
+          const parent = yield* session.create({
+            title: "wf script change",
+            permission: [{ permission: "*", pattern: "*", action: "allow" }],
+          })
+          const scriptA = [
+            `export const meta = { name: "t", description: "d" }`,
+            `const r = await parallel([() => agent("a"), () => agent("b")])`,
+            `return r`,
+          ].join("\n")
+          // First run under script A: 2 real spawns, both journaled.
+          yield* llm.text("done")
+          yield* llm.text("done")
+          const first = yield* runtime.start({
+            script: scriptA,
+            sessionID: parent.id,
+            parentActorID: "main",
+            model: ref,
+          })
+          const out1 = yield* runtime.wait({ runID: first.runID })
+          expect(out1.status).toBe("completed")
+          const st1 = yield* runtime.status({ runID: first.runID })
+          expect(st1.agentCount).toBe(2)
 
-        // Edit the persisted script: overwrite <runID>.js with a DIFFERENT body
-        // (resume reads its script from this file). Same prompts but a changed body
-        // → a different sha → the stored journal must be discarded.
-        const scriptB = [
-          `export const meta = { name: "t", description: "d" }`,
-          `// edited between resume cycles — a different body changes the sha`,
-          `const r = await parallel([() => agent("a"), () => agent("b")])`,
-          `return r`,
-        ].join("\n")
-        yield* WorkflowPersistence.writeScript(first.runID, scriptB)
+          // Edit the persisted script: overwrite <runID>.js with a DIFFERENT body
+          // (resume reads its script from this file). Same prompts but a changed body
+          // → a different sha → the stored journal must be discarded.
+          const scriptB = [
+            `export const meta = { name: "t", description: "d" }`,
+            `// edited between resume cycles — a different body changes the sha`,
+            `const r = await parallel([() => agent("a"), () => agent("b")])`,
+            `return r`,
+          ].join("\n")
+          yield* WorkflowPersistence.writeScript(first.runID, scriptB)
 
-        // Resume: the sha mismatch must force a fresh run. Queue 2 fresh replies; if
-        // the journal were (wrongly) replayed these would go unused and agentCount
-        // would be 0. agentCount === 2 is the proof of a fresh re-spawn.
-        yield* llm.text("done")
-        yield* llm.text("done")
-        const r = yield* runtime.resume({ runID: first.runID })
-        expect(r.resumed).toBe(true)
-        const out2 = yield* runtime.wait({ runID: first.runID })
-        expect(out2.status).toBe("completed")
-        expect((out2 as { result: string[] }).result.filter((x) => x === "done").length).toBe(2)
-        const st2 = yield* runtime.status({ runID: first.runID })
-        expect(st2.agentCount).toBe(2) // fresh re-spawn, NOT a 0-spawn replay
+          // Resume: the sha mismatch must force a fresh run. Queue 2 fresh replies; if
+          // the journal were (wrongly) replayed these would go unused and agentCount
+          // would be 0. agentCount === 2 is the proof of a fresh re-spawn.
+          yield* llm.text("done")
+          yield* llm.text("done")
+          const r = yield* runtime.resume({ runID: first.runID })
+          expect(r.resumed).toBe(true)
+          const out2 = yield* runtime.wait({ runID: first.runID })
+          expect(out2.status).toBe("completed")
+          expect((out2 as { result: string[] }).result.filter((x) => x === "done").length).toBe(2)
+          const st2 = yield* runtime.status({ runID: first.runID })
+          expect(st2.agentCount).toBe(2) // fresh re-spawn, NOT a 0-spawn replay
 
-        // The new sha was re-stamped: a SECOND resume of the now-current script B
-        // replays from the freshly-written journal (zero new spawns).
-        const r2 = yield* runtime.resume({ runID: first.runID })
-        expect(r2.resumed).toBe(true)
-        const out3 = yield* runtime.wait({ runID: first.runID })
-        expect(out3.status).toBe("completed")
-        const st3 = yield* runtime.status({ runID: first.runID })
-        expect(st3.agentCount).toBe(0) // sha now matches → pure replay
-      }),
-      { git: true, config: providerCfg },
-    ),
+          // The new sha was re-stamped: a SECOND resume of the now-current script B
+          // replays from the freshly-written journal (zero new spawns).
+          const r2 = yield* runtime.resume({ runID: first.runID })
+          expect(r2.resumed).toBe(true)
+          const out3 = yield* runtime.wait({ runID: first.runID })
+          expect(out3.status).toBe("completed")
+          const st3 = yield* runtime.status({ runID: first.runID })
+          expect(st3.agentCount).toBe(0) // sha now matches → pure replay
+        }),
+        { git: true, config: providerCfg },
+      ),
     20000,
   )
 })

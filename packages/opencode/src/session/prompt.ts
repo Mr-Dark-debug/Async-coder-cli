@@ -83,7 +83,14 @@ import { Team } from "@/team"
 import { ActorRegistry } from "@/actor/registry"
 import { Metrics } from "@/metrics"
 import { resolveInvocationStyle, type ToolStyleConfig } from "../tool/invocation-style"
-import { shouldAutoDream, shouldAutoDistill, DREAM_TASK, DISTILL_TASK, AUTO_DREAM_TITLE, AUTO_DISTILL_TITLE } from "./auto-dream"
+import {
+  shouldAutoDream,
+  shouldAutoDistill,
+  DREAM_TASK,
+  DISTILL_TASK,
+  AUTO_DREAM_TITLE,
+  AUTO_DISTILL_TITLE,
+} from "./auto-dream"
 
 // @ts-ignore
 globalThis.AI_SDK_LOG_WARNINGS = false
@@ -93,8 +100,7 @@ globalThis.AI_SDK_LOG_WARNINGS = false
 // emit JSON and crash the shell parser). `memory` has no shell form, so it is
 // always JSON. Exported for unit testing.
 export function recallHintLines(toolCfg: ToolStyleConfig | undefined): string[] {
-  const taskHint =
-    resolveInvocationStyle(toolCfg, "task") === "shell" ? "- task list" : `- task({ operation: "list" })`
+  const taskHint = resolveInvocationStyle(toolCfg, "task") === "shell" ? "- task list" : `- task({ operation: "list" })`
   const actorHint =
     resolveInvocationStyle(toolCfg, "actor") === "shell"
       ? "- actor status <actor_id>"
@@ -240,7 +246,12 @@ export const layer = Layer.effect(
     // only needs to pass string IDs.
     const capture: typeof prefixCaptureRef.current = (input) =>
       Effect.gen(function* () {
-        const empty = { system: [] as string[], tools: {} as Record<string, AITool>, inheritedMessages: [] as ModelMessage[], parentPermission: [] as Permission.Ruleset }
+        const empty = {
+          system: [] as string[],
+          tools: {} as Record<string, AITool>,
+          inheritedMessages: [] as ModelMessage[],
+          parentPermission: [] as Permission.Ruleset,
+        }
         const ag = yield* agents.get(input.agentName).pipe(Effect.catch(() => Effect.succeed(undefined)))
         if (!ag) return empty
         const model = yield* provider
@@ -462,9 +473,7 @@ export const layer = Layer.effect(
       const userMessage = input.messages.findLast((msg) => msg.info.role === "user")
       if (!userMessage) return input.messages
 
-      const composeModeMsg = input.messages.find(
-        (msg) => msg.info.role === "user" && msg.info.agent === "compose",
-      )
+      const composeModeMsg = input.messages.find((msg) => msg.info.role === "user" && msg.info.agent === "compose")
       if (composeModeMsg) {
         const composeModeBlock = composeSkillsBlock()
         composeModeMsg.parts.unshift({
@@ -711,8 +720,14 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                   return cancelOutput
                 }
                 if (["edit", "write", "apply_patch", "bash"].includes(item.id)) {
-                  const files = typeof beforeOutput.args.filePath === "string" ? [beforeOutput.args.filePath]
-                    : typeof beforeOutput.args.patchText === "string" ? [...beforeOutput.args.patchText.matchAll(/^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm)].map((match) => match[1]!.trim()) : undefined
+                  const files =
+                    typeof beforeOutput.args.filePath === "string"
+                      ? [beforeOutput.args.filePath]
+                      : typeof beforeOutput.args.patchText === "string"
+                        ? [...beforeOutput.args.patchText.matchAll(/^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm)].map(
+                            (match) => match[1]!.trim(),
+                          )
+                        : undefined
                   yield* Checkpoint.autoEffect({ sessionID: ctx.sessionID, tool: item.id, files })
                 }
                 const result = yield* item.execute(beforeOutput.args, ctx)
@@ -741,7 +756,10 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                   beforeOutput.args?.filePath &&
                   isExtensionPath(beforeOutput.args.filePath)
                 ) {
-                  yield* registry.reload().pipe(Effect.tapError((err) => Effect.sync(() => log.warn("extension reload failed", { error: err }))), Effect.ignore)
+                  yield* registry.reload().pipe(
+                    Effect.tapError((err) => Effect.sync(() => log.warn("extension reload failed", { error: err }))),
+                    Effect.ignore,
+                  )
                 }
                 yield* bus
                   .publish(Metrics.ToolCall, {
@@ -806,7 +824,9 @@ NOTE: At any point in time through this workflow you should feel free to ask the
               )
               if (mcpBeforeOutput.cancel) {
                 const cancelResult = {
-                  content: [{ type: "text" as const, text: mcpBeforeOutput.cancelReason || "Tool call cancelled by hook" }],
+                  content: [
+                    { type: "text" as const, text: mcpBeforeOutput.cancelReason || "Tool call cancelled by hook" },
+                  ],
                 }
                 yield* bus
                   .publish(Metrics.ToolCall, {
@@ -997,6 +1017,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         })
         .pipe(
           Effect.catchCause((cause) => {
+            if (Cause.hasInterruptsOnly(cause)) return Effect.failCause(cause)
             const defect = Cause.squash(cause)
             error = defect instanceof Error ? defect : new Error(String(defect))
             log.error("subtask execution failed", { error, agent: task.agent, description: task.description })
@@ -1303,11 +1324,9 @@ NOTE: At any point in time through this workflow you should feel free to ask the
     })
 
     const lastModel = Effect.fnUntraced(function* (sessionID: SessionID) {
-      const match = yield* sessions.findMessage(
-        sessionID,
-        (m) => m.info.role === "user" && !!m.info.model,
-        { agentID: "*" },
-      )
+      const match = yield* sessions.findMessage(sessionID, (m) => m.info.role === "user" && !!m.info.model, {
+        agentID: "*",
+      })
       if (Option.isSome(match) && match.value.info.role === "user") return match.value.info.model
       return yield* provider.defaultModel()
     })
@@ -1758,10 +1777,8 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       throw new Error("Impossible")
     })
 
-    const runLoop: (sessionID: SessionID, agentID?: string, task_id?: string) => Effect.Effect<MessageV2.WithParts> = Effect.fn(
-      "SessionPrompt.run",
-    )(
-      function* (sessionID: SessionID, agentID?: string, task_id?: string) {
+    const runLoop: (sessionID: SessionID, agentID?: string, task_id?: string) => Effect.Effect<MessageV2.WithParts> =
+      Effect.fn("SessionPrompt.run")(function* (sessionID: SessionID, agentID?: string, task_id?: string) {
         const ctx = yield* InstanceState.context
         const slog = elog.with({ sessionID })
         let structured: unknown | undefined
@@ -2333,7 +2350,12 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                     Effect.gen(function* () {
                       const s = yield* svc.create({ title: AUTO_DREAM_TITLE })
                       const sp = yield* Service
-                      yield* sp.prompt({ sessionID: s.id, agent: "dream", model: mdl, parts: [{ type: "text", text: DREAM_TASK }] })
+                      yield* sp.prompt({
+                        sessionID: s.id,
+                        agent: "dream",
+                        model: mdl,
+                        parts: [{ type: "text", text: DREAM_TASK }],
+                      })
                     }),
                   ),
                 ).catch((err) => log.error("auto-dream prompt failed", { error: String(err) }))
@@ -2344,7 +2366,12 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                     Effect.gen(function* () {
                       const s = yield* svc.create({ title: AUTO_DISTILL_TITLE })
                       const sp = yield* Service
-                      yield* sp.prompt({ sessionID: s.id, agent: "distill", model: mdl, parts: [{ type: "text", text: DISTILL_TASK }] })
+                      yield* sp.prompt({
+                        sessionID: s.id,
+                        agent: "distill",
+                        model: mdl,
+                        parts: [{ type: "text", text: DISTILL_TASK }],
+                      })
                     }),
                   ),
                 ).catch((err) => log.error("auto-distill prompt failed", { error: String(err) }))
@@ -2432,9 +2459,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
               const lastUserMsg = msgs.findLast((m) => m.info.role === "user")
               if (
                 lastUserMsg &&
-                !lastUserMsg.parts.some(
-                  (p) => p.type === "text" && p.text?.includes("repeating the same action"),
-                )
+                !lastUserMsg.parts.some((p) => p.type === "text" && p.text?.includes("repeating the same action"))
               ) {
                 lastUserMsg.parts.push({
                   id: PartID.ascending(),
@@ -2463,8 +2488,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           // summary, checkpoint-writer) are exempt from context management;
           // see docs/superpowers/specs/2026-04-28-bounded-computation-agents-design.md
           const agent = yield* agents.get(lastUser.agent)
-          const isBoundedComputation =
-            agent?.native === true && agent?.hidden === true
+          const isBoundedComputation = agent?.native === true && agent?.hidden === true
 
           // Fire background checkpoint writers for any newly-crossed thresholds
           // based on the latest completed assistant message's tokens. Must run
@@ -2659,16 +2683,13 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             // agent identity — which would diverge from the parent and break the
             // prefix cache.
             const actorRecord = lastUser.agentID
-              ? yield* actorRegistry.get(sessionID, lastUser.agentID).pipe(
-                  Effect.orElseSucceed(() => undefined),
-                )
+              ? yield* actorRegistry.get(sessionID, lastUser.agentID).pipe(Effect.orElseSucceed(() => undefined))
               : undefined
             // v9 registers main as `mode: "main"` with `contextMode: "full"`.
             // Only spawned actors (subagent/peer) carry a frozen ForkContext;
             // main is the captor, never the captured.
             const isForkAgent =
-              actorRecord?.contextMode === "full" &&
-              (actorRecord.mode === "subagent" || actorRecord.mode === "peer")
+              actorRecord?.contextMode === "full" && (actorRecord.mode === "subagent" || actorRecord.mode === "peer")
 
             // Fork path: read frozen ForkContext from Actor service (late-bound via
             // spawnRef to break the Actor → SessionPrompt → Actor layer cycle).
@@ -2683,7 +2704,11 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                   agentID: lastUser.agentID,
                 })
                 yield* actorRegistry
-                  .updateStatus(sessionID, lastUser.agentID!, { status: "idle", lastOutcome: "failure", lastError: "missing fork context" })
+                  .updateStatus(sessionID, lastUser.agentID!, {
+                    status: "idle",
+                    lastOutcome: "failure",
+                    lastError: "missing fork context",
+                  })
                   .pipe(Effect.ignore)
                 return "break" as const
               }
@@ -2730,10 +2755,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                 agentID: lastUser.agentID,
               })
 
-              if (
-                result === "continue" &&
-                (yield* autoContinueOutputLength({ lastUser, assistant: handle.message }))
-              ) {
+              if (result === "continue" && (yield* autoContinueOutputLength({ lastUser, assistant: handle.message }))) {
                 return "continue" as const
               }
 
@@ -2769,8 +2791,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                 (forkClassification.type === "think-only" || forkClassification.type === "invalid") &&
                 format.type !== "json_schema"
               ) {
-                const reason =
-                  forkClassification.type === "invalid" ? forkClassification.reason : "think-only"
+                const reason = forkClassification.type === "invalid" ? forkClassification.reason : "think-only"
                 if (yield* autoContinueInvalidOutput({ lastUser, assistant: handle.message, reason }))
                   return "continue" as const
                 return "break" as const
@@ -2828,17 +2849,13 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             // task creates, etc.) so each step doesn't replay from the bare
             // user prompt. The watermark is for fork capture only (frozen
             // snapshot of parent-view at spawn time).
-            const { system: prebuiltSystem, inheritedMessages: modelMsgs } =
-              yield* buildLLMRequestPrefix({
-                sessionID,
-                agent,
-                model,
-                msgs,
-                additions,
-              }).pipe(
-                Effect.provideService(LLM.Service, llm),
-                Effect.provideService(ToolRegistry.Service, registry),
-              )
+            const { system: prebuiltSystem, inheritedMessages: modelMsgs } = yield* buildLLMRequestPrefix({
+              sessionID,
+              agent,
+              model,
+              msgs,
+              additions,
+            }).pipe(Effect.provideService(LLM.Service, llm), Effect.provideService(ToolRegistry.Service, registry))
             const maxModeCfg = (yield* config.get()).experimental?.maxMode
             const useMaxMode =
               agent.name === MaxMode.MAX_MODE_AGENT && maxModeCfg !== undefined && format.type !== "json_schema"
@@ -2868,15 +2885,11 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                   handle,
                   llm,
                   candidates: maxModeCfg?.candidates,
-                  setStatus: (message) =>
-                    status.set(sessionID, message ? { type: "busy", message } : { type: "busy" }),
+                  setStatus: (message) => status.set(sessionID, message ? { type: "busy", message } : { type: "busy" }),
                 })
               : yield* handle.process(processArgs)
 
-            if (
-              result === "continue" &&
-              (yield* autoContinueOutputLength({ lastUser, assistant: handle.message }))
-            ) {
+            if (result === "continue" && (yield* autoContinueOutputLength({ lastUser, assistant: handle.message }))) {
               return "continue" as const
             }
 
@@ -2945,14 +2958,15 @@ NOTE: At any point in time through this workflow you should feel free to ask the
               // boundary marker (never deletes). Prefer rebuild over compaction:
               // if a writer is running or finished, wait (bounded) and rebuild
               // from it. Fall back to compaction only when no boundary exists.
-              const writerRunning = yield* checkpoint.isWriterRunning(sessionID)
+              const writerRunning = yield* checkpoint
+                .isWriterRunning(sessionID)
                 .pipe(Effect.catch(() => Effect.succeed(false)))
-              const hasCP = yield* checkpoint.hasCheckpoint(sessionID)
-                .pipe(Effect.catch(() => Effect.succeed(false)))
+              const hasCP = yield* checkpoint.hasCheckpoint(sessionID).pipe(Effect.catch(() => Effect.succeed(false)))
 
               if (writerRunning || hasCP) {
                 yield* checkpoint.waitForWriter(sessionID).pipe(Effect.ignore)
-                const boundary2 = yield* checkpoint.lastBoundary(sessionID)
+                const boundary2 = yield* checkpoint
+                  .lastBoundary(sessionID)
                   .pipe(Effect.catch(() => Effect.succeed(undefined)))
                 const boundary2Msg = boundary2 ? msgs.find((m) => m.info.id === boundary2) : undefined
                 const inserted2 = boundary2
@@ -2996,7 +3010,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
             .filter((p): p is MessageV2.TextPart => p.type === "text" && !p.synthetic)
             .map((p) => p.text)
             .join(" ")
-          if (stepText.trim()) {
+          if (stepText.trim() && !handle.message.error && lastUser.format?.type !== "json_schema") {
             // Include tool call signatures in the key so same text + different tools ≠ loop
             const toolSig = completedParts
               .filter((p): p is MessageV2.ToolPart => p.type === "tool")
@@ -3020,8 +3034,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
                   })
                   break
                 }
-                const recoveryText =
-                  textLoopRecoveryAttempts === 0 ? RECOVERY_PROMPT_MILD : RECOVERY_PROMPT_STRONG
+                const recoveryText = textLoopRecoveryAttempts === 0 ? RECOVERY_PROMPT_MILD : RECOVERY_PROMPT_STRONG
                 // Create a NEW user message at the end of conversation (not append to original)
                 const reentry = yield* sessions.updateMessage({
                   id: MessageID.ascending(),
@@ -3072,18 +3085,15 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         }
         const final = yield* lastAssistant(sessionID, agentID)
         const finalIsError = final.info.role === "assistant" && !!final.info.error
-        const lastUserForMetrics = yield* sessions.findMessage(
-          sessionID,
-          (m) => m.info.role === "user",
-          { agentID: "*" },
-        )
+        const lastUserForMetrics = yield* sessions.findMessage(sessionID, (m) => m.info.role === "user", {
+          agentID: "*",
+        })
         yield* publishAgentRequest(
           finalIsError ? "error" : "completed",
           Option.isSome(lastUserForMetrics) ? lastUserForMetrics.value.info.agent : final.info.agent,
         )
         return final
-      },
-    )
+      })
 
     const loop: (input: z.infer<typeof LoopInput>) => Effect.Effect<MessageV2.WithParts> = Effect.fn(
       "SessionPrompt.loop",
@@ -3203,9 +3213,10 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 
       let parts: PromptInput["parts"]
       if (isSubtask) {
-        const promptText = cmd.source === "skill"
-          ? templateCommand + (input.arguments.trim() ? "\n\n" + input.arguments : "")
-          : (templateParts.find((y): y is typeof y & { type: "text"; text: string } => y.type === "text"))?.text ?? ""
+        const promptText =
+          cmd.source === "skill"
+            ? templateCommand + (input.arguments.trim() ? "\n\n" + input.arguments : "")
+            : (templateParts.find((y): y is typeof y & { type: "text"; text: string } => y.type === "text")?.text ?? "")
         parts = [
           {
             type: "subtask" as const,
@@ -3217,9 +3228,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
           },
         ]
       } else if (cmd.source === "skill") {
-        const visibleText = input.arguments.trim()
-          ? `/${input.command} ${input.arguments}`
-          : `/${input.command}`
+        const visibleText = input.arguments.trim() ? `/${input.command} ${input.arguments}` : `/${input.command}`
         const skillPart = {
           type: "text" as const,
           text: `<skill_content name="${input.command}">\n${templateCommand}\n</skill_content>`,
@@ -3337,8 +3346,12 @@ export const PromptInput = z.object({
     ),
   agent: z.string().optional(),
   agentID: z.string().optional(),
-  task_id: z.string().optional()
-    .describe("If the spawning caller bound this prompt to a specific user-task (T4 etc), pass its TID. Propagates to Tool.Context.taskId so memory-path-guard allows writes to tasks/<task_id>/*.md."),
+  task_id: z
+    .string()
+    .optional()
+    .describe(
+      "If the spawning caller bound this prompt to a specific user-task (T4 etc), pass its TID. Propagates to Tool.Context.taskId so memory-path-guard allows writes to tasks/<task_id>/*.md.",
+    ),
   source: z.enum(["user", "spawn", "hook"]).optional(),
   provenance: MessageV2.Provenance.optional(),
   noReply: z.boolean().optional(),

@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "@solidjs/router"
-import { createEffect, createMemo, For, Show } from "solid-js"
+import { createEffect, createMemo, For, Show, untrack } from "solid-js"
 import { createStore } from "solid-js/store"
 import { useSync } from "@/context/sync"
 import { Persist, persisted } from "@/utils/persist"
@@ -15,7 +15,9 @@ export function SessionTabs() {
   createEffect(() => {
     const id = params.id
     if (!ready() || !id) return
-    setStore("directories", params.dir, (current = []) => openSessionTab(current, id))
+    // The updater reads tab state internally. It must not subscribe this route
+    // effect to tab changes, otherwise closing the active tab immediately reopens it.
+    untrack(() => setStore("directories", params.dir, (current = []) => openSessionTab(current, id)))
   })
   const go = (id?: string) => navigate(`/${params.dir}/session${id ? `/${id}` : ""}`)
   return <div role="tablist" aria-label="Agent sessions" class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border-weak-base px-3 py-1">

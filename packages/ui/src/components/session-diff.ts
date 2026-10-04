@@ -38,7 +38,7 @@ function patch(diff: ReviewDiff) {
           beforeLines.push(line.slice(1))
         } else if (line.startsWith("+")) {
           afterLines.push(line.slice(1))
-        } else {
+        } else if (line.startsWith(" ")) {
           // context line (starts with ' ')
           beforeLines.push(line.slice(1))
           afterLines.push(line.slice(1))
@@ -46,7 +46,17 @@ function patch(diff: ReviewDiff) {
       }
     }
 
-    return { before: beforeLines.join("\n"), after: afterLines.join("\n"), patch: diff.patch }
+    const newline = (lines: string[], side: "-" | "+") => {
+      const missing = patch.hunks.some((hunk) =>
+        hunk.lines.some(
+          (line, index) =>
+            line.startsWith("\\ No newline") &&
+            (hunk.lines[index - 1]?.startsWith(side) || hunk.lines[index - 1]?.startsWith(" ")),
+        ),
+      )
+      return lines.join("\n") + (lines.length && !missing ? "\n" : "")
+    }
+    return { before: newline(beforeLines, "-"), after: newline(afterLines, "+"), patch: diff.patch }
   }
   return {
     before: "before" in diff && typeof diff.before === "string" ? diff.before : "",

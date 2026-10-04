@@ -1027,6 +1027,10 @@ export function Prompt(props: PromptProps) {
       return false
     }
     if (feature?.type === "mcp") {
+      if (!(feature.name in sync.data.mcp)) {
+        toast.show({ message: `MCP server ${feature.name} was not found. Use /mcp to browse configured servers.`, variant: "error" })
+        return false
+      }
       const result = await (feature.action === "connect" ? sdk.client.mcp.connect({ name: feature.name }) : sdk.client.mcp.disconnect({ name: feature.name })).catch((error: unknown) => {
         toast.show({ message: error instanceof Error ? error.message : String(error), variant: "error" })
         return undefined
@@ -1035,7 +1039,11 @@ export function Prompt(props: PromptProps) {
         if (result?.error) toast.show({ message: JSON.stringify(result.error), variant: "error" })
         return false
       }
-      const status = await sdk.client.mcp.status()
+      const status = await sdk.client.mcp.status().catch((error: unknown) => {
+        toast.show({ message: error instanceof Error ? error.message : String(error), variant: "error" })
+        return undefined
+      })
+      if (!status?.data || status.error) return false
       if (status.data) sync.set("mcp", status.data)
       const current = status.data?.[feature.name]
       toast.show({ message: `${feature.name}: ${current?.status ?? feature.action}`, variant: current?.status === "failed" ? "error" : "info" })

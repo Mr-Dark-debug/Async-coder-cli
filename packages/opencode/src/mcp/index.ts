@@ -74,6 +74,7 @@ export const Status = z
     z
       .object({
         status: z.literal("connected"),
+        tools: z.array(z.string()).optional(),
       })
       .meta({
         ref: "MCPStatusConnected",
@@ -597,7 +598,8 @@ export const layer = Layer.effect(
 
       for (const [key, mcp] of Object.entries(config)) {
         if (!isMcpConfigured(mcp)) continue
-        result[key] = s.status[key] ?? { status: "disabled" }
+        const current = s.status[key] ?? { status: "disabled" as const }
+        result[key] = current.status === "connected" ? { ...current, tools: (s.defs[key] ?? []).map((tool) => tool.name) } : current
       }
 
       return result

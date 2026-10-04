@@ -20,7 +20,7 @@ const mode = process.argv[2]
 if (mode === "stdio-server") {
   await server().connect(new StdioServerTransport())
 } else {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "async-coder-mcp-protocol-"))
+  const directory = process.argv[3] ?? await fs.mkdtemp(path.join(os.tmpdir(), "async-coder-mcp-protocol-"))
   process.env.XDG_CONFIG_HOME = path.join(directory, "config")
   process.env.XDG_DATA_HOME = path.join(directory, "data")
   process.env.XDG_CACHE_HOME = path.join(directory, "cache")
@@ -28,6 +28,7 @@ if (mode === "stdio-server") {
   process.env.HOME = directory
   process.env.USERPROFILE = directory
   process.env.ASYNC_CODER_DISABLE_DEFAULT_PLUGINS = "true"
+  process.env.ASYNC_CODER_DISABLE_MODELS_FETCH = "true"
   const transports = new Map<string, WebStandardStreamableHTTPServerTransport>()
   const sse = new Map<string, SSEServerTransport>()
   const http = mode === "http" ? Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: async (request) => {
@@ -57,23 +58,29 @@ if (mode === "stdio-server") {
   await Bun.write(path.join(directory, "async-coder.json"), JSON.stringify({ mcp: { fixture: url
     ? { type: "remote", url, transport: mode === "sse" ? "sse" : "http", oauth: false, timeout: 3000, enabled: false }
     : { type: "local", command: [process.execPath, import.meta.filename, "stdio-server"], timeout: 3000, enabled: false } } }))
+  console.error("MCP fixture: loading application services")
   const { MCP } = await import("../../src/mcp")
   const { Instance } = await import("../../src/project/instance")
   const result = await Instance.provide({ directory, fn: () => Effect.gen(function* () {
     const manager = yield* MCP.Service
+    console.error("MCP fixture: connecting")
     yield* manager.connect("fixture")
-    const connected = (yield* manager.status()).fixture.status
+    const connectedStatus = (yield* manager.status()).fixture
+    const connected = connectedStatus.status
     const tools = yield* manager.tools()
+    console.error("MCP fixture: calling discovered tool")
     const execute = tools.fixture_echo?.execute
     if (!execute) throw new Error("Fixture MCP tool was not discovered")
     const output = yield* Effect.promise(async () => execute({ text: "roundtrip" }, { toolCallId: "fixture", messages: [] }))
     yield* manager.disconnect("fixture")
     const disconnected = (yield* manager.status()).fixture.status
     yield* manager.connect("fixture")
+    console.error("MCP fixture: reconnected")
     const reconnected = (yield* manager.status()).fixture.status
     yield* manager.disconnect("fixture")
-    return { connected, output, disconnected, reconnected }
+    return { connected, toolNames: connectedStatus.status === "connected" ? connectedStatus.tools : undefined, output, disconnected, reconnected }
   }).pipe(Effect.scoped, Effect.provide(MCP.defaultLayer), Effect.runPromise) })
+  console.error("MCP fixture: disposing services")
   await Instance.disposeAll()
   http?.stop(true)
   await Promise.all([...sse.values()].map((current) => current.close()))

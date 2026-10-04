@@ -1,4 +1,4 @@
-import { batch, createMemo, onCleanup, onMount, type Accessor } from "solid-js"
+import { createMemo, onCleanup, onMount, type Accessor } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { same } from "@/utils/same"
@@ -106,20 +106,14 @@ export const createOpenReviewFile = (input: {
   tabForPath: (path: string) => string
   openTab: (tab: string) => void
   setActive: (tab: string) => void
-  loadFile: (path: string) => any | Promise<void>
+  loadFile: (path: string) => unknown
 }) => {
   return (path: string) => {
-    batch(() => {
-      input.showAllFiles()
-      const maybePromise = input.loadFile(path)
-      const open = () => {
-        const tab = input.tabForPath(path)
-        input.openTab(tab)
-        input.setActive(tab)
-      }
-      if (maybePromise instanceof Promise) void maybePromise.then(open)
-      else open()
-    })
+    input.showAllFiles()
+    void input.loadFile(path)
+    const tab = input.tabForPath(path)
+    input.openTab(tab)
+    input.setActive(tab)
   }
 }
 

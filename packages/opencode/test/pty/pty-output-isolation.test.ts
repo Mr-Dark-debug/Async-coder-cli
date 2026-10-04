@@ -6,6 +6,19 @@ import { Pty } from "../../src/pty"
 import { tmpdir } from "../fixture/fixture"
 import { setTimeout as sleep } from "node:timers/promises"
 
+const echo = {
+  command: process.execPath,
+  args: ["-e", 'process.stdout.write("PTY_READY\\n"); process.stdin.on("data", data => process.stdout.write(data))'],
+}
+const newline = process.platform === "win32" ? "\r" : "\n"
+async function waitFor(fn: () => boolean) {
+  const deadline = Date.now() + 5000
+  while (!fn()) {
+    if (Date.now() >= deadline) throw new Error("Timed out waiting for real PTY output")
+    await sleep(25)
+  }
+}
+
 describe("pty", () => {
   test("does not leak output when websocket objects are reused", async () => {
     await using dir = await tmpdir({ git: true })
@@ -16,8 +29,8 @@ describe("pty", () => {
         AppRuntime.runPromise(
           Effect.gen(function* () {
             const pty = yield* Pty.Service
-            const a = yield* pty.create({ command: "cat", title: "a" })
-            const b = yield* pty.create({ command: "cat", title: "b" })
+            const a = yield* pty.create({ ...echo, title: "a" })
+            const b = yield* pty.create({ ...echo, title: "b" })
             try {
               const outA: string[] = []
               const outB: string[] = []
@@ -34,6 +47,7 @@ describe("pty", () => {
               }
 
               yield* pty.connect(a.id, ws as any)
+              yield* Effect.promise(() => waitFor(() => outA.join("").includes("PTY_READY")))
 
               ws.data = { events: { connection: "b" } }
               ws.send = (data: unknown) => {
@@ -44,7 +58,7 @@ describe("pty", () => {
               outA.length = 0
               outB.length = 0
 
-              yield* pty.write(a.id, "AAA\n")
+              yield* pty.write(a.id, `AAA${newline}`)
               yield* Effect.promise(() => sleep(100))
 
               expect(outB.join("")).not.toContain("AAA")
@@ -66,7 +80,7 @@ describe("pty", () => {
         AppRuntime.runPromise(
           Effect.gen(function* () {
             const pty = yield* Pty.Service
-            const a = yield* pty.create({ command: "cat", title: "a" })
+            const a = yield* pty.create({ ...echo, title: "a" })
             try {
               const outA: string[] = []
               const outB: string[] = []
@@ -83,6 +97,7 @@ describe("pty", () => {
               }
 
               yield* pty.connect(a.id, ws as any)
+              yield* Effect.promise(() => waitFor(() => outA.join("").includes("PTY_READY")))
               outA.length = 0
 
               ws.data = { events: { connection: "b" } }
@@ -90,7 +105,7 @@ describe("pty", () => {
                 outB.push(typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf8"))
               }
 
-              yield* pty.write(a.id, "AAA\n")
+              yield* pty.write(a.id, `AAA${newline}`)
               yield* Effect.promise(() => sleep(100))
 
               expect(outB.join("")).not.toContain("AAA")
@@ -111,7 +126,7 @@ describe("pty", () => {
         AppRuntime.runPromise(
           Effect.gen(function* () {
             const pty = yield* Pty.Service
-            const a = yield* pty.create({ command: "cat", title: "a" })
+            const a = yield* pty.create({ ...echo, title: "a" })
             try {
               const out: string[] = []
 
@@ -128,12 +143,13 @@ describe("pty", () => {
               }
 
               yield* pty.connect(a.id, ws as any)
+              yield* Effect.promise(() => waitFor(() => out.join("").includes("PTY_READY")))
               out.length = 0
 
               ctx.connId = 2
 
-              yield* pty.write(a.id, "AAA\n")
-              yield* Effect.promise(() => sleep(100))
+              yield* pty.write(a.id, `AAA${newline}`)
+              yield* Effect.promise(() => waitFor(() => out.join("").includes("AAA")))
 
               expect(out.join("")).toContain("AAA")
             } finally {

@@ -111,6 +111,21 @@ describe("Runner", () => {
   // --- cancel semantics ---
 
   it.live(
+    "cancel immediately after startup settles the caller even before work begins",
+    Effect.gen(function* () {
+      const scope = yield* Scope.Scope
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const runner = Runner.make<string>(scope, { onInterrupt: Effect.succeed("cancelled") })
+        const caller = yield* runner.ensureRunning(Effect.never).pipe(Effect.forkChild)
+        while (!runner.busy) yield* Effect.yieldNow
+        yield* runner.cancel
+        expect(yield* Fiber.join(caller)).toBe("cancelled")
+        expect(runner.state._tag).toBe("Idle")
+      }
+    }),
+  )
+
+  it.live(
     "cancel interrupts running work",
     Effect.gen(function* () {
       const s = yield* Scope.Scope

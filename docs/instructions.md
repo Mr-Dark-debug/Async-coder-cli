@@ -6,6 +6,6 @@ The user config directory's `AGENTS.md` supplies general defaults. `ASYNC_CODER_
 
 When the agent reads a file below the current directory, nearby directory `AGENTS.md` files are attached in parent-to-child order. Repeated reads do not attach the same instructions twice in a turn. Sibling directories cannot accidentally inherit each other's instructions through a shared path prefix.
 
-Use normal file-edit tools to update instruction files. Keep shared project guidance in committed `AGENTS.md`; keep personal project overrides in `AGENTS.local.md`. New `.async-coder/.gitignore` files ignore `AGENTS.local.md`; add that entry yourself if the directory already has a gitignore.
+Use normal file-edit tools to update instruction files. Keep shared project guidance in committed `AGENTS.md`; keep personal project overrides in `AGENTS.local.md`. async-coder adds an `AGENTS.local.md` entry to the configuration directory's `.gitignore`, preserving existing excludes.
 
 The separate existing memory tool stores and searches project, session, and global notes. Windows and POSIX file paths are supported, including Claude Code memory compatibility and CRLF frontmatter. Scope IDs and keys reject path traversal and absolute-path injection.

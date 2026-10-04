@@ -156,6 +156,18 @@ export const Instance = {
       },
     })
   },
+  /** Dispose a cached workspace before its directory is removed, without creating a new instance. */
+  async disposeDirectory(input: string) {
+    const directory = AppFileSystem.resolve(input)
+    const existing = cache.get(directory)
+    if (!existing) return
+    const ctx = await existing.catch(() => undefined)
+    if (!ctx) {
+      cache.delete(directory)
+      return
+    }
+    await context.provide(ctx, () => Instance.dispose())
+  },
   async disposeAll() {
     if (disposal.all) return disposal.all
 

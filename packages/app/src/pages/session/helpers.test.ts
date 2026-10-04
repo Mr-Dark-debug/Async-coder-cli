@@ -28,6 +28,26 @@ describe("createOpenReviewFile", () => {
 
     expect(calls).toEqual(["show", "load:src/a.ts", "tab:src/a.ts", "open:file://src/a.ts", "active:file://src/a.ts"])
   })
+
+  test("activates the file while its content is still loading", async () => {
+    const [state, setState] = createStore({ active: "review", opened: [] as string[], loaded: false })
+    const loading = Promise.withResolvers<void>()
+    const openReviewFile = createOpenReviewFile({
+      showAllFiles: () => {},
+      tabForPath: (path) => `file://${path}`,
+      openTab: (tab) => setState("opened", (tabs) => [...tabs, tab]),
+      setActive: (tab) => setState("active", tab),
+      loadFile: () => loading.promise.then(() => setState("loaded", true)),
+    })
+
+    openReviewFile("src/slow.ts")
+    expect(state.active).toBe("file://src/slow.ts")
+    expect(state.opened).toEqual(["file://src/slow.ts"])
+    expect(state.loaded).toBe(false)
+    loading.resolve()
+    await loading.promise
+    expect(state.loaded).toBe(true)
+  })
 })
 
 describe("createOpenSessionFileTab", () => {

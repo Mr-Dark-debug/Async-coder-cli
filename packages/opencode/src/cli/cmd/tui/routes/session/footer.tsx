@@ -22,6 +22,7 @@ export function Footer() {
   const mcpError = createMemo(() => Object.values(sync.data.mcp).some((x) => x.status === "failed"))
   const lsp = createMemo(() => sync.data.lsp.filter((server) => server.status === "connected"))
   const lspError = createMemo(() => sync.data.lsp.some((server) => server.status === "error"))
+  const diagnostics = createMemo(() => sync.data.lsp.reduce((total, server) => total + (server.diagnostics ?? 0), 0))
   const permissions = createMemo(() => {
     if (route.data.type !== "session") return []
     return sync.data.permission[route.data.sessionID] ?? []
@@ -83,6 +84,7 @@ export function Footer() {
             </Show>
             <text fg={theme.text}>
               <span style={{ fg: lspError() ? theme.error : lsp().length > 0 ? theme.success : theme.textMuted }}>•</span> {lsp().length} LSP
+              <Show when={diagnostics() > 0}><span style={{ fg: theme.warning }}> · {diagnostics()} diagnostic{diagnostics() === 1 ? "" : "s"}</span></Show>
             </text>
             <Show when={mcp() || mcpError()}>
               <text fg={theme.text}>

@@ -25,6 +25,18 @@ export default defineConfig({
     },
     plugins: [
       {
+        name: "async-coder:server-commonjs-shim",
+        renderChunk(code, _chunk, options) {
+          if (options.format !== "es" || !/__filename|__dirname|require\(/.test(code)) return
+          // The bundled prompts contain import examples. electron-vite's regex
+          // scanner can mistake those strings for imports and inject mid-string.
+          // Provide its recognized shim at a syntax-safe boundary instead.
+          const shim = "\n// -- CommonJS Shims --\nimport __cjs_mod__ from 'node:module';\nconst __filename = import.meta.filename;\nconst __dirname = import.meta.dirname;\nconst require = __cjs_mod__.createRequire(import.meta.url);\n"
+          if (code.includes(shim)) return
+          return { code: shim + code, map: null }
+        },
+      },
+      {
         name: "opencode:node-pty-narrower",
         enforce: "pre",
         resolveId(s) {

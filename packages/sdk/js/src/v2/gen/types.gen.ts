@@ -2815,6 +2815,7 @@ export type Event =
 
 export type McpStatusConnected = {
   status: "connected"
+  tools?: Array<string>
 }
 
 export type McpStatusDisabled = {
@@ -2908,6 +2909,7 @@ export type LspStatus = {
   name: string
   root: string
   status: "connected" | "error"
+  diagnostics?: number
 }
 
 export type FormatterStatus = {
@@ -6876,6 +6878,9 @@ export type AppSkillsResponses = {
     location: string
     content: string
     hidden?: boolean
+    tools?: Array<string>
+    model?: string
+    triggers?: Array<string>
   }>
 }
 

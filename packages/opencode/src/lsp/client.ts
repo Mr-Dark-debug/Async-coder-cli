@@ -38,7 +38,7 @@ export const Event = {
   ),
 }
 
-export async function create(input: { serverID: string; server: LSPServer.Handle; root: string; directory: string }) {
+export async function create(input: { serverID: string; server: LSPServer.Handle; root: string; directory: string; onDiagnostics?: () => void }) {
   const l = log.clone().tag("serverID", input.serverID)
   l.info("starting client")
 
@@ -48,7 +48,7 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
   )
 
   const diagnostics = new Map<string, Diagnostic[]>()
-  connection.onNotification("textDocument/publishDiagnostics", (params) => {
+  const publishDiagnostics = (params: { uri: string; diagnostics: Diagnostic[] }) => {
     const filePath = Filesystem.normalizePath(fileURLToPath(params.uri))
     l.info("textDocument/publishDiagnostics", {
       path: filePath,
@@ -56,9 +56,11 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
     })
     const exists = diagnostics.has(filePath)
     diagnostics.set(filePath, params.diagnostics)
+    input.onDiagnostics?.()
     if (!exists && input.serverID === "typescript") return
     Bus.publish(Event.Diagnostics, { path: filePath, serverID: input.serverID })
-  })
+  }
+  connection.onNotification("textDocument/publishDiagnostics", publishDiagnostics)
   connection.onRequest("window/workDoneProgress/create", (params) => {
     l.info("window/workDoneProgress/create", params)
     return null
@@ -78,8 +80,8 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
   connection.listen()
 
   l.info("sending initialize")
-  await withTimeout(
-    connection.sendRequest("initialize", {
+  const initialized = await withTimeout(
+    connection.sendRequest<{ capabilities?: { diagnosticProvider?: unknown } }>("initialize", {
       rootUri: pathToFileURL(input.root).href,
       processId: input.server.process.pid,
       workspaceFolders: [
@@ -109,6 +111,7 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
           publishDiagnostics: {
             versionSupport: true,
           },
+          diagnostic: { dynamicRegistration: false, relatedDocumentSupport: false },
         },
       },
     }),
@@ -135,6 +138,17 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
     [path: string]: number
   } = {}
 
+  async function pullDiagnostics(file: string) {
+    if (!initialized.capabilities?.diagnosticProvider) return
+    const report = await withTimeout(connection.sendRequest<{ kind: string; items?: Diagnostic[] }>("textDocument/diagnostic", {
+      textDocument: { uri: pathToFileURL(file).href },
+    }), 3000).catch((error: unknown) => {
+      l.warn("diagnostic request failed", { path: file, error })
+      return undefined
+    })
+    if (report?.kind === "full" && report.items) publishDiagnostics({ uri: pathToFileURL(file).href, diagnostics: report.items })
+  }
+
   const result = {
     root: input.root,
     get serverID() {
@@ -153,6 +167,7 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
         await connection.sendNotification("textDocument/didClose", { textDocument: { uri: pathToFileURL(file).href } })
         delete files[file]
         diagnostics.delete(file)
+        input.onDiagnostics?.()
       },
       async open(request: { path: string }) {
         request.path = path.isAbsolute(request.path) ? request.path : path.resolve(input.directory, request.path)
@@ -185,6 +200,7 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
             },
             contentChanges: [{ text }],
           })
+          await pullDiagnostics(request.path)
           return
         }
 
@@ -209,6 +225,7 @@ export async function create(input: { serverID: string; server: LSPServer.Handle
           },
         })
         files[request.path] = 0
+        await pullDiagnostics(request.path)
         return
       },
     },

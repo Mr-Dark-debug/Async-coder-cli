@@ -2072,23 +2072,24 @@ const layer: Layer.Layer<
       for (const entry of recent) {
         const provider = s.providers[entry.providerID]
         if (!provider) continue
-        if (!provider.models[entry.modelID]) continue
+        const model = provider.models[entry.modelID]
+        if (!model || !isChatModel(model)) continue
         return { providerID: entry.providerID, modelID: entry.modelID }
       }
 
       const legacyProvider = "mi" + "mo"
       const legacyModel = `deprecated-${legacyProvider}-auto`
       const legacyFree = s.providers[ProviderID.make(legacyProvider)]
-      if (legacyFree?.models[ModelID.make(legacyModel)]) {
+      if (legacyFree?.models[ModelID.make(legacyModel)] && isChatModel(legacyFree.models[ModelID.make(legacyModel)])) {
         return { providerID: legacyFree.id, modelID: ModelID.make(legacyModel) }
       }
 
-      const provider = Object.values(s.providers).find((p) => !cfg.provider || Object.keys(cfg.provider).includes(p.id))
-      if (!provider) throw new Error("no providers found")
-      const [model] = sort(Object.values(provider.models))
-      if (!model) throw new Error("no models found")
+      const [model] = Object.values(s.providers)
+        .filter((provider) => !cfg.provider || Object.keys(cfg.provider).includes(provider.id))
+        .flatMap((provider) => sort(Object.values(provider.models).filter(isChatModel)))
+      if (!model) throw new Error("No text chat models found. Connect a provider with a text-input and text-output model.")
       return {
-        providerID: provider.id,
+        providerID: model.providerID,
         modelID: model.id,
       }
     })
@@ -2117,6 +2118,9 @@ export const defaultLayer = Layer.suspend(() =>
 )
 
 const priority = ["gpt-5", "claude-sonnet-4", "big-pickle", "gemini-3-pro"]
+export function isChatModel(model: Pick<Model, "capabilities" | "status">) {
+  return model.status !== "deprecated" && model.capabilities.input.text && model.capabilities.output.text
+}
 export function sort<T extends { id: string }>(models: T[]) {
   return sortBy(
     models,

@@ -105,6 +105,9 @@ const lsp = Layer.succeed(
     prepareCallHierarchy: () => Effect.succeed([]),
     incomingCalls: () => Effect.succeed([]),
     outgoingCalls: () => Effect.succeed([]),
+    completion: () => Effect.succeed([]),
+    prepareRename: () => Effect.succeed([]),
+    rename: () => Effect.succeed([]),
   }),
 )
 
@@ -292,16 +295,16 @@ describe("Tool whitelist (Task 14)", () => {
         })
 
         // Locate the bash tool part in the persisted message stream.
-        const msgs = yield* MessageV2.filterCompactedEffect(session.id)
+        const msgs = yield* MessageV2.filterCompactedEffect(session.id, { agentID: actorID })
         const tool = msgs
           .flatMap((msg) => msg.parts)
           .find(
-            (part): part is MessageV2.ToolPart & { state: MessageV2.ToolStateCompleted } =>
-              part.type === "tool" && part.tool === "bash" && part.state.status === "completed",
+            (part): part is MessageV2.ToolPart => part.type === "tool" && part.tool === "bash",
           )
 
         expect(tool).toBeDefined()
-        if (!tool) return
+        expect(tool?.state).toMatchObject({ status: "completed", metadata: { rejected: true, reason: "tool-whitelist" } })
+        if (tool?.state.status !== "completed") return
         // The rejection branch routes through completeToolCall with our
         // rejection metadata. The body must mention the tool is not permitted.
         expect(tool.state.metadata?.rejected).toBe(true)
@@ -350,7 +353,7 @@ describe("Tool whitelist (Task 14)", () => {
           parts: [{ type: "text", text: "no tool call needed" }],
         })
 
-        const msgs = yield* MessageV2.filterCompactedEffect(session.id)
+        const msgs = yield* MessageV2.filterCompactedEffect(session.id, { agentID: actorID })
         const rejected = msgs
           .flatMap((msg) => msg.parts)
           .find((part) => part.type === "tool" && part.state.status === "completed" && (part.state.metadata?.rejected as unknown) === true)

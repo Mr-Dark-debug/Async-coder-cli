@@ -499,6 +499,21 @@ test("defaultModel returns first available model when no config set", async () =
   })
 })
 
+test("defaultModel skips speech-only models when selecting a coding chat default", async () => {
+  await using tmp = await tmpdir({ init: async (dir) => {
+    await Bun.write(path.join(dir, "async-coder.json"), JSON.stringify({
+      enabled_providers: ["chat-fixture"],
+      provider: { "chat-fixture": { npm: "@ai-sdk/openai-compatible", options: { apiKey: "fixture" }, models: {
+        "z-whisper": { name: "Speech", modalities: { input: ["audio"], output: ["text"] }, tool_call: false },
+        "a-chat": { name: "Chat", modalities: { input: ["text"], output: ["text"] }, tool_call: true },
+      } } },
+    }))
+  } })
+  await Instance.provide({ directory: tmp.path, fn: async () => {
+    expect(String((await defaultModel()).modelID)).toBe("a-chat")
+  } })
+})
+
 test("defaultModel respects config model setting", async () => {
   await using tmp = await tmpdir({
     init: async (dir) => {

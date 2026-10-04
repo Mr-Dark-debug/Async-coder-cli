@@ -33,7 +33,8 @@ describe("migrateProjectMemory", () => {
     await migrateProjectMemory(pid)
 
     expect(await Bun.file(upper).text()).toBe("legacy content")
-    expect(await Bun.file(lower).exists()).toBe(false)
+    expect(await fs.readdir(dir)).toContain("MEMORY.md")
+    expect(await fs.readdir(dir)).not.toContain("memory.md")
     await fs.rm(dir, { recursive: true, force: true })
   })
 
@@ -44,7 +45,8 @@ describe("migrateProjectMemory", () => {
     const lower = path.join(dir, "memory.md")
     await fs.mkdir(dir, { recursive: true })
     await fs.writeFile(upper, "new content")
-    await fs.writeFile(lower, "stale legacy")
+    // Case-insensitive filesystems cannot hold both names independently.
+    if (!(await Bun.file(lower).exists())) await fs.writeFile(lower, "stale legacy")
 
     await migrateProjectMemory(pid)
 
@@ -72,7 +74,8 @@ describe("migrateProjectMemory", () => {
     const results = await Promise.allSettled([migrateProjectMemory(pid), migrateProjectMemory(pid)])
     expect(results.every((r) => r.status === "fulfilled")).toBe(true)
     expect(await Bun.file(upper).text()).toBe("legacy content")
-    expect(await Bun.file(lower).exists()).toBe(false)
+    expect(await fs.readdir(dir)).toContain("MEMORY.md")
+    expect(await fs.readdir(dir)).not.toContain("memory.md")
     await fs.rm(dir, { recursive: true, force: true })
   })
 })

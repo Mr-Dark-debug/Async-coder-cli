@@ -12,9 +12,7 @@ import { List } from "@async-coder/ui/list"
 import { Tooltip } from "@async-coder/ui/tooltip"
 import { ModelTooltip } from "./model-tooltip"
 import { useLanguage } from "@/context/language"
-
-const isFree = (provider: string, cost: { input: number } | undefined) =>
-  provider === "opencode" && (!cost || cost.input === 0)
+import { chatModelFooter, isFreeChatModel } from "@/utils/chat-model"
 
 type ModelState = ReturnType<typeof useLocal>["model"]
 
@@ -45,8 +43,10 @@ const ModelList: Component<{
       current={model.current()}
       filterKeys={["provider.name", "name", "id"]}
       sortBy={(a, b) => a.name.localeCompare(b.name)}
-      groupBy={(x) => x.provider.name}
+      groupBy={(x) => isFreeChatModel(x.cost) ? "Zen (Free)" : x.provider.name}
       sortGroupsBy={(a, b) => {
+        if (a.category === "Zen (Free)") return -1
+        if (b.category === "Zen (Free)") return 1
         const aProvider = a.items[0].provider.id
         const bProvider = b.items[0].provider.id
         if (popularProviders.includes(aProvider) && !popularProviders.includes(bProvider)) return -1
@@ -58,7 +58,7 @@ const ModelList: Component<{
           class="w-full"
           placement="right-start"
           gutter={12}
-          value={<ModelTooltip model={item} latest={item.latest} free={isFree(item.provider.id, item.cost)} />}
+          value={<ModelTooltip model={item} latest={item.latest} free={isFreeChatModel(item.cost)} />}
         >
           {node}
         </Tooltip>
@@ -71,14 +71,16 @@ const ModelList: Component<{
       }}
     >
       {(i) => (
-        <div class="w-full flex items-center gap-x-2 text-13-regular">
-          <span class="truncate">{i.name}</span>
-          <Show when={isFree(i.provider.id, i.cost)}>
+        <div class="w-full flex flex-col min-w-0 text-13-regular">
+          <div class="flex items-center gap-x-2 min-w-0"><span class="truncate">{i.name}</span>
+          <Show when={isFreeChatModel(i.cost)}>
             <Tag>{language.t("model.tag.free")}</Tag>
           </Show>
           <Show when={i.latest}>
             <Tag>{language.t("model.tag.latest")}</Tag>
           </Show>
+          </div>
+          <span class="text-10-regular text-text-weak truncate">{chatModelFooter(i)}</span>
         </div>
       )}
     </List>

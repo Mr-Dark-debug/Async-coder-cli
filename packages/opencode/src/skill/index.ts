@@ -30,6 +30,9 @@ export const Info = z.object({
   location: z.string(),
   content: z.string(),
   hidden: z.boolean().optional(),
+  tools: z.array(z.string()).optional().catch(undefined),
+  model: z.string().optional().catch(undefined),
+  triggers: z.array(z.string()).optional().catch(undefined),
 })
 export type Info = z.infer<typeof Info>
 
@@ -94,7 +97,7 @@ const add = Effect.fnUntraced(function* (state: State, match: string, bus: Bus.I
 
   if (!md) return
 
-  const parsed = Info.pick({ name: true, description: true, hidden: true }).safeParse(md.data)
+  const parsed = Info.pick({ name: true, description: true, hidden: true, tools: true, model: true, triggers: true }).safeParse(md.data)
   if (!parsed.success) return
 
   if (state.skills[parsed.data.name]) {
@@ -112,6 +115,9 @@ const add = Effect.fnUntraced(function* (state: State, match: string, bus: Bus.I
     location: match,
     content: md.content,
     hidden: parsed.data.hidden,
+    tools: parsed.data.tools,
+    model: parsed.data.model,
+    triggers: parsed.data.triggers,
   }
 })
 
@@ -219,7 +225,8 @@ const discoverSkills = Effect.fnUntraced(function* (
 
 const loadSkills = Effect.fnUntraced(function* (state: State, discovered: DiscoveryState, bus: Bus.Interface) {
   yield* Effect.forEach(discovered.matches, (match) => add(state, match, bus), {
-    concurrency: "unbounded",
+    // Each later file may override the same skill name; preserve discovery precedence.
+    concurrency: 1,
     discard: true,
   })
 

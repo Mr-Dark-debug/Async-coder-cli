@@ -70,6 +70,7 @@ export const Status = z
     name: z.string(),
     root: z.string(),
     status: z.union([z.literal("connected"), z.literal("error")]),
+    diagnostics: z.number().int().nonnegative().optional(),
   })
   .meta({
     ref: "LSPStatus",
@@ -145,6 +146,9 @@ export interface Interface {
   readonly touchFile: (input: string, waitForDiagnostics?: boolean) => Effect.Effect<void>
   readonly diagnostics: () => Effect.Effect<Record<string, LSPClient.Diagnostic[]>>
   readonly hover: (input: LocInput) => Effect.Effect<any>
+  readonly completion: (input: LocInput) => Effect.Effect<unknown[]>
+  readonly prepareRename: (input: LocInput) => Effect.Effect<unknown[]>
+  readonly rename: (input: LocInput & { newName: string }) => Effect.Effect<unknown[]>
   readonly definition: (input: LocInput) => Effect.Effect<any[]>
   readonly references: (input: LocInput) => Effect.Effect<any[]>
   readonly implementation: (input: LocInput) => Effect.Effect<any[]>
@@ -278,6 +282,7 @@ export const layer = Layer.effect(
             server: handle,
             root,
             directory: ctx.directory,
+            onDiagnostics: () => { void Bus.publish(Event.Updated, {}) },
           }).catch(async (err) => {
             s.broken.add(key)
             await Process.stop(handle.process)
@@ -368,7 +373,8 @@ export const layer = Layer.effect(
           id: client.serverID,
           name: s.servers[client.serverID].id,
           root: path.relative(ctx.directory, client.root),
-          status: "connected",
+          status: client.isAlive() ? "connected" : "error",
+          diagnostics: [...client.diagnostics.values()].reduce((total, items) => total + items.length, 0),
         })
       }
       return result
@@ -430,6 +436,17 @@ export const layer = Layer.effect(
           .catch(() => null),
       )
     })
+
+    const symbolRequest = Effect.fn("LSP.symbolRequest")(function* (input: LocInput, method: string, extra: Record<string, string> = {}) {
+      return (yield* run(input.file, (client) => client.connection.sendRequest<unknown>(method, {
+        textDocument: { uri: pathToFileURL(input.file).href },
+        position: { line: input.line, character: input.character },
+        ...extra,
+      }).catch(() => null))).filter((result) => result !== null)
+    })
+    const completion = (input: LocInput) => symbolRequest(input, "textDocument/completion")
+    const prepareRename = (input: LocInput) => symbolRequest(input, "textDocument/prepareRename")
+    const rename = (input: LocInput & { newName: string }) => symbolRequest(input, "textDocument/rename", { newName: input.newName })
 
     const definition = Effect.fn("LSP.definition")(function* (input: LocInput) {
       const results = yield* run(input.file, (client) =>
@@ -530,6 +547,9 @@ export const layer = Layer.effect(
       touchFile,
       diagnostics,
       hover,
+      completion,
+      prepareRename,
+      rename,
       definition,
       references,
       implementation,

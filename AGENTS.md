@@ -161,3 +161,11 @@ Important release notes:
 - `script/publish.ts` at the repository root also attempts to publish the SDK and plugin. Do not use it for a CLI-only release unless those packages are intentionally part of the release.
 - `NPM_CONFIG_DRY_RUN=true` is incompatible with `packages/opencode/script/publish.ts`: npm prints a tarball name without creating the file, then the script fails while looking for it. Use explicit `npm pack` commands for package inspection.
 - Keep the GitHub release as a draft if npm authentication, 2FA, package publication, or smoke verification fails.
+
+0.2.0 release additions:
+
+- Use `bun run script/typecheck.ts` to dispatch package-level typechecks; the pre-push hook uses it too.
+- On Windows cross-compilation extraction failures, run `bun run script/fetch-build-runtimes.ts` from `packages/opencode`, then set `ASYNC_CODER_BUILD_RUNTIME_DIR` to that package's `.artifacts/build-runtimes`. Official runtime archives are checksum-verified; do not replace the installed Bun or clear the user's cache.
+- `bun run script/pack-release.ts` stages the installer, checks runtime versions/executables, packs all built targets and writes SHA256SUMS. It does not publish.
+- When the installer contains multiple platform optional dependencies, publish and verify every referenced runtime before publishing the installer.
+- Cross-compilation is separate from native execution. Record tested hosts and keep unverified platform claims explicit.

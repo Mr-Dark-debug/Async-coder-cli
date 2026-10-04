@@ -34,7 +34,8 @@ const MODEL_PARAM_DESCRIPTION =
 const KNOWN_ACTOR_VERBS = ["run", "spawn", "status", "wait", "cancel", "send"]
 
 function levenshteinActor(a: string, b: string): number {
-  const m = a.length, n = b.length
+  const m = a.length,
+    n = b.length
   if (m === 0) return n
   if (n === 0) return m
   const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
@@ -59,8 +60,35 @@ function suggestActorVerb(input: string): string | undefined {
 // uses z.string() for subagent_type since the dynamic enum is only needed at
 // Zod validation time (inside execute), not at parse time.
 type ActorShellArgs =
-  | { operation: { action: "run"; subagent_type: string; description: string; prompt: string; model?: string; task_id?: string; actor_id?: string; timeout_ms?: number; command?: string; context?: "none" | "state" | "full"; output_schema?: Record<string, unknown> } }
-  | { operation: { action: "spawn"; subagent_type: string; description: string; prompt: string; model?: string; task_id?: string; actor_id?: string; command?: string; context?: "none" | "state" | "full"; output_schema?: Record<string, unknown> } }
+  | {
+      operation: {
+        action: "run"
+        subagent_type: string
+        description: string
+        prompt: string
+        model?: string
+        task_id?: string
+        actor_id?: string
+        timeout_ms?: number
+        command?: string
+        context?: "none" | "state" | "full"
+        output_schema?: Record<string, unknown>
+      }
+    }
+  | {
+      operation: {
+        action: "spawn"
+        subagent_type: string
+        description: string
+        prompt: string
+        model?: string
+        task_id?: string
+        actor_id?: string
+        command?: string
+        context?: "none" | "state" | "full"
+        output_schema?: Record<string, unknown>
+      }
+    }
   | { operation: { action: "status"; actor_id: string } }
   | { operation: { action: "wait"; actor_id: string; timeout_ms?: number } }
   | { operation: { action: "cancel"; actor_id: string } }
@@ -114,7 +142,13 @@ const mapActorVerb = Effect.fn("mapActorVerb")(function* (verb: string | undefin
         ["model", "task", "actor", "timeout", "command", "context", "output-schema"],
         line,
       )
-      if (rest.length !== 3) return yield* actorArityError("run", '<subagent_type> "<description>" "<prompt>" [--model <ref>] [--task <TID>] [--actor <id>] [--timeout <ms>] [--command <cmd>] [--context none|state|full] [--output-schema <json>]', rest, line)
+      if (rest.length !== 3)
+        return yield* actorArityError(
+          "run",
+          '<subagent_type> "<description>" "<prompt>" [--model <ref>] [--task <TID>] [--actor <id>] [--timeout <ms>] [--command <cmd>] [--context none|state|full] [--output-schema <json>]',
+          rest,
+          line,
+        )
       return {
         operation: {
           action: "run" as const,
@@ -139,7 +173,13 @@ const mapActorVerb = Effect.fn("mapActorVerb")(function* (verb: string | undefin
         ["model", "task", "actor", "command", "context", "output-schema"],
         line,
       )
-      if (rest.length !== 3) return yield* actorArityError("spawn", '<subagent_type> "<description>" "<prompt>" [--model <ref>] [--task <TID>] [--actor <id>] [--command <cmd>] [--context none|state|full] [--output-schema <json>]', rest, line)
+      if (rest.length !== 3)
+        return yield* actorArityError(
+          "spawn",
+          '<subagent_type> "<description>" "<prompt>" [--model <ref>] [--task <TID>] [--actor <id>] [--command <cmd>] [--context none|state|full] [--output-schema <json>]',
+          rest,
+          line,
+        )
       return {
         operation: {
           action: "spawn" as const,
@@ -197,9 +237,7 @@ const mapActorVerb = Effect.fn("mapActorVerb")(function* (verb: string | undefin
   }
 })
 
-export function parseActorScript(
-  script: string,
-): Effect.Effect<ActorShellArgs[], unknown> {
+export function parseActorScript(script: string): Effect.Effect<ActorShellArgs[], unknown> {
   return Effect.gen(function* () {
     const argvList = yield* tokenize(script)
     const out: ActorShellArgs[] = []
@@ -328,15 +366,15 @@ export const ActorTool = Tool.define(
         .describe("(optional) Milliseconds to wait before returning { status: 'timeout' }. Default 600000 (10 min).")
 
       const runSchema = z.strictObject({
-        action: z.literal("run").describe("Spawn a subagent and block until it completes; the result is returned inline as the tool response."),
+        action: z
+          .literal("run")
+          .describe(
+            "Spawn a subagent and block until it completes; the result is returned inline as the tool response.",
+          ),
         description: z.string().min(1).describe("A short (3-5 words) description of the task."),
         prompt: z.string().min(1).describe("The task for the agent to perform."),
         subagent_type: subagentTypeEnum.describe("The type of specialized agent to use for this task."),
-        model: z
-          .string()
-          .min(1)
-          .optional()
-          .describe(MODEL_PARAM_DESCRIPTION),
+        model: z.string().min(1).optional().describe(MODEL_PARAM_DESCRIPTION),
         actor_id: z
           .string()
           .min(1)
@@ -368,22 +406,20 @@ export const ActorTool = Tool.define(
       })
 
       const spawnSchema = z.strictObject({
-        action: z.literal("spawn").describe("Spawn a subagent and return its actor_id immediately; result is delivered as a notification or via a separate `wait` call."),
+        action: z
+          .literal("spawn")
+          .describe(
+            "Spawn a subagent and return its actor_id immediately; result is delivered as a notification or via a separate `wait` call.",
+          ),
         description: z.string().min(1).describe("A short (3-5 words) description of the task."),
         prompt: z.string().min(1).describe("The task for the agent to perform."),
         subagent_type: subagentTypeEnum.describe("The type of specialized agent to use for this task."),
-        model: z
-          .string()
-          .min(1)
-          .optional()
-          .describe(MODEL_PARAM_DESCRIPTION),
+        model: z.string().min(1).optional().describe(MODEL_PARAM_DESCRIPTION),
         actor_id: z
           .string()
           .min(1)
           .optional()
-          .describe(
-            "(optional) If set, resume the specified prior actor session instead of creating a new one.",
-          ),
+          .describe("(optional) If set, resume the specified prior actor session instead of creating a new one."),
         command: z.string().min(1).optional().describe("(optional) The command that triggered this task."),
         context: z
           .enum(["none", "state", "full"])
@@ -453,14 +489,7 @@ export const ActorTool = Tool.define(
         // root-level union and passes through unchanged — root keeps exactly one
         // key (`operation`), so models can't drop the discriminator.
         operation: z
-          .discriminatedUnion("action", [
-            runSchema,
-            spawnSchema,
-            statusSchema,
-            waitSchema,
-            cancelSchema,
-            sendSchema,
-          ])
+          .discriminatedUnion("action", [runSchema, spawnSchema, statusSchema, waitSchema, cancelSchema, sendSchema])
           .meta({ type: "object" }),
       })
 
@@ -492,7 +521,7 @@ export const ActorTool = Tool.define(
           return undefined
         })
 
-        if (op.action ==="send") {
+        if (op.action === "send") {
           const inboxSvc = inboxServiceRef.current
           if (!inboxSvc) {
             return yield* Effect.fail(
@@ -536,7 +565,7 @@ export const ActorTool = Tool.define(
           }
         }
 
-        if (op.action ==="status") {
+        if (op.action === "status") {
           const found = yield* findActor(op.actor_id)
           if (!found) return unknownResponse("status", op.actor_id)
           const entry = found.entry
@@ -558,7 +587,7 @@ export const ActorTool = Tool.define(
           }
         }
 
-        if (op.action ==="wait") {
+        if (op.action === "wait") {
           const found = yield* findActor(op.actor_id)
           if (!found) return unknownResponse("wait", op.actor_id)
           const snap = yield* waiter.wait({
@@ -577,7 +606,7 @@ export const ActorTool = Tool.define(
           }
         }
 
-        if (op.action ==="cancel") {
+        if (op.action === "cancel") {
           const found = yield* findActor(op.actor_id)
           if (!found) return unknownResponse("cancel", op.actor_id)
           const entry = found.entry
@@ -640,13 +669,11 @@ export const ActorTool = Tool.define(
         }
 
         let prompt = op.prompt
-        const background = op.action ==="spawn"
+        const background = op.action === "spawn"
 
         // Inject checkpoint summaries for context="state" mode
         if (op.context === "state") {
-          const latest = yield* checkpoint
-            .loadLatest(ctx.sessionID)
-            .pipe(Effect.catch(() => Effect.succeed(undefined)))
+          const latest = yield* checkpoint.loadLatest(ctx.sessionID).pipe(Effect.catch(() => Effect.succeed(undefined)))
           if (latest) {
             prompt =
               [
@@ -709,6 +736,7 @@ export const ActorTool = Tool.define(
           tools: next.toolAllowlist ? [...next.toolAllowlist] : "INHERIT",
           model,
           background,
+          wait: false,
           task_id: effectiveTaskId,
           ...(op.output_schema
             ? { format: { type: "json_schema" as const, schema: op.output_schema, retryCount: 2 } }
@@ -724,7 +752,7 @@ export const ActorTool = Tool.define(
           },
         })
 
-        if (op.action ==="spawn") {
+        if (op.action === "spawn") {
           return {
             title: op.description,
             metadata: { sessionId: spawnResult.sessionID, actorId: spawnResult.actorID, model },
@@ -750,13 +778,17 @@ export const ActorTool = Tool.define(
           () =>
             Deferred.await(spawnResult.outcome).pipe(
               Effect.timeout(op.timeout_ms ?? 600_000),
-              Effect.catchTag("TimeoutError", () => Effect.succeed({ status: "timeout" as const })),
+              Effect.catchTag("TimeoutError", () =>
+                actor
+                  .cancel(spawnResult.sessionID, spawnResult.actorID, "graceful")
+                  .pipe(Effect.as({ status: "timeout" as const })),
+              ),
             ),
           () =>
             Effect.sync(() => {
               ctx.abort.removeEventListener("abort", cancelHandler)
             }),
-        )
+        ).pipe(Effect.onInterrupt(() => actor.cancel(spawnResult.sessionID, spawnResult.actorID, "graceful")))
 
         // Blocking run preserves the pre-unification contract: tool call fails
         // when the child fails. The LLM sees a tool error, not a "success with

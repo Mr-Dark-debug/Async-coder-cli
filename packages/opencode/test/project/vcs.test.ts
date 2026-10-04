@@ -161,6 +161,28 @@ describe("Vcs diff", () => {
     await Instance.disposeAll()
   })
 
+  test("nested projects return scoped paths and actual patch contents", async () => {
+    await using tmp = await tmpdir({ git: true })
+    const directory = path.join(tmp.path, "packages", "nested")
+    await fs.mkdir(directory, { recursive: true })
+    await Bun.write(path.join(directory, "file.ts"), "export const value = 1\n")
+    await $`git add .`.cwd(tmp.path).quiet()
+    await $`git commit --no-gpg-sign -m "nested baseline"`.cwd(tmp.path).quiet()
+    await Bun.write(path.join(directory, "file.ts"), "export const value = 2\n")
+    await Bun.write(path.join(directory, "new.ts"), "export const added = true\n")
+    await Bun.write(path.join(tmp.path, "outside.ts"), "must not appear\n")
+
+    await withVcsOnly(directory, async () => {
+      const diffs = await AppRuntime.runPromise(Vcs.Service.use((vcs) => vcs.diff("git")))
+      expect(diffs.map((diff) => diff.file)).toEqual(["file.ts", "new.ts"])
+      expect(diffs[0].patch).toContain("-export const value = 1")
+      expect(diffs[0].patch).toContain("+export const value = 2")
+      expect(diffs[0].additions).toBe(1)
+      expect(diffs[0].deletions).toBe(1)
+      expect(diffs[1].patch).toContain("+export const added = true")
+    })
+  })
+
   test("defaultBranch() falls back to main", async () => {
     await using tmp = await tmpdir({ git: true })
     await $`git branch -M main`.cwd(tmp.path).quiet()

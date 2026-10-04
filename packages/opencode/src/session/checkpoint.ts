@@ -18,7 +18,7 @@ import * as Session from "./session"
 import { MessageV2 } from "./message-v2"
 import { SessionID, MessageID, PartID } from "./schema"
 import { Log, Token } from "../util"
-import { Effect, Layer, Deferred, Context, Scope } from "effect"
+import { Effect, Layer, Deferred, Context, Scope, Option } from "effect"
 import { makeRuntime } from "@/effect/run-service"
 import type { ActorPromptOps } from "@/tool/actor"
 import type { ProviderID, ModelID } from "../provider/schema"
@@ -622,7 +622,11 @@ export const layer: Layer.Layer<
       //
       // Resolved via spawnRef rather than `yield* Actor.Service` to break the
       // (Actor → SessionPrompt → SessionCheckpoint → Actor) layer cycle.
-      const actor = spawnRef.current
+      // A temporary runtime can replace and clear the late-bound fallback.
+      // Prefer the caller's service when present so a still-live AppRuntime
+      // does not lose checkpoint writers when another scope is disposed.
+      const actorService = yield* Effect.promise(() => import("@/actor/spawn"))
+      const actor = Option.getOrUndefined(yield* Effect.serviceOption(actorService.Service)) ?? spawnRef.current
       if (!actor) {
         log.warn("tryStartCheckpointWriter skipping — Actor service unavailable", { sessionID: input.sessionID })
         return "skipped" as const
@@ -1071,7 +1075,7 @@ export const layer: Layer.Layer<
       )
       const globalText = globalResult?.text ?? ""
 
-      const actors = yield* actorRegistry.listActive()
+      const actors = (yield* actorRegistry.listActive()).filter((actor) => actor.sessionID === sessionID)
 
       // Bail early if absolutely nothing to push: no tasks, no memory content, no live actors.
       if (
@@ -1079,6 +1083,7 @@ export const layer: Layer.Layer<
         !checkpointText.trim() &&
         !memoryText.trim() &&
         !globalText.trim() &&
+        !notesText.trim() &&
         actors.length === 0
       ) {
         return ""

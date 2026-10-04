@@ -1,6 +1,6 @@
 # MCP servers
 
-async-coder uses the official MCP TypeScript SDK for local stdio servers and remote Streamable HTTP or SSE servers. Tools are discovered automatically and exposed to agents with a server-name prefix. The existing MCP status dialog shows connection and authentication state and lets you connect or disconnect servers. CLI administration is available through `async-coder mcp --help`.
+async-coder uses the official MCP TypeScript SDK for local stdio servers and remote Streamable HTTP or SSE servers. Tools are discovered automatically and exposed to agents with a server-name prefix. `/mcp` lists configured servers, connection and authentication state, and available tool names. Connect with `/mcp connect <name>` and disconnect with `/mcp disconnect <name>`, or toggle a server in the dialog. CLI administration is available through `async-coder mcp --help`.
 
 Configure native entries in `async-coder.json`:
 

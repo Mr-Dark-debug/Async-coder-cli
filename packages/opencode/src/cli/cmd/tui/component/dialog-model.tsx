@@ -1,4 +1,4 @@
-import { createMemo, createSignal } from "solid-js"
+import { createMemo, createResource, createSignal } from "solid-js"
 import { useLocal } from "@tui/context/local"
 import { useSync } from "@tui/context/sync"
 import { map, pipe, flatMap, entries, filter, sortBy, take } from "remeda"
@@ -11,7 +11,8 @@ import { useSDK } from "../context/sdk"
 import { useToast, type ToastContext } from "../ui/toast"
 import { DialogPrompt } from "../ui/dialog-prompt"
 import * as fuzzysort from "fuzzysort"
-import { modelCostLabel } from "../feature-plugins/sidebar/usage-data"
+import { ModelsDev } from "@/provider"
+import { Zen } from "@/zen"
 import { modelFooter } from "../util/model"
 
 const ADD_MODEL_SENTINEL = "__add_model__"
@@ -31,6 +32,7 @@ export function DialogModel(props: { providerID?: string }) {
   const toast = useToast()
   const keybind = useKeybind()
   const [query, setQuery] = createSignal("")
+  const [catalog] = createResource(() => ModelsDev.get())
 
   const connected = useConnected()
   const providers = createDialogProviderOptions()
@@ -86,6 +88,7 @@ export function DialogModel(props: { providerID?: string }) {
           provider.models,
           entries(),
           filter(([_, info]) => info.status !== "deprecated"),
+          filter(([_, info]) => info.capabilities.input.text && info.capabilities.output.text),
           filter(([_, info]) => (props.providerID ? info.providerID === props.providerID : true)),
           map(([model, info]) => ({
             value: { providerID: provider.id, modelID: model },
@@ -93,7 +96,7 @@ export function DialogModel(props: { providerID?: string }) {
             description: favorites.some((item) => item.providerID === provider.id && item.modelID === model)
               ? "(Favorite)"
               : provider.name,
-            category: modelCostLabel(info.cost) === "Free" ? "Zen (Free)" : connected() ? provider.name : undefined,
+            category: Zen.isFree(info, catalog() ?? {}) ? "Zen (Free)" : connected() ? provider.name : undefined,
             disabled: provider.id === "opencode" && model.includes("-nano"),
             footer: modelFooter(info),
             onSelect() {

@@ -1,4 +1,6 @@
-import { afterEach, describe, expect } from "bun:test"
+import { Global } from "../../src/global"
+import path from "path"
+import { afterEach, beforeEach, describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 import { Bus } from "../../src/bus"
 import { Config } from "../../src/config"
@@ -12,7 +14,7 @@ import { MessageID, PartID, SessionID } from "../../src/session/schema"
 import { ModelID, ProviderID } from "../../src/provider/schema"
 import { Instance } from "../../src/project/instance"
 import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
-import { provideTmpdirInstance } from "../fixture/fixture"
+import { provideTmpdirInstance, tmpdir } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import { Log } from "../../src/util"
 
@@ -23,8 +25,18 @@ const ref = {
   modelID: ModelID.make("test-model"),
 }
 
+const memoryFixture = { data: Global.Path.data, directory: undefined as Awaited<ReturnType<typeof tmpdir>> | undefined }
+
+beforeEach(async () => {
+  memoryFixture.directory = await tmpdir()
+  Global.Path.data = path.join(memoryFixture.directory.path, "data")
+})
+
 afterEach(async () => {
   await Instance.disposeAll()
+  Global.Path.data = memoryFixture.data
+  await memoryFixture.directory?.[Symbol.asyncDispose]()
+  memoryFixture.directory = undefined
 })
 
 const it = testEffect(

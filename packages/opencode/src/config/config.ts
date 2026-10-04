@@ -659,6 +659,14 @@ export const layer = Layer.effect(
     const ensureGitignore = Effect.fn("Config.ensureGitignore")(function* (dir: string) {
       const gitignore = path.join(dir, ".gitignore")
       const hasIgnore = yield* fs.existsSafe(gitignore)
+      if (hasIgnore) {
+        const content = yield* fs.readFileString(gitignore)
+        if (/^\/?AGENTS\.local\.md\r?$/m.test(content)) return
+        yield* fs.writeFileString(gitignore, `${content}${content.endsWith("\n") ? "" : "\n"}AGENTS.local.md\n`).pipe(
+          Effect.catchIf((error) => error.reason._tag === "PermissionDenied", () => Effect.void),
+        )
+        return
+      }
       if (!hasIgnore) {
         yield* fs
           .writeFileString(

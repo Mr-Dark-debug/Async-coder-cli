@@ -4,7 +4,8 @@
   "providerDocumentation": [
     "https://platform.claude.com/docs/en/models/overview",
     "https://developers.openai.com/api/docs/models",
-    "https://ai.google.dev/gemini-api/docs/models"
+    "https://ai.google.dev/gemini-api/docs/models",
+    "https://docs.mistral.ai/models/mistral-large-3-25-12"
   ],
   "note": "Requested names mapped to catalog entries; empty matches are not advertised as available. Catalog prices are per million tokens and may change.",
   "providers": [
@@ -772,7 +773,22 @@
       "models": [
         {
           "requested": "mistral-large-3",
-          "matches": []
+          "matches": [
+            {
+              "id": "mistral-large-2512",
+              "name": "Mistral Large 3",
+              "cost": {
+                "input": 0.5,
+                "output": 1.5,
+                "cache_read": 0.05
+              },
+              "limit": {
+                "context": 262144,
+                "output": 262144
+              },
+              "status": "active"
+            }
+          ]
         }
       ]
     }

@@ -8,6 +8,7 @@ import { Bus } from "../../src/bus"
 import { Log } from "../../src/util"
 import { AppRuntime } from "../../src/effect/app-runtime"
 import { Actor } from "../../src/actor/spawn"
+import { spawnRef } from "../../src/actor/spawn-ref"
 import { Session } from "../../src/session"
 import { checkpointPath, metaDir } from "../../src/session/checkpoint-paths"
 import { MessageID, PartID, type SessionID } from "../../src/session/schema"
@@ -319,11 +320,15 @@ describe("CheckpointContext producer (tryStartCheckpointWriter)", () => {
               })
 
               const svc = yield* SessionCheckpoint.Service
+              // A disposed temporary Actor layer may clear the late-bound
+              // fallback while AppRuntime's Actor service is still alive.
+              const previousSpawn = spawnRef.current
+              spawnRef.current = undefined
               const status = yield* svc.tryStartCheckpointWriter({
                 sessionID: sess.id,
                 model: { providerID: "alibaba", modelID: "qwen-plus" },
                 promptOps: {} as never,
-              })
+              }).pipe(Effect.ensuring(Effect.sync(() => { spawnRef.current = previousSpawn })))
               // During execution, _size must reflect that set ran.
               const midSize = CheckpointContext._size()
               yield* svc.waitForWriter(sess.id)

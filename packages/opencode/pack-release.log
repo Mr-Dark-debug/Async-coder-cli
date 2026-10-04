@@ -1,0 +1,15 @@
+Staged @async-coder/cli@0.2.0 with 12 platform runtimes at D:\projects\MiMo-Code\packages\opencode\dist\@async-coder\cli
+Packed @async-coder/binary-darwin-arm64@0.2.0
+Packed @async-coder/binary-darwin-x64-baseline@0.2.0
+Packed @async-coder/binary-darwin-x64@0.2.0
+Packed @async-coder/binary-linux-arm64-musl@0.2.0
+Packed @async-coder/binary-linux-arm64@0.2.0
+Packed @async-coder/binary-linux-x64@0.2.0
+Packed @async-coder/binary-linux-x64-musl@0.2.0
+Packed @async-coder/binary-linux-x64-baseline-musl@0.2.0
+Packed @async-coder/binary-linux-x64-baseline@0.2.0
+Packed @async-coder/binary-windows-arm64@0.2.0
+Packed @async-coder/binary-windows-x64-baseline@0.2.0
+Packed @async-coder/binary-windows-x64@0.2.0
+Packed @async-coder/cli@0.2.0
+Verified 13 tarballs: D:\projects\MiMo-Code\packages\opencode\.artifacts\release\0.2.0

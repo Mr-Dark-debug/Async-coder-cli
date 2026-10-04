@@ -1,170 +1,81 @@
 # Publish async-coder to npm
 
-This guide publishes the polished Windows release as version `0.1.3`.
+Release packages in dependency order. The regular install is `@async-coder/cli`; its optional platform dependencies contain the native executable. This guide uses 0.2.0.
 
-Repository: <https://github.com/Mr-Dark-debug/Async-coder-cli>
+Repository: [Async-coder-cli](https://github.com/Mr-Dark-debug/Async-coder-cli).
 
-## Prerequisites
+## Prepare and verify
 
-1. Install dependencies:
+Preserve unrelated changes, regenerate the SDK with `bun run ./packages/sdk/js/script/build.ts`, then run `bun typecheck` and tests from the affected package directories. Run the full core suite from `packages/opencode`, never the repository root. Commit and push release preparation before publishing.
 
-   ```powershell
-   bun install
-   ```
-
-2. Log in to npm:
-
-   ```powershell
-   npm adduser
-   npm whoami
-   ```
-
-3. Make sure the scoped installer package is available:
-
-   ```powershell
-   npm view @async-coder/cli version
-   ```
-
-   A `404 Not Found` means the name is available.
-
-4. Make sure your npm account can publish the `@async-coder` scope. Create the scope on npmjs.com if needed.
-
-## Verify before publishing
-
-Run these from package directories, not the repo root:
+From `packages/opencode`, build and stage without publishing:
 
 ```powershell
-cd packages/opencode
-bun typecheck
-bun test test\provider\error.test.ts test\provider\transform.test.ts test\storage\json-migration.test.ts test\project\project-id.test.ts
-```
-
-Optional workspace package checks:
-
-```powershell
-cd ..\shared; bun typecheck
-cd ..\plugin; bun typecheck
-cd ..\sdk\js; bun typecheck
-cd ..\..\ui; bun typecheck
-```
-
-## Build the Windows package
-
-From `packages/opencode`:
-
-```powershell
-$env:ASYNC_CODER_VERSION = "0.1.3"
+$env:ASYNC_CODER_VERSION = "0.2.0"
 $env:ASYNC_CODER_CHANNEL = "latest"
 bun run script/build.ts --single --skip-install
+bun run script/stage-release.ts
 ```
 
-Expected smoke-test output:
+The build must report `Smoke test passed: async-coder 0.2.0`. Omit `--single` to build all platform targets; cross-compilation does not prove execution on another operating system. Staging includes only the successfully built runtimes. Publish every included runtime before the installer.
 
-```text
-Smoke test passed: async-coder 0.1.3
-```
-
-The Windows binary package is generated at:
-
-```text
-packages/opencode/dist/binary-windows-x64
-```
-
-## Publish Windows binary and installer package
-
-The publish script publishes every binary package present in `packages/opencode/dist`, then publishes the installer package `@async-coder/cli`.
-
-For a Windows-only first release, keep only `dist/binary-windows-x64` before running publish:
+If Bun on Windows reports `Failed to extract executable`, download the official runtimes with SHA256 verification and provide their build directory explicitly:
 
 ```powershell
-cd packages/opencode
-Remove-Item -Recurse -Force .\dist\@async-coder\cli -ErrorAction SilentlyContinue
-$env:ASYNC_CODER_VERSION = "0.1.3"
-$env:ASYNC_CODER_CHANNEL = "latest"
-bun run script/publish.ts
+bun run script/fetch-build-runtimes.ts
+$env:ASYNC_CODER_BUILD_RUNTIME_DIR = Join-Path $PWD '.artifacts/build-runtimes'
+bun run script/build.ts --skip-install
 ```
 
-This publishes:
+This uses Bun's `compile.executablePath`; it preserves the installed Bun version and the user's cache. [Bun executable documentation](https://bun.sh/docs/bundler/executables).
 
-- `@async-coder/binary-windows-x64@0.1.3`
-- `@async-coder/cli@0.1.3`
-
-If npm asks for a one-time password, enter the OTP from your authenticator.
-
-## Manual dry-run / pack path
-
-Use this if you want to inspect tarballs before publishing.
+Pack explicitly from each package directory:
 
 ```powershell
-cd packages/opencode/dist/binary-windows-x64
-Remove-Item *.tgz -ErrorAction SilentlyContinue
-bun pm pack
-npm publish *.tgz --access public --tag latest
+npm pack
 ```
 
-Then create and publish the installer package:
+Inspect the tarball contents and generated manifests. Do not set `NPM_CONFIG_DRY_RUN=true` for the publish script: npm can report a filename without creating it. The repository-root publish script also publishes SDK/plugin packages, so do not use it for a CLI-only release.
+
+## Authentication and publication
+
+Check `npm whoami`. If it returns E401, run `npm login` and complete npm's browser authentication. Publishing requires an interactive terminal for browser-based 2FA. Run the following in a visible PowerShell terminal, or a real TTY; allow npm to open and poll its authorization page. Do not retry from a non-interactive shell or extract authorization codes from logs.
+
+From `packages/opencode/dist/binary-windows-x64`:
 
 ```powershell
-cd ..\..
-Remove-Item -Recurse -Force .\dist\@async-coder\cli -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force .\dist\@async-coder\cli | Out-Null
-Copy-Item -Recurse .\bin .\dist\@async-coder\cli\bin
-Copy-Item .\script\postinstall.mjs .\dist\@async-coder\cli\postinstall.mjs
-Copy-Item ..\..\LICENSE .\dist\@async-coder\cli\LICENSE
-Copy-Item ..\..\README_npm.md .\dist\@async-coder\cli\README.md
+npm publish .\async-coder-binary-windows-x64-0.2.0.tgz --access public --tag latest
+npm view @async-coder/binary-windows-x64@0.2.0 version dist-tags --json
 ```
 
-Create `packages/opencode/dist/@async-coder/cli/package.json`:
-
-```json
-{
-  "name": "@async-coder/cli",
-  "version": "0.1.3",
-  "description": "async-coder: a multi-provider async coding agent",
-  "license": "MIT",
-  "author": "async-coder",
-  "homepage": "https://github.com/Mr-Dark-debug/Async-coder-cli",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Mr-Dark-debug/Async-coder-cli.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Mr-Dark-debug/Async-coder-cli/issues"
-  },
-  "keywords": ["ai", "cli", "code", "coding-agent", "groq", "openrouter", "lavender"],
-  "bin": {
-    "async-coder": "./bin/async-coder"
-  },
-  "scripts": {
-    "postinstall": "bun ./postinstall.mjs || node ./postinstall.mjs"
-  },
-  "optionalDependencies": {
-    "@async-coder/binary-windows-x64": "0.1.3"
-  }
-}
-```
-
-Pack and publish:
+Publish and verify any other staged runtime packages next. Then, from `packages/opencode/dist/@async-coder/cli`:
 
 ```powershell
-cd packages/opencode/dist/@async-coder/cli
-Remove-Item *.tgz -ErrorAction SilentlyContinue
-bun pm pack
-npm publish *.tgz --access public --tag latest
+npm publish .\async-coder-cli-0.2.0.tgz --access public --tag latest
+npm view @async-coder/cli@0.2.0 version dist-tags optionalDependencies --json
 ```
 
-## Verify after publishing
+## Registry installation verification
 
-On a clean Windows machine:
+Create a new temporary installation prefix, then install the exact registry version and execute it:
 
 ```powershell
-npm install -g @async-coder/cli
-async-coder --version
-async-coder
+$releaseSmoke = Join-Path ([System.IO.Path]::GetTempPath()) ("async-coder-release-" + [guid]::NewGuid())
+npm install --prefix $releaseSmoke @async-coder/cli@0.2.0
+& "$releaseSmoke\node_modules\.bin\async-coder.cmd" --version
 ```
 
-Expected version output:
+Expected output: `async-coder 0.2.0`. This registry installation is a separate gate from running a build-tree executable or installing a local tarball.
 
-```text
-async-coder 0.1.3
+## GitHub release
+
+Create an annotated `v0.2.0` tag and a draft titled `async-coder 0.2.0 — code intelligence and parallel work`. Attach the binary tarballs, installer tarball and `SHA256SUMS.txt`. Keep the release draft if tests, npm publication, authentication or registry installation verification fails.
+
+Only after all npm packages and the clean-install smoke test pass:
+
+```powershell
+gh release edit v0.2.0 --draft=false --latest
+gh release view v0.2.0 --json name,tagName,isDraft,publishedAt,assets,url
+npm view @async-coder/cli@latest version
+npm view @async-coder/binary-windows-x64@latest version
 ```

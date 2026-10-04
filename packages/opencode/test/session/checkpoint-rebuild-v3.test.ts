@@ -1,4 +1,5 @@
-import { afterEach, describe, expect } from "bun:test"
+import { Global } from "../../src/global"
+import { afterEach, beforeEach, describe, expect } from "bun:test"
 import { Effect, Layer } from "effect"
 import * as fs from "fs/promises"
 import path from "path"
@@ -7,15 +8,26 @@ import { Config } from "../../src/config"
 import { Memory } from "../../src/memory"
 import { Session } from "../../src/session"
 import { SessionCheckpoint } from "../../src/session/checkpoint"
+import { notesPath } from "../../src/session/checkpoint-paths"
 import { TaskRegistry } from "../../src/task/registry"
 import { ActorRegistry } from "../../src/actor/registry"
 import { Instance } from "../../src/project/instance"
 import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
-import { provideTmpdirInstance } from "../fixture/fixture"
+import { provideTmpdirInstance, tmpdir } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
+
+const memoryFixture = { data: Global.Path.data, directory: undefined as Awaited<ReturnType<typeof tmpdir>> | undefined }
+
+beforeEach(async () => {
+  memoryFixture.directory = await tmpdir()
+  Global.Path.data = path.join(memoryFixture.directory.path, "data")
+})
 
 afterEach(async () => {
   await Instance.disposeAll()
+  Global.Path.data = memoryFixture.data
+  await memoryFixture.directory?.[Symbol.asyncDispose]()
+  memoryFixture.directory = undefined
 })
 
 const it = testEffect(
@@ -32,6 +44,61 @@ const it = testEffect(
 )
 
 describe("renderRebuildContext v3", () => {
+  it.live("includes notes-only sessions", () =>
+    provideTmpdirInstance(() =>
+      Effect.gen(function* () {
+        const cp = yield* SessionCheckpoint.Service
+        const session = yield* Session.Service
+        const sess = yield* session.create({ title: "Notes only" })
+        yield* Effect.promise(async () => {
+          await fs.mkdir(path.dirname(notesPath(sess.id)), { recursive: true })
+          await Bun.write(notesPath(sess.id), "Continue from the reviewed migration plan.")
+        })
+        const out = yield* cp.renderRebuildContext(sess.id)
+        expect(out).toContain("## Session notes")
+        expect(out).toContain("Continue from the reviewed migration plan.")
+      }),
+    ),
+  )
+
+  it.live("includes only active actors belonging to the rebuilt session", () =>
+    provideTmpdirInstance(() =>
+      Effect.gen(function* () {
+        const cp = yield* SessionCheckpoint.Service
+        const session = yield* Session.Service
+        const actors = yield* ActorRegistry.Service
+        const sess = yield* session.create({ title: "Current" })
+        const other = yield* session.create({ title: "Other" })
+        yield* actors.register({
+          sessionID: other.id,
+          actorID: "other-reviewer",
+          mode: "subagent",
+          agent: "general",
+          description: "Unrelated review",
+          contextMode: "none",
+          background: true,
+          lifecycle: "persistent",
+        })
+        expect(yield* cp.renderRebuildContext(sess.id)).toBe("")
+        yield* actors.register({
+          sessionID: sess.id,
+          actorID: "current-reviewer",
+          mode: "subagent",
+          agent: "general",
+          description: "Current review",
+          contextMode: "none",
+          background: true,
+          lifecycle: "persistent",
+        })
+        const out = yield* cp.renderRebuildContext(sess.id)
+        expect(out).toContain("## Active actors")
+        expect(out).toContain("current-reviewer")
+        expect(out).not.toContain("other-reviewer")
+        expect(out).not.toContain("Unrelated review")
+      }),
+    ),
+  )
+
   it.live("returns empty when no memory or tasks", () =>
     provideTmpdirInstance(() =>
       Effect.gen(function* () {

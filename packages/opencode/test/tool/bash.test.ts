@@ -1015,7 +1015,7 @@ describe("tool.bash abort", () => {
         const result = await Effect.runPromise(
           bash.execute(
             {
-              command: `echo started && sleep 60`,
+              command: PS.has(sh()) ? "Write-Output started; Start-Sleep -Seconds 60" : "echo started && sleep 60",
               description: "Timeout test",
               timeout: 500,
             },
@@ -1078,7 +1078,9 @@ describe("tool.bash abort", () => {
         const result = await Effect.runPromise(
           bash.execute(
             {
-              command: `echo first && sleep 0.1 && echo second`,
+              command: PS.has(sh())
+                ? "Write-Output first; Start-Sleep -Milliseconds 100; Write-Output second"
+                : "echo first && sleep 0.1 && echo second",
               description: "Streaming test",
             },
             {

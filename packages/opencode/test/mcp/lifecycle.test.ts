@@ -263,7 +263,7 @@ test("Claude Code local MCP server is pending until explicitly connected", async
 
             yield* mcp.connect("filesystem")
 
-            expect((yield* mcp.status()).filesystem).toEqual({ status: "connected" })
+            expect((yield* mcp.status()).filesystem).toEqual({ status: "connected", tools: ["test_tool"] })
             expect(clientCreateCount).toBe(1)
           }),
         ).pipe(Effect.provide(MCP.defaultLayer)),

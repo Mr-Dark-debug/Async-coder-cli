@@ -9,6 +9,14 @@ import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
 const it = testEffect(Layer.mergeAll(Config.defaultLayer, CrossSpawnSpawner.defaultLayer))
 
 describe("feature configuration", () => {
+  it.live("preserves existing excludes while ignoring local instruction overrides", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
+    const file = path.join(dir, ".async-coder", ".gitignore")
+    yield* Effect.promise(() => Bun.write(file, "user-specific-cache\n"))
+    const config = yield* Config.Service
+    yield* config.get()
+    expect(yield* Effect.promise(() => Bun.file(file).text())).toBe("user-specific-cache\nAGENTS.local.md\n")
+  })))
+
   it.live("normalizes mcpServers while preserving native entries", () => provideTmpdirInstance(() => Effect.gen(function* () {
     const config = yield* Config.Service
     const value = yield* config.get()

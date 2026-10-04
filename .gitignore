@@ -31,6 +31,22 @@ logs/
 *.bun-build
 tsconfig.tsbuildinfo
 .dev-home/
+.ui-smoke-home/
+.artifacts/
+
+# Local release validation output
+*-tests.log
+*-typecheck.log
+*-build.log
+windows-tests.log
+permission-provider-tests.log
+install-0.2.0.log
+state-baseline-fixes*.log
+state-subtask-debug*.log
+state-*.log
+ui-server.log
+zen-smoke.log
+state-worktree-spawn.log
 
 # Local agent harness state
 .claude/

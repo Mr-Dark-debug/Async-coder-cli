@@ -338,7 +338,7 @@ export const dict = {
   "app.server.otherServers": "Other servers",
 
   "dialog.server.title": "Servers",
-  "dialog.server.description": "Switch which OpenCode server this app connects to.",
+  "dialog.server.description": "Switch which async-coder server this app connects to.",
   "dialog.server.search.placeholder": "Search servers",
   "dialog.server.empty": "No servers yet",
   "dialog.server.add.title": "Add server",
@@ -479,7 +479,7 @@ export const dict = {
   "toast.project.reloadFailed.title": "Failed to reload {{project}}",
 
   "toast.update.title": "Update available",
-  "toast.update.description": "A new version of OpenCode ({{version}}) is now available to install.",
+  "toast.update.description": "A new version of async-coder ({{version}}) is now available to install.",
   "toast.update.action.installRestart": "Install and restart",
   "toast.update.action.notYet": "Not yet",
 
@@ -491,7 +491,7 @@ export const dict = {
   "error.page.action.checkUpdates": "Check for updates",
   "error.page.action.updateTo": "Update to {{version}}",
   "error.page.circular": "[Circular]",
-  "error.page.report.prefix": "Please report this error to the OpenCode team",
+  "error.page.report.prefix": "Please report this error to the async-coder team",
   "error.page.report.discord": "on Discord",
   "error.page.version": "Version: {{version}}",
 
@@ -698,7 +698,7 @@ export const dict = {
   "sidebar.workspaces.enable": "Enable workspaces",
   "sidebar.workspaces.disable": "Disable workspaces",
   "sidebar.gettingStarted.title": "Getting started",
-  "sidebar.gettingStarted.line1": "OpenCode includes free models so you can start immediately.",
+  "sidebar.gettingStarted.line1": "Choose a connected provider's free coding models from Zen (Free).",
   "sidebar.gettingStarted.line2": "Connect any provider to use models, inc. Claude, GPT, Gemini etc.",
   "sidebar.project.recentSessions": "Recent sessions",
   "sidebar.project.viewAllSessions": "View all sessions",
@@ -730,7 +730,7 @@ export const dict = {
   "debugBar.mem.tipUnavailable": "Used JS heap vs heap limit. Chromium only.",
   "debugBar.mem.tip": "Used JS heap vs heap limit. {{used}} of {{limit}}.",
 
-  "app.name.desktop": "OpenCode Desktop",
+  "app.name.desktop": "async-coder Desktop",
 
   "settings.section.desktop": "Desktop",
   "settings.section.server": "Server",
@@ -738,7 +738,7 @@ export const dict = {
   "settings.tab.shortcuts": "Shortcuts",
   "settings.desktop.section.wsl": "WSL",
   "settings.desktop.wsl.title": "WSL integration",
-  "settings.desktop.wsl.description": "Run the OpenCode server inside WSL on Windows.",
+  "settings.desktop.wsl.description": "Run the async-coder server inside WSL on Windows.",
 
   "settings.general.section.appearance": "Appearance",
   "settings.general.section.advanced": "Advanced",
@@ -749,13 +749,13 @@ export const dict = {
   "settings.general.section.display": "Display",
 
   "settings.general.row.language.title": "Language",
-  "settings.general.row.language.description": "Change the display language for OpenCode",
+  "settings.general.row.language.description": "Change the display language for async-coder",
   "settings.general.row.appearance.title": "Appearance",
-  "settings.general.row.appearance.description": "Customise how OpenCode looks on your device",
+  "settings.general.row.appearance.description": "Customise how async-coder looks on your device",
   "settings.general.row.colorScheme.title": "Color scheme",
-  "settings.general.row.colorScheme.description": "Choose whether OpenCode follows the system, light, or dark theme",
+  "settings.general.row.colorScheme.description": "Choose whether async-coder follows the system, light, or dark theme",
   "settings.general.row.theme.title": "Theme",
-  "settings.general.row.theme.description": "Customise how OpenCode is themed.",
+  "settings.general.row.theme.description": "Customise how async-coder is themed.",
   "settings.general.row.font.title": "Code Font",
   "settings.general.row.font.description": "Customise the font used in code blocks",
   "settings.general.row.terminalFont.title": "Terminal Font",
@@ -794,13 +794,13 @@ export const dict = {
   "settings.general.row.releaseNotes.description": "Show What's New popups after updates",
 
   "settings.updates.row.startup.title": "Check for updates on startup",
-  "settings.updates.row.startup.description": "Automatically check for updates when OpenCode launches",
+  "settings.updates.row.startup.description": "Automatically check for updates when async-coder launches",
   "settings.updates.row.check.title": "Check for updates",
   "settings.updates.row.check.description": "Manually check for updates and install if available",
   "settings.updates.action.checkNow": "Check now",
   "settings.updates.action.checking": "Checking...",
   "settings.updates.toast.latest.title": "You're up to date",
-  "settings.updates.toast.latest.description": "You're running the latest version of OpenCode.",
+  "settings.updates.toast.latest.description": "You're running the latest version of async-coder.",
   "sound.option.none": "None",
   "sound.option.alert01": "Alert 01",
   "sound.option.alert02": "Alert 02",

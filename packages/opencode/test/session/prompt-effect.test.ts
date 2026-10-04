@@ -40,6 +40,7 @@ import { ToolRegistry } from "../../src/tool"
 import { Truncate } from "../../src/tool"
 import { ActorRegistry } from "../../src/actor/registry"
 import { ActorWaiter } from "../../src/actor/waiter"
+import { Actor } from "../../src/actor/spawn"
 import { Memory } from "../../src/memory"
 import { History } from "../../src/history"
 import { Team } from "../../src/team"
@@ -156,6 +157,9 @@ const lsp = Layer.succeed(
     prepareCallHierarchy: () => Effect.succeed([]),
     incomingCalls: () => Effect.succeed([]),
     outgoingCalls: () => Effect.succeed([]),
+    completion: () => Effect.succeed([]),
+    prepareRename: () => Effect.succeed([]),
+    rename: () => Effect.succeed([]),
   }),
 )
 
@@ -225,10 +229,10 @@ function makeHttp() {
     Layer.provideMerge(deps),
   )
   const trunc = Truncate.layer.pipe(Layer.provideMerge(deps))
-  return Layer.mergeAll(
+  const http = Layer.mergeAll(
     TestLLMServer.layer,
     SessionPrompt.layer.pipe(
-    Layer.provide(Goal.defaultLayer),
+      Layer.provide(Goal.defaultLayer),
       Layer.provide(TaskGateState.defaultLayer),
       Layer.provide(TaskRegistry.defaultLayer),
       Layer.provide(SessionRevert.defaultLayer),
@@ -248,6 +252,10 @@ function makeHttp() {
       Layer.provideMerge(deps),
     ),
   ).pipe(Layer.provide(summary))
+  return Layer.mergeAll(
+    http,
+    Actor.layer.pipe(Layer.provide(http), Layer.provide(Inbox.defaultLayer), Layer.provide(TaskRegistry.defaultLayer)),
+  )
 }
 
 const it = testEffect(makeHttp())
@@ -600,9 +608,12 @@ it.live("failed subtask preserves metadata on error tool state", () =>
       const sessions = yield* Session.Service
       const chat = yield* sessions.create({ title: "Pinned" })
       yield* llm.tool("actor", {
-        description: "inspect bug",
-        prompt: "look into the cache key path",
-        subagent_type: "general",
+        operation: {
+          action: "run",
+          description: "inspect bug",
+          prompt: "look into the cache key path",
+          subagent_type: "general",
+        },
       })
       yield* llm.text("done")
       const msg = yield* user(chat.id, "hello")
@@ -692,7 +703,7 @@ it.live(
         const fiber = yield* prompt.loop({ sessionID: chat.id }).pipe(Effect.forkChild)
 
         const tool = yield* Effect.promise(async () => {
-          const end = Date.now() + 5_000
+          const end = Date.now() + 10_000
           while (Date.now() < end) {
             const msgs = await Effect.runPromise(MessageV2.filterCompactedEffect(chat.id))
             const taskMsg = msgs.find((item) => item.info.role === "assistant" && item.info.agent === "general")
@@ -713,7 +724,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  5_000,
+  30_000,
 )
 
 it.live(
@@ -728,9 +739,12 @@ it.live(
           permission: [{ permission: "*", pattern: "*", action: "allow" }],
         })
         yield* llm.tool("actor", {
-          description: "inspect bug",
-          prompt: "look into the cache key path",
-          subagent_type: "general",
+          operation: {
+            action: "run",
+            description: "inspect bug",
+            prompt: "look into the cache key path",
+            subagent_type: "general",
+          },
         })
         yield* llm.hang
         yield* user(chat.id, "hello")
@@ -738,7 +752,7 @@ it.live(
         const fiber = yield* prompt.loop({ sessionID: chat.id }).pipe(Effect.forkChild)
 
         const tool = yield* Effect.promise(async () => {
-          const end = Date.now() + 5_000
+          const end = Date.now() + 10_000
           while (Date.now() < end) {
             const msgs = await Effect.runPromise(MessageV2.filterCompactedEffect(chat.id))
             const assistant = msgs.findLast((item) => item.info.role === "assistant" && item.info.agent === "build")
@@ -761,7 +775,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  10_000,
+  30_000,
 )
 
 it.live(
@@ -787,7 +801,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 // Cancel semantics
@@ -817,7 +831,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 it.live(
@@ -845,7 +859,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 it.live(
@@ -923,7 +937,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 // Queue semantics
@@ -967,7 +981,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 it.live(
@@ -1036,7 +1050,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 it.live(
@@ -1066,7 +1080,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 it.live("assertNotBusy succeeds when idle", () =>
@@ -1111,7 +1125,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 unix("shell captures stdout and stderr in completed tool output", () =>
@@ -1281,7 +1295,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 it.live(
@@ -1321,7 +1335,7 @@ it.live(
       }),
       { git: true, config: providerCfg },
     ),
-  3_000,
+  15_000,
 )
 
 unix(

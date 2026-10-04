@@ -4,7 +4,7 @@ import type { ModelsDev } from "@/provider"
 
 export type Task = "coding" | "review" | "planning" | "writing" | "quick"
 
-export function isFree(model: Provider.Model, catalog: Record<string, ModelsDev.Provider>) {
+export function isFree(model: { id: string; providerID: string } & Pick<Provider.Model, "status" | "capabilities" | "cost">, catalog: Record<string, ModelsDev.Provider>) {
   const price = catalog[model.providerID]?.models[model.id]?.cost
   // Live-discovered models with unknown pricing default to zero internally.
   // Only authoritative catalog pricing may qualify a remote model as free.
