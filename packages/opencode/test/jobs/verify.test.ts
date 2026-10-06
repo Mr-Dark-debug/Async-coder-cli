@@ -10,7 +10,7 @@ import * as Verify from "../../src/jobs/verify"
 import * as Pr from "../../src/jobs/pr"
 import { commitAll, git } from "../../src/jobs/git"
 import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
-import { provideTmpdirInstance } from "../fixture/fixture"
+import { provideTmpdirInstance, tmpdir } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import { Instance } from "../../src/project/instance"
 
@@ -43,18 +43,66 @@ describe("verify gates", () => {
     expect(result.code).not.toBe(0)
   })
 
+  test("large output streams retain only the bounded UTF-8 tail", async () => {
+    await using dir = await tmpdir()
+    await Bun.write(
+      path.join(dir.path, "loud.ts"),
+      [
+        'process.stdout.write("x".repeat(2 * 1024 * 1024) + "stdout-tail")',
+        'process.stderr.write("y".repeat(2 * 1024 * 1024) + "stderr-tail ✓")',
+      ].join("\n"),
+    )
+    const command =
+      process.platform === "win32"
+        ? `& '${process.execPath.replaceAll("'", "''")}' loud.ts`
+        : `'${process.execPath.replaceAll("'", "'\\''")}' loud.ts`
+    const result = await Verify.gate(command, dir.path)
+    expect(result.code).toBe(0)
+    expect(result.output.length).toBeLessThanOrEqual(4001)
+    expect(result.output.startsWith("…")).toBe(true)
+    expect(result.output.endsWith("stderr-tail ✓")).toBe(true)
+  })
+
   test("retry prompt names the failing command and its output", () => {
     const text = Verify.retryPrompt({
       pass: false,
       attempts: 1,
-      gates: [
-        { command: "bun test", code: 1, ms: 5, output: "1 failing" },
-      ],
+      gates: [{ command: "bun test", code: 1, ms: 5, output: "1 failing" }],
     })
     expect(text).toContain("Command: bun test")
     expect(text).toContain("1 failing")
     expect(Verify.retryPrompt({ pass: true, attempts: 1, gates: [] })).toBe("")
   })
+
+  for (const mode of ["cancel", "timeout"] as const) {
+    test(`${mode} stops gate descendants before their delayed writes`, async () => {
+      await using dir = await tmpdir()
+      await Bun.write(
+        path.join(dir.path, "worker.ts"),
+        [
+          'await Bun.write("started.txt", "started")',
+          "await Bun.sleep(4000)",
+          'await Bun.write("late.txt", "should not happen")',
+          "setInterval(() => {}, 1000)",
+        ].join("\n"),
+      )
+      const executable =
+        process.platform === "win32"
+          ? `& '${process.execPath.replaceAll("'", "''")}' worker.ts`
+          : `'${process.execPath.replaceAll("'", "'\\''")}' worker.ts`
+      const controller = new AbortController()
+      const gate = Verify.gate(executable, dir.path, mode === "timeout" ? 2500 : 10000, controller.signal)
+      const deadline = Date.now() + 8000
+      while (!(await Bun.file(path.join(dir.path, "started.txt")).exists()) && Date.now() < deadline)
+        await Bun.sleep(10)
+      expect(await Bun.file(path.join(dir.path, "started.txt")).exists()).toBe(true)
+      if (mode === "cancel") controller.abort()
+      const result = await gate
+      expect(result.code).toBe(mode === "cancel" ? 130 : 124)
+      await Bun.sleep(4200)
+      expect(await Bun.file(path.join(dir.path, "late.txt")).exists()).toBe(false)
+    }, 15000)
+  }
 })
 
 const it = testEffect(Layer.mergeAll(CrossSpawnSpawner.defaultLayer))
@@ -63,7 +111,13 @@ describe("receipt", () => {
   it.live("is deterministic and lists gate results", () =>
     provideTmpdirInstance(() =>
       Effect.gen(function* () {
-        const job = Store.create({ name: "fix auth", prompt: "p", branch: "jobs/fix-auth", budget_usd: 0.5, verify: ["bun test"] })
+        const job = Store.create({
+          name: "fix auth",
+          prompt: "p",
+          branch: "jobs/fix-auth",
+          budget_usd: 0.5,
+          verify: ["bun test"],
+        })
         Store.move(job.id, "running")
         const done = Store.move(job.id, "done", {
           cost_usd: 0.0612,

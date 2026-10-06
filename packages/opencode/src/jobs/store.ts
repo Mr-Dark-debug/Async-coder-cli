@@ -78,7 +78,9 @@ export function move(id: string, to: Status, extra?: Partial<Omit<Job, "id" | "s
 
 /** Jobs left "running" by a process that is gone (server crash or restart) are failed on startup. */
 export function reapOrphans(alive: Set<string>) {
-  const stale = list({ status: ["running"] }).filter((job) => !alive.has(job.id))
+  const stale = Database.use((db) => db.select().from(JobTable).where(eq(JobTable.status, "running")).all()).filter(
+    (job) => !alive.has(job.id),
+  )
   for (const job of stale) move(job.id, "failed", { error: "Server stopped while the job was running" })
   return stale.length
 }
@@ -95,7 +97,13 @@ export function counts() {
   return Object.fromEntries(rows.map((row) => [row.status, row.n])) as Partial<Record<Status, number>>
 }
 
-export function recordSage(input: { job_id: string; stage: "critique" | "judge"; reason: string; session_id?: string; cost_usd: number }) {
+export function recordSage(input: {
+  job_id: string
+  stage: "critique" | "judge"
+  reason: string
+  session_id?: string
+  cost_usd: number
+}) {
   const now = Date.now()
   Database.use((db) =>
     db

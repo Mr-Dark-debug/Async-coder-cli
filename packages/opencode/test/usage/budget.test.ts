@@ -64,6 +64,15 @@ describe("budget.evaluate", () => {
     expect(Budget.decisive([])).toBeUndefined()
   })
 
+  test("a large warning overrun cannot suppress an agent hard stop", () => {
+    const verdicts = [
+      ...Budget.evaluate({ daily_usd: 0.01, default_action: "warn" }, { daily: 100 }),
+      ...Budget.evaluate({ per_agent_usd: 1 }, { agent: 1 }),
+    ]
+    expect(Budget.decisive(verdicts)?.action).toBe("stop")
+    expect(Budget.decisive(verdicts)?.scope).toBe("agent")
+  })
+
   test("downgrade action continues on the lite tier and ranks between warn and stop", () => {
     const [down] = Budget.evaluate({ daily_usd: 1, default_action: "downgrade" }, { daily: 2 })
     expect(down?.action).toBe("downgrade")
@@ -91,16 +100,38 @@ describe("budget.measure", () => {
         const old = new Date(2026, 0, 1).getTime()
         Database.use((db) => {
           db.insert(ProjectTable)
-            .values({ id: "proj_1", worktree: "/tmp", sandboxes: [] as any, time_created: now, time_updated: now } as any)
+            .values({
+              id: "proj_1",
+              worktree: "/tmp",
+              sandboxes: [] as any,
+              time_created: now,
+              time_updated: now,
+            } as any)
             .run()
           for (const id of ["ses_1", "ses_2"])
             db.insert(SessionTable)
-              .values({ id: id as any, project_id: "proj_1" as any, slug: id, directory: "/tmp", title: "t", version: "1", time_created: now, time_updated: now })
+              .values({
+                id: id as any,
+                project_id: "proj_1" as any,
+                slug: id,
+                directory: "/tmp",
+                title: "t",
+                version: "1",
+                time_created: now,
+                time_updated: now,
+              })
               .run()
           const row = (id: string, session: string, agent: string, role: string, cost: number, at: number) =>
             db
               .insert(MessageTable)
-              .values({ id: id as any, session_id: session as any, agent_id: agent, data: { role, cost } as any, time_created: at, time_updated: at })
+              .values({
+                id: id as any,
+                session_id: session as any,
+                agent_id: agent,
+                data: { role, cost } as any,
+                time_created: at,
+                time_updated: at,
+              })
               .run()
           row("m1", "ses_1", "main", "assistant", 0.25, now)
           row("m2", "ses_1", "main", "user", 99, now)

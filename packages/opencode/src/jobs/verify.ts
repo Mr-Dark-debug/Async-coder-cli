@@ -1,30 +1,96 @@
 import type { GateResult, VerifyResult } from "./job.sql"
 import type { Job } from "./store"
+import { spawn } from "node:child_process"
+import type { Readable } from "node:stream"
+import { StringDecoder } from "node:string_decoder"
 
 const TAIL = 4000
 
 const tail = (text: string) => (text.length > TAIL ? `…${text.slice(-TAIL)}` : text)
 
+async function output(stream: Readable) {
+  const decoder = new StringDecoder("utf8")
+  let text = ""
+  for await (const chunk of stream) text = (text + decoder.write(chunk)).slice(-TAIL - 1)
+  return tail(text + decoder.end())
+}
+
 /** Run one gate command through the platform shell. Never throws: a failure to start is a failed gate. */
-export async function gate(command: string, cwd: string, timeoutMs = 10 * 60_000): Promise<GateResult> {
+export async function gate(
+  command: string,
+  cwd: string,
+  timeoutMs = 10 * 60_000,
+  signal?: AbortSignal,
+): Promise<GateResult> {
   const started = Date.now()
-  const argv = process.platform === "win32" ? ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command] : ["/bin/sh", "-c", command]
+  if (signal?.aborted) return { command, code: 130, ms: 0, output: "Verification cancelled" }
+  const argv =
+    process.platform === "win32"
+      ? ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command]
+      : ["/bin/sh", "-c", command]
   try {
-    const child = Bun.spawn(argv, { cwd, stdout: "pipe", stderr: "pipe", stdin: "ignore" })
-    const timer = setTimeout(() => child.kill(), timeoutMs)
-    const [out, err, code] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited])
-    clearTimeout(timer)
-    return { command, code, ms: Date.now() - started, output: tail(`${out}${err ? `\n${err}` : ""}`.trim()) }
+    const child = spawn(argv[0], argv.slice(1), {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+      detached: process.platform !== "win32",
+    })
+    const exited = new Promise<number>((resolve, reject) => {
+      child.once("error", reject)
+      child.once("close", (code) => resolve(code ?? 1))
+    })
+    let stopped: Promise<void> | undefined
+    let timedOut = false
+    const stop = () =>
+      (stopped ??= (async () => {
+        if (!child.pid || child.exitCode !== null || child.signalCode !== null) return
+        if (process.platform === "win32") {
+          const kill = Bun.spawn(["taskkill", "/PID", String(child.pid), "/T", "/F"], {
+            stdout: "ignore",
+            stderr: "ignore",
+            stdin: "ignore",
+          })
+          if ((await kill.exited) !== 0 && child.exitCode === null && child.signalCode === null)
+            throw new Error("Failed to stop verification process tree")
+          return
+        }
+        process.kill(-child.pid, "SIGKILL")
+      })())
+    const timer = setTimeout(() => {
+      timedOut = true
+      void stop().catch(() => child.kill("SIGKILL"))
+    }, timeoutMs)
+    const abort = () => {
+      void stop().catch(() => child.kill("SIGKILL"))
+    }
+    signal?.addEventListener("abort", abort, { once: true })
+    try {
+      const [out, err, code] = await Promise.all([output(child.stdout!), output(child.stderr!), exited])
+      await stopped
+      return {
+        command,
+        code: signal?.aborted ? 130 : timedOut ? 124 : code,
+        ms: Date.now() - started,
+        output: signal?.aborted
+          ? "Verification cancelled"
+          : timedOut
+            ? "Verification timed out"
+            : tail(`${out}${err.length ? `\n${err}` : ""}`.trim()),
+      }
+    } finally {
+      clearTimeout(timer)
+      signal?.removeEventListener("abort", abort)
+    }
   } catch (error) {
     return { command, code: 127, ms: Date.now() - started, output: String(error) }
   }
 }
 
 /** Run gates in order, stopping at the first failure (later gates would only add noise). */
-export async function run(commands: string[], cwd: string, attempts = 1): Promise<VerifyResult> {
+export async function run(commands: string[], cwd: string, attempts = 1, signal?: AbortSignal): Promise<VerifyResult> {
   const gates: GateResult[] = []
   for (const command of commands) {
-    const result = await gate(command, cwd)
+    const result = await gate(command, cwd, undefined, signal)
     gates.push(result)
     if (result.code !== 0) break
   }
@@ -64,11 +130,19 @@ export function receipt(job: Job, sage: { stage: string; reason: string; cost_us
     ...(job.branch ? [`- Branch: ${job.branch}`] : []),
   ]
   if (job.verify_result) {
-    lines.push("", `### Verification: ${job.verify_result.pass ? "passed" : "failed"} (attempt ${job.verify_result.attempts})`)
-    for (const g of job.verify_result.gates) lines.push(`- ${g.code === 0 ? "PASS" : "FAIL"} \`${g.command}\` (${duration(g.ms)})`)
+    lines.push(
+      "",
+      `### Verification: ${job.verify_result.pass ? "passed" : "failed"} (attempt ${job.verify_result.attempts})`,
+    )
+    for (const g of job.verify_result.gates)
+      lines.push(`- ${g.code === 0 ? "PASS" : "FAIL"} \`${g.command}\` (${duration(g.ms)})`)
   } else if (job.verify?.length) lines.push("", "### Verification: not run")
   if (sage.length)
-    lines.push("", `### Sage: ${sage.length} ${sage.length === 1 ? "review" : "reviews"} (${money(sage.reduce((sum, item) => sum + item.cost_usd, 0))})`, ...sage.map((item) => `- ${item.stage}: ${item.reason}`))
+    lines.push(
+      "",
+      `### Sage: ${sage.length} ${sage.length === 1 ? "review" : "reviews"} (${money(sage.reduce((sum, item) => sum + item.cost_usd, 0))})`,
+      ...sage.map((item) => `- ${item.stage}: ${item.reason}`),
+    )
   else lines.push("", "### Sage: not consulted (no extra model cost)")
   return lines.join("\n")
 }

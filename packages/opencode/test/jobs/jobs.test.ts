@@ -86,6 +86,17 @@ describe("job store", () => {
       }),
     ),
   )
+
+  it.live("recovery covers every orphan beyond the default list page", () =>
+    provideTmpdirInstance(() =>
+      Effect.gen(function* () {
+        const jobs = Array.from({ length: 110 }, (_, i) => Store.create({ name: `job ${i}`, prompt: "p" }))
+        jobs.forEach((job) => Store.move(job.id, "running"))
+        expect(Store.reapOrphans(new Set())).toBe(110)
+        expect(jobs.every((job) => Store.get(job.id)?.status === "failed")).toBe(true)
+      }),
+    ),
+  )
 })
 
 describe("job notifications", () => {

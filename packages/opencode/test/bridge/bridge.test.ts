@@ -71,7 +71,8 @@ class FakeAgent implements Agent {
   }
 }
 
-const channels = async () => new Channels(path.join(mkdtempSync(path.join(tmpdir(), "bridge-")), "channels.json")).load()
+const channels = async () =>
+  new Channels(path.join(mkdtempSync(path.join(tmpdir(), "bridge-")), "channels.json")).load()
 const msg = (text: string, chat = "10", user = "5") => ({ chat, user, text })
 
 describe("bridge service", () => {
@@ -102,7 +103,10 @@ describe("bridge service", () => {
     const first = new Bridge(new FakeTransport(), a, store, { allow: { chats: ["10"] }, protocol: "telegram" })
     await first.handle(msg("one"))
     await first.handle(msg("two"))
-    const restarted = new Bridge(new FakeTransport(), a, await new Channels(file).load(), { allow: { chats: ["10"] }, protocol: "telegram" })
+    const restarted = new Bridge(new FakeTransport(), a, await new Channels(file).load(), {
+      allow: { chats: ["10"] },
+      protocol: "telegram",
+    })
     await restarted.handle(msg("three"))
     expect(a.created).toBe(1)
     expect(a.prompts.map(([id]) => id)).toEqual(["ses_1", "ses_1", "ses_1"])
@@ -110,7 +114,10 @@ describe("bridge service", () => {
 
   test("/new starts a fresh session", async () => {
     const a = new FakeAgent()
-    const bridge = new Bridge(new FakeTransport(), a, await channels(), { allow: { chats: ["10"] }, protocol: "telegram" })
+    const bridge = new Bridge(new FakeTransport(), a, await channels(), {
+      allow: { chats: ["10"] },
+      protocol: "telegram",
+    })
     await bridge.handle(msg("one"))
     await bridge.handle(msg("/new"))
     await bridge.handle(msg("two"))
@@ -126,7 +133,31 @@ describe("bridge service", () => {
     expect(t.sent).toHaveLength(1)
     expect(t.sent[0][1]).toContain("/details")
     await bridge.handle(msg("/details"))
-    expect(t.sent.slice(1).map(([, text]) => text).join(" ")).toContain("y".repeat(3000))
+    expect(
+      t.sent
+        .slice(1)
+        .map(([, text]) => text)
+        .join(" "),
+    ).toContain("y".repeat(3000))
+  })
+
+  test("/new while busy preserves the active session until the prompt finishes", async () => {
+    const t = new FakeTransport()
+    const a = new FakeAgent()
+    const store = await channels()
+    let release!: () => void
+    a.gate = new Promise((resolve) => (release = resolve))
+    const bridge = new Bridge(t, a, store, { allow: { chats: ["10"] }, protocol: "telegram" })
+    const first = bridge.handle(msg("slow"))
+    while (!a.prompts.length) await Bun.sleep(1)
+    await bridge.handle(msg("/new"))
+    expect(t.sent.at(-1)?.[1]).toContain("Still working")
+    expect(store.get("telegram:10")?.sessionID).toBe("ses_1")
+    release()
+    await first
+    await bridge.handle(msg("/new"))
+    await bridge.handle(msg("next"))
+    expect(a.prompts.map(([id]) => id)).toEqual(["ses_1", "ses_2"])
   })
 
   test("a second message while busy is refused, and an agent error is reported", async () => {
@@ -176,10 +207,13 @@ describe("telegram adapter", () => {
 
   test("poll returns text messages, skips others, and advances the offset", async () => {
     const { http, calls } = fakeHttp([
-      { ok: true, result: [
-        { update_id: 7, message: { text: "hi", chat: { id: 42 }, from: { id: 9, username: "dev" } } },
-        { update_id: 8, message: { chat: { id: 42 } } },
-      ] },
+      {
+        ok: true,
+        result: [
+          { update_id: 7, message: { text: "hi", chat: { id: 42 }, from: { id: 9, username: "dev" } } },
+          { update_id: 8, message: { chat: { id: 42 } } },
+        ],
+      },
       { ok: true, result: [] },
     ])
     const tg = new Telegram("TOKEN", http, "https://tg.test")
@@ -191,7 +225,10 @@ describe("telegram adapter", () => {
   })
 
   test("send posts to sendMessage and API errors surface", async () => {
-    const { http, calls } = fakeHttp([{ ok: true, result: {} }, { ok: false, description: "chat not found" }])
+    const { http, calls } = fakeHttp([
+      { ok: true, result: {} },
+      { ok: false, description: "chat not found" },
+    ])
     const tg = new Telegram("T", http, "https://tg.test")
     await tg.send("5", "hello")
     expect(calls[0].body).toEqual({ chat_id: "5", text: "hello" })

@@ -15,8 +15,13 @@ export class Inbox {
     while (this.items.length === 0) {
       if (signal?.aborted) return []
       await new Promise<void>((resolve) => {
-        this.waiter = resolve
-        signal?.addEventListener("abort", () => resolve(), { once: true })
+        const wake = () => {
+          signal?.removeEventListener("abort", wake)
+          this.waiter = undefined
+          resolve()
+        }
+        this.waiter = wake
+        signal?.addEventListener("abort", wake, { once: true })
       })
     }
     this.waiter = undefined

@@ -1,6 +1,8 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, spyOn, test } from "bun:test"
 import { matches, next, parse } from "../../src/routines/cron"
 import { Routines } from "../../src/routines"
+import { Instance } from "../../src/project/instance"
+import { tmpdir } from "../fixture/fixture"
 
 const at = (y: number, mo: number, d: number, h: number, mi: number) => new Date(y, mo - 1, d, h, mi)
 
@@ -76,5 +78,28 @@ describe("routine scheduling", () => {
   test("problems reports bad schedules", () => {
     expect(Routines.problems(routines)).toEqual([expect.stringContaining("broken")])
     expect(Routines.problems(undefined)).toEqual([])
+  })
+
+  test("disposing an instance clears its real scheduler timer", async () => {
+    await using dir = await tmpdir({
+      config: { routines: { fixture: { cron: "* * * * *", prompt: "fixture", worktree: false } } },
+    })
+    const clear = spyOn(globalThis, "clearInterval")
+    try {
+      await Instance.provide({
+        directory: dir.path,
+        fn: async () => {
+          await Routines.arm()
+          const before = clear.mock.calls.length
+          await Instance.dispose()
+          expect(clear.mock.calls.length).toBeGreaterThan(before)
+          const after = clear.mock.calls.length
+          Routines.disarm(dir.path)
+          expect(clear.mock.calls.length).toBe(after)
+        },
+      })
+    } finally {
+      clear.mockRestore()
+    }
   })
 })

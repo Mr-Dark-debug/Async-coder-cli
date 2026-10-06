@@ -66,8 +66,8 @@ export function evaluate(caps: Caps | undefined, spend: Spend): Verdict[] {
 
 /** The verdict to act on: a stop outranks a warning, and the largest overrun wins within a tier. */
 export function decisive(verdicts: Verdict[]): Verdict | undefined {
-  const rank = (item: Verdict) => (item.action === "stop" ? 3 : item.action === "downgrade" ? 2 : 1) + item.spent / item.cap / 1000
-  return verdicts.toSorted((a, b) => rank(b) - rank(a))[0]
+  const rank = (item: Verdict) => (item.action === "stop" ? 3 : item.action === "downgrade" ? 2 : 1)
+  return verdicts.toSorted((a, b) => rank(b) - rank(a) || b.spent / b.cap - a.spent / a.cap)[0]
 }
 
 export function startOfDay(now: number) {
@@ -85,29 +85,33 @@ const assistant = sql`json_extract(${MessageTable.data}, '$.role') = 'assistant'
 
 /** Sum assistant-message cost across all sessions since the given time (ms epoch). */
 export function spentSince(since: number) {
-  return Database.use((db) =>
-    db
-      .select({ total: cost })
-      .from(MessageTable)
-      .where(and(gte(MessageTable.time_created, since), assistant))
-      .get(),
-  )?.total ?? 0
+  return (
+    Database.use((db) =>
+      db
+        .select({ total: cost })
+        .from(MessageTable)
+        .where(and(gte(MessageTable.time_created, since), assistant))
+        .get(),
+    )?.total ?? 0
+  )
 }
 
 export function spentInSession(sessionID: SessionID, agentID?: string) {
-  return Database.use((db) =>
-    db
-      .select({ total: cost })
-      .from(MessageTable)
-      .where(
-        and(
-          eq(MessageTable.session_id, sessionID),
-          assistant,
-          agentID ? eq(MessageTable.agent_id, agentID) : undefined,
-        ),
-      )
-      .get(),
-  )?.total ?? 0
+  return (
+    Database.use((db) =>
+      db
+        .select({ total: cost })
+        .from(MessageTable)
+        .where(
+          and(
+            eq(MessageTable.session_id, sessionID),
+            assistant,
+            agentID ? eq(MessageTable.agent_id, agentID) : undefined,
+          ),
+        )
+        .get(),
+    )?.total ?? 0
+  )
 }
 
 /** Gather only the spend figures the configured caps actually need. */

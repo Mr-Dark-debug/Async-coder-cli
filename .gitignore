@@ -60,3 +60,4 @@ experiment/last-outcome.json
 /experiment
 final-typechecks.log
 packages/opencode/pack-release.log
+async-coder-website/.vercel/

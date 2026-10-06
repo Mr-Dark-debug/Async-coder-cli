@@ -70,6 +70,7 @@ export class Bridge {
       return this.transport.send(msg.chat, command.type === "allow" ? "Allowed." : "Denied.")
     }
     if (command.type === "new") {
+      if (this.busy.has(msg.chat)) return this.transport.send(msg.chat, "Still working on the previous message.")
       await this.channels.remove(this.key(msg.chat))
       this.sessions.delete(msg.chat)
       return this.transport.send(msg.chat, "Started a fresh session.")
@@ -91,7 +92,10 @@ export class Bridge {
       // Long replies are summarised: the first chunk now, the rest on /details.
       await this.transport.send(msg.chat, parts[0] + (parts.length > 1 ? "\n\n(send /details for the full reply)" : ""))
     } catch (error) {
-      await this.transport.send(msg.chat, `Something went wrong: ${error instanceof Error ? error.message : String(error)}`)
+      await this.transport.send(
+        msg.chat,
+        `Something went wrong: ${error instanceof Error ? error.message : String(error)}`,
+      )
     } finally {
       this.busy.delete(msg.chat)
     }
@@ -106,7 +110,8 @@ export class Bridge {
         await Bun.sleep(3000)
         return []
       })
-      for (const msg of batch) void this.handle(msg).catch((error) => this.options.log?.(`handle failed: ${String(error)}`))
+      for (const msg of batch)
+        void this.handle(msg).catch((error) => this.options.log?.(`handle failed: ${String(error)}`))
     }
   }
 }

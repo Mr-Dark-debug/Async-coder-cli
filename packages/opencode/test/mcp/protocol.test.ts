@@ -6,8 +6,20 @@ describe("MCP real protocol transports", () => {
   for (const mode of ["stdio", "http", "sse"]) {
     test(`${mode} initializes, discovers and calls tools, disconnects and reconnects`, async () => {
       await using directory = await tmpdir()
+      const stdio = path.join(directory.path, "mcp-stdio-server.js")
+      if (mode === "stdio") {
+        // Resolve and bundle SDK modules before the timed MCP connection. The
+        // real SDK server still runs in a fresh child on connect/reconnect.
+        const built = await Bun.build({
+          entrypoints: [path.join(import.meta.dir, "../fixture/mcp-stdio-server.ts")],
+          outdir: directory.path,
+          target: "bun",
+          packages: "bundle",
+        })
+        expect(built.success, built.logs.map(String).join("\n")).toBe(true)
+      }
       // A subprocess keeps SDK transport mocks in other test files out of this protocol test.
-      const child = Bun.spawn([process.execPath, "run", path.join(import.meta.dir, "../fixture/mcp-protocol-worker.ts"), mode, directory.path], { stdout: "pipe", stderr: "pipe" })
+      const child = Bun.spawn([process.execPath, "run", path.join(import.meta.dir, "../fixture/mcp-protocol-worker.ts"), mode, directory.path, stdio], { stdout: "pipe", stderr: "pipe" })
       // The worker imports the full application on a cold Windows filesystem;
       // MCP connection and request deadlines remain independently set to 3s.
       const timer = setTimeout(() => child.kill(), 45000)

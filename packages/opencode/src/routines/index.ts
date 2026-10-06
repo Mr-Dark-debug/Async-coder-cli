@@ -4,6 +4,7 @@ import { Instance } from "@/project/instance"
 import { Log } from "@/util"
 import type { ConfigRoutines } from "@/config/routines"
 import { matches, parse } from "./cron"
+import { registerDisposer } from "@/effect/instance-registry"
 
 const log = Log.create({ service: "routines" })
 
@@ -55,9 +56,12 @@ export async function arm() {
   if (!initial || Object.keys(initial).length === 0 || timers.has(directory)) return
   const fired = new Map<string, number>()
   const tick = Instance.bind(async () => {
+    if (timers.get(directory) !== timer) return
     const routines = (await AppRuntime.runPromise(Config.Service.use((svc) => svc.get()))).routines
     const { Jobs } = await import("@/jobs")
+    if (timers.get(directory) !== timer) return
     for (const name of due(routines, new Date(), fired)) {
+      if (timers.get(directory) !== timer) return
       const routine = routines![name]
       log.info("routine firing", { name })
       await Jobs.start({
@@ -71,7 +75,10 @@ export async function arm() {
       }).catch((error) => log.error("routine failed to start", { name, error: String(error) }))
     }
   })
-  const timer = setInterval(() => void tick().catch((error) => log.error("routine tick failed", { error: String(error) })), 20_000)
+  const timer = setInterval(
+    () => void tick().catch((error) => log.error("routine tick failed", { error: String(error) })),
+    20_000,
+  )
   timer.unref?.()
   timers.set(directory, timer)
 }
@@ -83,3 +90,5 @@ export function disarm(directory?: string) {
     timers.delete(dir)
   }
 }
+
+registerDisposer(async (directory) => disarm(directory))
