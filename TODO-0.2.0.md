@@ -2,7 +2,7 @@
 
 Requested scope: all sixteen tasks in the attached implementation prompt. Existing implementations are retained and audited; completion requires working integration and tests, not matching a proposed directory tree.
 
-- [ ] Baseline: architecture audit, dependency install, package tests and typechecks
+- [x] Baseline: architecture audit, dependency install, package tests and typechecks
 - [x] 1. MCP: transports, tool bridge, configuration compatibility, CLI/TUI, tests
 - [x] 2. LSP: discovery, diagnostics, code intelligence, edit integration, tests
 - [x] 3. Agents: specialized agents, skills, lifecycle hooks, permissions, tests
@@ -26,14 +26,14 @@ Requested scope: all sixteen tasks in the attached implementation prompt. Existi
 - Preserve lavender branding and existing configuration names; add compatibility for `.async-coder` paths where needed.
 - Provider discovery is authoritative. Requested model IDs and keyless services must be verified before advertising them.
 - Publishing follows AGENTS.md: npm binary then installer, clean-install verification, then GitHub publication.
-- Work occurs on `Mr-dark-debug/feature-upgrade-0.2.0`; repository instructions identify `dev` as the default comparison branch.
+- The foundation branch was merged in PR #3. Integrated verification uses the isolated `Mr-dark-debug/release-verification-0.2.0` checkout; repository instructions identify `dev` as the default comparison branch.
 
 ## Evidence
 
 - Initial checkout clean at `96a30f5`; local branch was `main`. Remote has both `main` and `dev`.
 - Dependencies installed and architecture audited. Initial full suite: 3,235 passing, 124 failing, 1 error; Windows fixtures and real defects are being repaired.
-- Integrated suite before final repairs: 3,364 passing, 37 failing, 1 error, 23 skipped, 1 TODO across 346 files. A clean final full run remains required.
-- Shared package: 53 tests pass. UI package: all tests pass, including a new trailing-newline regression. SDK, plugin, app, desktop and VS Code typechecks passed before latest metadata additions.
+- Final integrated core suite: 3,579 passing, 25 skipped, one existing TODO, zero failures and 10,191 assertions across 368 files.
+- All twelve workspace package typechecks pass on frozen source. Other package tests: app 320, shared 53, UI 14, desktop 13, VS Code 3, console 17; all 420 pass.
 - Real browser session-tab regression passes: create, switch, close, persist; backend sessions survive tab closure.
-- All twelve platform binaries build using verified official runtimes. Native Windows x64 and baseline CLI 0.2.0 version checks, web production build and desktop production build pass. Other host execution remains unverified.
+- All twelve platform binaries rebuild from frozen source with 42 migrations using verified official runtimes. Native Windows x64/baseline version checks, the compiled provider/repository-map roundtrip, app/website/desktop production builds and clean local npm tarball installation pass. Other host execution remains unverified.
 - npm login verified. No 0.2.0 npm package or public GitHub release has been published yet.
