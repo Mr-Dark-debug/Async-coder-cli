@@ -1,0 +1,500 @@
+[
+  {
+    "id": "F1.1",
+    "pdf_page": 25,
+    "requirement": "Create src/hook/index.ts: HookEvent schema with literals [\"session.start\",\"session.end\",\"use r.prompt_submit\",\"tool.execute.before\",\"tool.execute.after\",\"permission.request\",\"subagent.sta rt\",\"subagent.stop\",\"compact.before\",\"compact.after\",\"notification\"]; Hook config schema: matcher {event, tool?, command?, pattern?} -> action {type: \"shell\"|\"plugin\", command? | path?, timeout_ms (default 10000)}.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F1.2",
+    "pdf_page": 25,
+    "requirement": "Create a HookService (Effect) that subscribes to the Bus, evaluates matchers, and executes actions: shell actions run via the existing bash shell-wrap with JSON payload on stdin and ASYNC_CODER_HOOK_EVENT env var; plugin actions dynamically import the TS module and call default(payload).",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F1.3",
+    "pdf_page": 26,
+    "requirement": "Blocking semantics: for tool.execute.before and permission.request, hook exit code 2 (or plugin returning {block: true}) DENIES the action and the denial reason is shown to the model and user.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F1.4",
+    "pdf_page": 26,
+    "requirement": "Context injection: user.prompt_submit and permission.request hooks may return {additionalContext: string} which is injected into the current turn.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F1.5",
+    "pdf_page": 26,
+    "requirement": "Fire points: instrument src/session/processor.ts (tool before/after), src/permission/evaluate.ts (permission.request), src/session/compaction.ts (compact.before/after), src/actor/spawn.ts + turn end (subagent start/stop), session start/end events, prompt submit in the TUI, notification emission points.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F1.6",
+    "pdf_page": 26,
+    "requirement": "Config: add \"hooks\" key to async-coder.json schema; create src/config/hook.ts with self-export; env flag ASYNC_CODER_DISABLE_HOOKS.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F1.7",
+    "pdf_page": 26,
+    "requirement": "TUI: register command palette entry \"hooks.list\" with slash alias /hooks opening a management dialog (list, enable/disable toggle, add example hook).",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F1.8",
+    "pdf_page": 26,
+    "requirement": "Server: GET/PUT /hook routes to list and update hooks programmatically.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F1.9",
+    "pdf_page": 26,
+    "requirement": "Tests: matcher precedence, timeout kill (10s), payload shape, blocking exit code, context injection. Acceptance gate: a config hook on tool.execute.after appends one JSON line per bash tool call to a log file; a permission.request hook returning 2 blocks a write tool; /hooks dialog lists and toggles.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F2.1",
+    "pdf_page": 26,
+    "requirement": "Create src/sandbox/ with profile.ts (builds a sandbox profile from config: mode off|writes|full, writable_paths, allowed_hosts), landlock.ts, seatbelt.ts, docker.ts (bubblewrap/docker fallback), and a SandboxService.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F2.2",
+    "pdf_page": 26,
+    "requirement": "Linux: a small C helper using landlock_create_ruleset (allow read everywhere, write only to worktree + writable_paths, exec allowed) compiled in script/build.ts into the platform package; wrap bash commands as: helper -- <original command>. macOS: generate a Seatbelt .sb profile at runtime and run via sandbox-exec. Fallback: bwrap or docker run with read-only root and tmpfs workdir; if unavailable, log a warning and run unsandboxed ONLY in off mode; in writes/full mode, deny execution with a clear error.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F2.3",
+    "pdf_page": 26,
+    "requirement": "Integrate: src/tool/bash.ts and bash-interactive.ts call sandbox.wrap(command, profile) before execution; file-write tools (edit, write, multiedit, apply_patch) consult the profile for path permission and are denied outside writable paths in writes/full mode.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F2.4",
+    "pdf_page": 26,
+    "requirement": "Permissions: add \"always allow in sandbox\" answer option in the permission dialog; the evaluator applies configured allow/deny patterns on top of the sandbox (deny always wins).",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F2.5",
+    "pdf_page": 26,
+    "requirement": "TUI: /sandbox command cycling off -> writes -> full; footer indicator showing active mode; config \"sandbox\" block with mode, writable_paths, allowed_hosts.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F2.6",
+    "pdf_page": 26,
+    "requirement": "Env flag ASYNC_CODER_DISABLE_SANDBOX bypasses wrapping (for CI).",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F2.7",
+    "pdf_page": 26,
+    "requirement": "Tests: profile builder unit tests; where the kernel supports it, a landlock integration test that writes to the worktree successfully and to /tmp fails; seatbelt profile string snapshot; graceful fallback warning. Acceptance gate: in writes mode a write to a path outside the worktree is blocked and logged; in full mode curl to a non-allowed host fails; the footer shows the mode.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F3.1",
+    "pdf_page": 26,
+    "requirement": "Extend src/session/overflow.ts and compaction.ts to emit a ContextStats Bus event after every turn: {totalTokens, limit, breakdown: {systemPrompt, rules, toolSchemas, conversation, attachments, mcpInstructions, memory}, burnRate}.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F3.2",
+    "pdf_page": 26,
+    "requirement": "Add /context command (palette entry \"context.open\") opening dialog-context.tsx: stacked breakdown bar with numbers, projection line (\"at current burn rate, context fills in ~N turns\"), and controls: compact now, set autocompact threshold (percentage), pin/clear recent tool outputs.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F3.3",
+    "pdf_page": 26,
+    "requirement": "Footer widget: context meter (percentage, color states: ok <70, warn <85, danger >95), updated on every ContextStats event.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F3.4",
+    "pdf_page": 26,
+    "requirement": "Config: context.autocompactThreshold (default 85); autocompaction fires compact.before hook (F1), runs compaction, then shows a one-line summary of what was compacted.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F3.5",
+    "pdf_page": 27,
+    "requirement": "Tests: accounting aggregation matches a manual token count within 5%; threshold at 50 triggers compaction before overflow. Acceptance gate: /context renders correct numbers on a session with MCP + memory + attachments; meter updates live.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F4.1",
+    "pdf_page": 27,
+    "requirement": "Create src/usage/ with UsageService: persist per-turn rows to a new usage_record table (session_id, provider, model, agent, input_tokens, output_tokens, cache_read, cache_write, cost_usd, created_at) in schema.sql.ts + migration; emit usage.updated events.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F4.2",
+    "pdf_page": 27,
+    "requirement": "Extend /usage dialog to three tabs: Session, Today, Month - each grouped by provider/model/agent with cost and cache lines; add a projection card extrapolating the month from the run rate.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F4.3",
+    "pdf_page": 27,
+    "requirement": "Budget config: usage.budget {daily_usd, monthly_usd, per_session_usd, per_agent_usd, default_action: warn|downgrade|stop}. Enforcement in the session processor before each model call: evaluate caps; warn = banner at 80%; downgrade = route to the lite tier for the remainder (works with F11); stop = end the turn with a clear message.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F4.4",
+    "pdf_page": 27,
+    "requirement": "Subagent caps: per-agent maxTurns/maxTokens/maxUsd/timeout enforced in the actor runner; subagent dialog shows live burn against caps.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F4.5",
+    "pdf_page": 27,
+    "requirement": "Server routes: GET /usage/summary?range=day|month and GET /usage/records.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F4.6",
+    "pdf_page": 27,
+    "requirement": "Tests: cap actions (warn/downgrade/stop), aggregation correctness, agent attribution separating primary/Sage/subagents. Acceptance gate: a per_session_usd cap of 0.01 stops a session cleanly with an explanatory message; month tab equals sum of daily tabs.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F5.1",
+    "pdf_page": 27,
+    "requirement": "Extend src/memory/service.ts with: recall(query, {limit, tokenBudget}) using FTS + recency + type weighting; an extraction prompt src/agent/prompt/memory-extract.txt run by a hidden extraction agent on the lite tier after each turn (distills durable facts/preferences/corrections with type + confidence); consolidation by the existing dream agent on session end and daily via the F6 scheduler.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F5.2",
+    "pdf_page": 27,
+    "requirement": "Inject recall block into prompt assembly in src/session/system.ts: top-N memories (default 12, ~1.5k token budget) as a clearly labeled MEMORY block; the memory tool remains available for deeper recall.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F5.3",
+    "pdf_page": 27,
+    "requirement": "TUI: dialog-memory.tsx (list, search, edit, pin, forget, view source turn) + /memory command.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F5.4",
+    "pdf_page": 27,
+    "requirement": "Config: memory.auto (default true), memory.recallLimit, memory.tokenBudget.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F5.5",
+    "pdf_page": 27,
+    "requirement": "Tests: extraction JSON parse, dedupe merge, bounded query, injection disabled when memory.auto=false. Acceptance gate: a preference stated in session 1 is recalled and applied in session 2; recall block stays under budget; pinned entries survive consolidation.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F6.1",
+    "pdf_page": 27,
+    "requirement": "Create src/background/: TaskQueue service with a background_task table (id, session_id, status, worktree_branch, prompt, created_at, updated_at); runner spawns actors with worktree isolation (src/worktree) that survive TUI exit (server keeps running when background tasks exist); completion detection on session end.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F6.2",
+    "pdf_page": 27,
+    "requirement": "Prompt syntax: trailing \"&\" sends the prompt to background; /bg <agent> <prompt> spawns a named background agent; async-coder --bg \"prompt\" and async-coder tasks CLI commands.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F6.3",
+    "pdf_page": 27,
+    "requirement": "TUI: dialog-tasks.tsx dashboard (status, token burn, last output preview, attach/steer/pause/resume/kill); footer background-task indicator.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F6.4",
+    "pdf_page": 27,
+    "requirement": "Notifications: src/notification/ with bell, OSC 9, and native helper paths; completion pings once; config notification.quietHours.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F6.5",
+    "pdf_page": 27,
+    "requirement": "Background tasks respect F4 budgets and F2 sandbox profiles.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F6.6",
+    "pdf_page": 27,
+    "requirement": "Tests: queue persistence across restart, reattach with full transcript, kill cleans worktree, notification fires once. Acceptance gate: a background task survives TUI exit and reattaches; steering mid-run changes behavior.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F7.1",
+    "pdf_page": 28,
+    "requirement": "Add sideChannel field to session run state (src/session/run-state.ts); the processor merges it into the next model call as a tagged system note (not a user message).",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F7.2",
+    "pdf_page": 28,
+    "requirement": "TUI: /btw <text> (and Ctrl+B shortcut) routes to a new Session.SideChannel server method instead of the message queue; render side-channel lines in the transcript as muted indented entries.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F7.3",
+    "pdf_page": 28,
+    "requirement": "Subagents: extend the actor turn loop to poll a side-channel mailbox before each iteration; the subagent dialog gains a message input for mid-run steering.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F7.4",
+    "pdf_page": 28,
+    "requirement": "Tests: injection changes the next action without a new user message; transcript rendering; mailbox polling. Acceptance gate: /btw during a long tool run redirects the agent; steering a subagent mid-loop redirects it.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F8.1",
+    "pdf_page": 28,
+    "requirement": "Create src/team/: TeamService spawning a lead agent that decomposes a plan, spawns N workers (each a subagent config + isolated worktree branch), tracks them on the existing task board (src/task gates), and merges sequentially via git.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F8.2",
+    "pdf_page": 28,
+    "requirement": "Prompt templates: src/agent/prompt/team-lead.txt, team-worker.txt; workers report through the existing progress.md contract; lead uses /review-style diff review before merging.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F8.3",
+    "pdf_page": 28,
+    "requirement": "TUI: dialog-team.tsx dashboard (branch, status, token burn, output tail, steer) + /team command; team manifests in .async-coder/team/*.md.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F8.4",
+    "pdf_page": 28,
+    "requirement": "team.sql.ts schema for team/worker rows; killing a worker lets the lead reassign its task.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F8.5",
+    "pdf_page": 28,
+    "requirement": "Tests: spawn isolation, sequential merge without conflicts on non-overlapping tasks, reassignment. Acceptance gate: a 3-worker team merges three branches cleanly and the dashboard reflects live status.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F9.1",
+    "pdf_page": 28,
+    "requirement": "Create src/provider/subscription/chatgpt.ts: ChatGPT OAuth device-code flow, token storage in the system keychain via the existing account infra, refresh loop, plan model catalog mapping into the /models picker with \"(plan)\" suffix and cost marked included.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F9.2",
+    "pdf_page": 28,
+    "requirement": "Create src/provider/subscription/claude-config.ts: discover and reuse credentials from an existing local Claude Code installation (the claude-import infra already exists; this is an auth provider reusing those credentials).",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F9.3",
+    "pdf_page": 28,
+    "requirement": "Provider dialog pseudo-entries __chatgpt_sub__ and __claude_config__ following the __ollama__ pattern; account.sql.ts gains a subscription_token table.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F9.4",
+    "pdf_page": 28,
+    "requirement": "Everything behind ASYNC_CODER_ENABLE_SUBSCRIPTION_AUTH (default off) so it can be disabled instantly if vendor terms change.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F9.5",
+    "pdf_page": 28,
+    "requirement": "Tests: recorded OAuth fixtures, model mapping, refresh survival, flag disables flows. Acceptance gate: on a machine with valid credentials, plan models appear in the picker and answer a prompt.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F10.1",
+    "pdf_page": 28,
+    "requirement": "Create src/provider/lavender/: fetch a manifest (models, daily limits, OpenAI-compatible endpoint) from the gateway URL; provider adapter implementing the OpenAI-compatible interface; local quota tracking (lavender_quota table) surfaced through the usage service; picker badges showing remaining free requests.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F10.2",
+    "pdf_page": 28,
+    "requirement": "Provider dialog entry __lavender_free__ with one-click connect (no key); first-run onboarding starts on Lavender Free so a fresh install works in 30 seconds.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F10.3",
+    "pdf_page": 28,
+    "requirement": "Quota exhaustion triggers the F11 fallback router to configured BYOK or Ollama with an explanatory toast; config gateway.enabled; env ASYNC_CODER_DISABLE_FREE_GATEWAY.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F10.4",
+    "pdf_page": 28,
+    "requirement": "Tests: manifest parsing, quota decrement, fallback selection. Acceptance gate: fresh install with zero keys completes a prompt; exhaustion falls back gracefully.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F11.1",
+    "pdf_page": 28,
+    "requirement": "Extend src/config/agent.ts frontmatter: fallback: string[] (ordered chain), budget: {usd, tokens, turns}, cache: boolean (default true where supported).",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F11.2",
+    "pdf_page": 28,
+    "requirement": "Implement the router in src/session/llm.ts: resolve model references (tier names, chains, budget-guarded expressions); classify provider errors (429 / 5xx / auth); on retryable failure advance the chain, emit model.fallback Bus event, render a one-line transcript notice.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F11.3",
+    "pdf_page": 29,
+    "requirement": "Prompt caching: enable provider-native cache controls by default (Anthropic cache_control, OpenAI automatic); usage rows include cache_read/cache_write savings (F4).",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F11.4",
+    "pdf_page": 29,
+    "requirement": "Enforce per-agent caps in the actor runner; subagent dialog shows live burn.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F11.5",
+    "pdf_page": 29,
+    "requirement": "Tests: chain resolution, error classification, cap enforcement, cache flag plumbing. Acceptance gate: killing the primary provider endpoint mid-session completes the turn on fallback with a visible notice; a capped agent stops cleanly.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F12.1",
+    "pdf_page": 29,
+    "requirement": "Create packages/web: a responsive PWA (Solid or React) using the generated SDK client (packages/sdk/js) over the existing SSE stream: session list, live transcripts, prompt input with side-channel steer, /tasks management, usage dashboard, share links.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F12.2",
+    "pdf_page": 29,
+    "requirement": "Promote the embedded web UI to default-on for serve mode (flip ASYNC_CODER_DISABLE_EMBEDDED_WEB_UI default in serve); keep mDNS advertising.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F12.3",
+    "pdf_page": 29,
+    "requirement": "Pairing: /pair and /remote server routes; short-lived pairing codes exchanged for device tokens (paired_device table); server/auth.ts extended; tokens revocable.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F12.4",
+    "pdf_page": 29,
+    "requirement": "When a remote client is attached, background tasks (F6) become the default execution mode.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F12.5",
+    "pdf_page": 29,
+    "requirement": "Tests: pairing exchange, SSE reattach, auth rejection, share link expiry. Acceptance gate: pairing from a phone on the LAN sends a prompt and streams output; killing the TUI keeps server and tasks alive.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F13.1",
+    "pdf_page": 29,
+    "requirement": "TUI prompt: Ctrl+V/Cmd+V pastes clipboard images (OSC 52 where available, else temp-file drop) into a per-session attachments dir, rendering inline thumbnails; drag-drop paths and @file image mentions attach similarly.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F13.2",
+    "pdf_page": 29,
+    "requirement": "Message rendering: image parts display via iTerm2/Sixel/Kitty protocols using util/image-protocol.ts with file-path fallback on unsupported terminals.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F13.3",
+    "pdf_page": 29,
+    "requirement": "Vision instruction: when attachments exist and the model supports vision, system prompt assembly instructs the agent to actually inspect the image before answering.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F13.4",
+    "pdf_page": 29,
+    "requirement": "Screenshot hotkey: platform helper captures the screen and attaches it.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F13.5",
+    "pdf_page": 29,
+    "requirement": "Tests: attachment persistence, part serialization, protocol detection. Acceptance gate: pasting a screenshot on a vision model yields a correct description without an explicit Read call.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F14.1",
+    "pdf_page": 29,
+    "requirement": "Create src/voice/stt.ts: whisper.cpp binding in a worker thread, base model by default, downloaded via the LSP-style auto-download path; VoiceService bridges the existing VAD (util/vad.ts) to the prompt.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F14.2",
+    "pdf_page": 29,
+    "requirement": "Hold-to-talk on a configurable hotkey (default Ctrl+Space) with VAD endpointing; transcript lands in the input box for editing (never auto-send); voice.toggle enables continuous dictation mode; statusline mic indicator.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F14.3",
+    "pdf_page": 29,
+    "requirement": "All audio stays on-device by default; optional cloud STT behind a flag.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F14.4",
+    "pdf_page": 29,
+    "requirement": "Tests: STT worker mocked, endpointing, insertion. Acceptance gate: a spoken 20-word instruction lands in the input box; recording indicator renders.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F15.1",
+    "pdf_page": 29,
+    "requirement": "Create src/bridge/: BridgeService + adapters telegram.ts (Bot API long-poll), discord.ts (gateway), slack.ts (Socket Mode); each chat maps to a persisted session (bridge_channel table); allowlists (chat IDs, user IDs) enforced.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F15.2",
+    "pdf_page": 29,
+    "requirement": "Outbound: concise streamed progress (turn started, tool summaries, token burn), /details fetches the last full message; completion pings the chat with a share link; all actions pass through the same permission system as the TUI.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F15.3",
+    "pdf_page": 29,
+    "requirement": "CLI: async-coder bridge <telegram|discord|slack>; config \"bridges\" block.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F15.4",
+    "pdf_page": 29,
+    "requirement": "Tests: protocol fixtures for ingress/egress, permission gating, unknown-user rejection. Acceptance gate: an allowed Telegram user gets a streamed result; a background task completion pings the paired chat.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F16.1",
+    "pdf_page": 30,
+    "requirement": "Create src/marketplace/: manifest fetch + cache from the registry URL, ed25519 signature verification (pinned key), install orchestration into the existing plugin/skill systems, version pinning with startup update check (respecting ASYNC_CODER_DISABLE_AUTOUPDATE), atomic update with rollback.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F16.2",
+    "pdf_page": 30,
+    "requirement": "TUI: dialog-marketplace.tsx (search, categories, detail panes, install/uninstall/enable-disable) + /plugins command upgrade.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F16.3",
+    "pdf_page": 30,
+    "requirement": "CLI: async-coder publish packages .async-coder/skills and agent files into a registry submission PR template.",
+    "status": "pending_audit"
+  },
+  {
+    "id": "F16.4",
+    "pdf_page": 30,
+    "requirement": "Tests: manifest verification (tampered manifest fails), install idempotency, rollback. Acceptance gate: installing a sample skill makes its command appear and work.",
+    "status": "pending_audit"
+  }
+]
