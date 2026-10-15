@@ -17,5 +17,9 @@ export const Info = Schema.Struct({
   condition: Schema.optional(Schema.String).annotate({
     description: "Optional tool-name condition, for example tool === 'bash'. No JavaScript is evaluated.",
   }),
+  matcher: Schema.optional(Schema.String).annotate({
+    description:
+      "Tool-name glob (for example edit* or mcp_*) or /regex/ matched against the tool name. Combined with condition by AND. An invalid regex never matches.",
+  }),
 })
 export type Info = Schema.Schema.Type<typeof Info>

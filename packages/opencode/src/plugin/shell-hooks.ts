@@ -38,13 +38,32 @@ export function matches(condition: string | undefined, input: unknown) {
   return match[1].startsWith("!") ? input.tool !== match[2] : input.tool === match[2]
 }
 
+/** Glob (edit*) or /regex/ over the tool name. Absent matcher always matches; an invalid regex never does. */
+export function matcherMatches(matcher: string | undefined, input: unknown) {
+  if (!matcher) return true
+  const tool = isRecord(input) && typeof input.tool === "string" ? input.tool : undefined
+  if (!tool) return false
+  if (matcher.length > 2 && matcher.startsWith("/") && matcher.endsWith("/")) {
+    const pattern = matcher.slice(1, -1)
+    const compiled = (() => {
+      try {
+        return new RegExp(pattern)
+      } catch {
+        return undefined
+      }
+    })()
+    return compiled ? compiled.test(tool) : false
+  }
+  return new Bun.Glob(matcher).match(tool)
+}
+
 export const run = Effect.fn("ShellHooks.run")(function* (
   hooks: readonly ConfigHooks.Info[] | undefined,
   name: string,
   input: unknown,
   output?: unknown,
 ) {
-  const selected = (hooks ?? []).filter((hook) => hook.enabled !== false && events(name, input).includes(hook.event) && matches(hook.condition, input))
+  const selected = (hooks ?? []).filter((hook) => hook.enabled !== false && events(name, input).includes(hook.event) && matches(hook.condition, input) && matcherMatches(hook.matcher, input))
   if (!selected.length) return
   const cwd = yield* InstanceState.directory
   const args = isRecord(output) && isRecord(output.args) ? output.args : isRecord(input) && isRecord(input.args) ? input.args : input
@@ -92,6 +111,11 @@ export const run = Effect.fn("ShellHooks.run")(function* (
     const parsed: unknown = yield* Effect.try({ try: () => JSON.parse(result.stdout) as unknown, catch: (error) => error }).pipe(Effect.orElseSucceed(() => undefined))
     if (before && isRecord(parsed) && parsed.decision === "block") {
       return yield* Effect.die(new Error(typeof parsed.reason === "string" ? parsed.reason : `Blocked by hook ${hook.id ?? hook.event}`))
+    }
+    // A before-hook may rewrite the tool arguments. The tool still runs its own permission checks on
+    // the rewritten arguments (item.execute receives beforeOutput.args), so this cannot widen access.
+    if (before && isRecord(parsed) && isRecord(parsed.updatedInput) && isRecord(output) && isRecord(output.args)) {
+      Object.assign(output.args, parsed.updatedInput)
     }
     const context = isRecord(parsed) && typeof parsed.context === "string" ? parsed.context : result.stdout.trim()
     if (!context || !isRecord(output)) continue

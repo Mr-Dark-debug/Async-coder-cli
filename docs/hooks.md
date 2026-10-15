@@ -23,6 +23,10 @@ Commands run in the project directory with PowerShell on Windows and `/bin/sh` e
 
 A before-hook nonzero exit or timeout prevents the tool from running. It can also print `{"decision":"block","reason":"Explanation"}` to stdout. A successful hook can print `{"context":"Additional context"}`; context is appended to tool output or text output when that lifecycle exposes one. Post-hook failures are logged and preserve the completed tool result.
 
+`matcher` selects a hook by tool name: a glob (`edit*`, `mcp_*`) or a `/regex/` (`/^(edit|write)$/`). It is ANDed with `condition`; an invalid regex never matches.
+
+A before-hook may print `{"updatedInput":{"command":"echo safe"}}` to merge fields into the tool's arguments. The tool still checks permissions on the rewritten arguments. After-hooks cannot rewrite arguments.
+
 Conditions support tool comparisons such as `tool === 'bash'`, `tool == 'write'`, and their inequality forms. Arbitrary JavaScript expressions are not evaluated. An unsupported condition does not match.
 
 Configuration files contain executable local commands; use hooks you understand. Hook permissions follow the configuration's existing trust boundary and are not a sandbox.

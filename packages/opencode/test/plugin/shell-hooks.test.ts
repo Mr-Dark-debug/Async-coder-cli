@@ -1,7 +1,7 @@
 import { describe, expect } from "bun:test"
 import { Effect } from "effect"
 import path from "path"
-import { events, matches, run } from "../../src/plugin/shell-hooks"
+import { events, matcherMatches, matches, run } from "../../src/plugin/shell-hooks"
 import { provideTmpdirInstance } from "../fixture/fixture"
 import { testEffect } from "../lib/effect"
 import * as CrossSpawnSpawner from "../../src/effect/cross-spawn-spawner"
@@ -65,5 +65,34 @@ describe("shell lifecycle hooks", () => {
     expect(matches("process.exit(1)", { tool: "bash" })).toBe(false)
     expect(events("tool.execute.before", { tool: "edit" })).toEqual(["pre_tool_use", "pre_file_edit"])
     yield* run([{ event: "pre_command", command: "exit 2", condition: "tool === 'write'" }], "tool.execute.before", { tool: "bash" })
+  })))
+  it.live("matcher selects hooks by tool-name glob or regex and is ANDed with condition", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
+    expect(matcherMatches(undefined, { tool: "bash" })).toBe(true)
+    expect(matcherMatches("edit*", { tool: "edit" })).toBe(true)
+    expect(matcherMatches("edit*", { tool: "multiedit" })).toBe(false)
+    expect(matcherMatches("/^(edit|write)$/", { tool: "write" })).toBe(true)
+    expect(matcherMatches("/^(edit|write)$/", { tool: "bash" })).toBe(false)
+    expect(matcherMatches("mcp_*", { tool: "mcp_github_search" })).toBe(true)
+    expect(matcherMatches("/(unclosed/", { tool: "bash" })).toBe(false)
+    expect(matcherMatches("bash", {})).toBe(false)
+    yield* Effect.promise(() => Bun.write(path.join(dir, "touch.ts"), 'await Bun.write("ran.txt", "yes")'))
+    yield* run([{ event: "pre_tool_use", command: "bun touch.ts", matcher: "/^write$/" }], "tool.execute.before", { tool: "bash" }, { args: {} })
+    expect(yield* Effect.promise(() => Bun.file(path.join(dir, "ran.txt")).exists())).toBe(false)
+    yield* run([{ event: "pre_tool_use", command: "bun touch.ts", matcher: "/^write$/" }], "tool.execute.before", { tool: "write" }, { args: {} })
+    expect(yield* Effect.promise(() => Bun.file(path.join(dir, "ran.txt")).exists())).toBe(true)
+  })))
+
+  it.live("a before-hook can rewrite tool arguments with updatedInput", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
+    yield* Effect.promise(() => Bun.write(path.join(dir, "rewrite.ts"), 'console.log(JSON.stringify({updatedInput:{command:"echo safe",timeout:5}}))'))
+    const output = { args: { command: "rm -rf /", description: "keep me" } }
+    yield* run([{ event: "pre_command", command: "bun rewrite.ts", matcher: "bash" }], "tool.execute.before", { tool: "bash" }, output)
+    expect(output.args).toEqual({ command: "echo safe", description: "keep me", timeout: 5 })
+  })))
+
+  it.live("after-hooks cannot rewrite arguments", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
+    yield* Effect.promise(() => Bun.write(path.join(dir, "rewrite.ts"), 'console.log(JSON.stringify({updatedInput:{command:"changed"}}))'))
+    const args = { command: "ls" }
+    yield* run([{ event: "post_command", command: "bun rewrite.ts" }], "tool.execute.after", { tool: "bash", args }, { args, output: "x" })
+    expect(args).toEqual({ command: "ls" })
   })))
 })
