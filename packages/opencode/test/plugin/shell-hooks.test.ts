@@ -84,7 +84,7 @@ describe("shell lifecycle hooks", () => {
 
   it.live("a before-hook can rewrite tool arguments with updatedInput", () => provideTmpdirInstance((dir) => Effect.gen(function* () {
     yield* Effect.promise(() => Bun.write(path.join(dir, "rewrite.ts"), 'console.log(JSON.stringify({updatedInput:{command:"echo safe",timeout:5}}))'))
-    const output = { args: { command: "rm -rf /", description: "keep me" } }
+    const output: { args: Record<string, unknown> } = { args: { command: "rm -rf /", description: "keep me" } }
     yield* run([{ event: "pre_command", command: "bun rewrite.ts", matcher: "bash" }], "tool.execute.before", { tool: "bash" }, output)
     expect(output.args).toEqual({ command: "echo safe", description: "keep me", timeout: 5 })
   })))

@@ -65,6 +65,8 @@ import { BuiltinWorkflow } from "@/workflow/builtin"
 import { RepoMapTool, FindSymbolTool, FindDependenciesTool } from "./repo-map"
 import { RepoMap } from "@/repo-map"
 import { WorktreeTool } from "./worktree"
+import { SpecTool } from "./spec"
+import { ArtifactTool } from "./artifact"
 import { CheckpointTool } from "./checkpoint"
 
 const log = Log.create({ service: "tool.registry" })
@@ -152,6 +154,8 @@ export const layer = Layer.effect(
     const dependencies = yield* FindDependenciesTool
     const worktree = yield* WorktreeTool
     const checkpoint = yield* CheckpointTool
+    const spectool = yield* SpecTool
+    const artifacttool = yield* ArtifactTool
 
     const state = yield* InstanceState.make<State>(
       Effect.fn("ToolRegistry.state")(function* (ctx) {
@@ -242,6 +246,8 @@ export const layer = Layer.effect(
           dependencies: Tool.init(dependencies),
           worktree: Tool.init(worktree),
           checkpoint: Tool.init(checkpoint),
+          spec: Tool.init(spectool),
+          artifact: Tool.init(artifacttool),
         })
 
         return {
@@ -269,6 +275,8 @@ export const layer = Layer.effect(
             tool.dependencies,
             tool.worktree,
             tool.checkpoint,
+            tool.spec,
+            tool.artifact,
             tool.plan,
             tool.memory,
             tool.history,
