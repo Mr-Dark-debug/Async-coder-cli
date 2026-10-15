@@ -39,6 +39,29 @@ const readMeta = (file: string) =>
     .then((text) => JSON.parse(text) as Meta)
     .catch(() => undefined)
 
+/** Metadata of one artifact of a session, or undefined when it has not been written. */
+export const getMeta = (sessionID: string, name: (typeof ARTIFACTS)[number]) =>
+  readMeta(path.join(directory(sessionID), `${name}.meta.json`))
+
+/** Record the user's review of an artifact. Feedback is kept as a comment so the next revision can address it. */
+export async function setReview(
+  sessionID: string,
+  name: (typeof ARTIFACTS)[number],
+  review: Meta["review"],
+  comment?: string,
+) {
+  const file = path.join(directory(sessionID), `${name}.meta.json`)
+  const meta = await readMeta(file)
+  if (!meta) return undefined
+  const next: Meta = {
+    ...meta,
+    review,
+    comments: comment ? [...meta.comments, { at: Date.now(), text: comment }] : meta.comments,
+  }
+  await fs.writeFile(file, JSON.stringify(next, null, 2), "utf8")
+  return next
+}
+
 export const ArtifactTool = Tool.define(
   "artifact",
   Effect.succeed({

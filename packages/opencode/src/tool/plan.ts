@@ -9,6 +9,7 @@ import { Provider } from "../provider"
 import { Instance } from "../project/instance"
 import { type SessionID, MessageID, PartID } from "../session/schema"
 import EXIT_DESCRIPTION from "./plan-exit.txt"
+import { getMeta, setReview } from "./artifact"
 
 function getLastModel(sessionID: SessionID) {
   for (const item of MessageV2.stream(sessionID, { agentID: "*" })) {
@@ -31,13 +32,18 @@ export const PlanExitTool = Tool.define(
         Effect.gen(function* () {
           const info = yield* session.get(ctx.sessionID)
           const plan = path.relative(Instance.worktree, Session.plan(info))
+          // When the agent wrote an implementation_plan artifact, the review is recorded on it.
+          const artifact = yield* Effect.promise(() => getMeta(ctx.sessionID, "implementation_plan"))
           const answers = yield* question.ask({
             sessionID: ctx.sessionID,
             questions: [
               {
                 key: "plan_exit",
                 params: { plan },
-                question: `Plan at ${plan} is complete. Would you like to switch to the build agent and start implementing?`,
+                question: artifact
+                  ? `Implementation plan (revision ${artifact.revision}): ${artifact.summary}
+Plan file: ${plan}. Switch to the build agent and start implementing?`
+                  : `Plan at ${plan} is complete. Would you like to switch to the build agent and start implementing?`,
                 header: "Plan",
                 options: [
                   { label: "Yes", description: "Switch to build agent and start implementing the plan" },
@@ -52,6 +58,7 @@ export const PlanExitTool = Tool.define(
           if (answer === "No") return yield* new Question.RejectedError()
 
           if (answer !== "Yes") {
+            if (artifact && answer) yield* Effect.promise(() => setReview(ctx.sessionID, "implementation_plan", "changes", answer))
             return {
               title: "User provided feedback",
               output: `User chose not to switch yet and provided feedback: ${answer}`,
@@ -59,6 +66,7 @@ export const PlanExitTool = Tool.define(
             }
           }
 
+          if (artifact) yield* Effect.promise(() => setReview(ctx.sessionID, "implementation_plan", "approved"))
           const model = getLastModel(ctx.sessionID) ?? (yield* provider.defaultModel())
 
           const msg: MessageV2.User = {

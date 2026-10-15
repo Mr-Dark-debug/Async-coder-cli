@@ -3,7 +3,7 @@ import { Effect, Layer } from "effect"
 import path from "path"
 import fs from "fs/promises"
 import { SpecTool } from "../../src/tool/spec"
-import { ArtifactTool } from "../../src/tool/artifact"
+import { ArtifactTool, getMeta, setReview } from "../../src/tool/artifact"
 import { Instance } from "../../src/project/instance"
 import { SessionID, MessageID } from "../../src/session/schema"
 import { Tool, Truncate } from "../../src/tool"
@@ -91,6 +91,31 @@ describe("tool.artifact", () => {
         expect(yield* Effect.promise(() => Bun.file(path.join(base, "implementation_plan.rev.1.md")).text())).toBe("# v1")
         expect((yield* artifact({ operation: "read", name: "implementation_plan" })).output).toBe("# v2")
         expect((yield* artifact({ operation: "list" })).output).toContain("implementation_plan (rev 2")
+      }),
+    ),
+  )
+  it.live("records review state and feedback, and a new revision asks for review again", () =>
+    provideTmpdirInstance(() =>
+      Effect.gen(function* () {
+        yield* artifact({ operation: "write", name: "implementation_plan", content: "# v1", summary: "first" })
+        const id = ctx.sessionID
+        const meta = yield* Effect.promise(() => getMeta(id, "implementation_plan"))
+        expect(meta).toMatchObject({ revision: 1, review: "pending", comments: [] })
+
+        yield* Effect.promise(() => setReview(id, "implementation_plan", "changes", "split step 2"))
+        expect(yield* Effect.promise(() => getMeta(id, "implementation_plan"))).toMatchObject({
+          review: "changes",
+          comments: [{ text: "split step 2" }],
+        })
+
+        yield* artifact({ operation: "write", name: "implementation_plan", content: "# v2", summary: "second" })
+        const after = yield* Effect.promise(() => getMeta(id, "implementation_plan"))
+        expect(after).toMatchObject({ revision: 2, review: "pending" })
+        expect(after?.comments).toHaveLength(1)
+
+        yield* Effect.promise(() => setReview(id, "implementation_plan", "approved"))
+        expect((yield* Effect.promise(() => getMeta(id, "implementation_plan")))?.review).toBe("approved")
+        expect(yield* Effect.promise(() => setReview(id, "walkthrough", "approved"))).toBeUndefined()
       }),
     ),
   )

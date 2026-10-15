@@ -12,6 +12,7 @@ import { ModelsCommand } from "./cli/cmd/models"
 import { ZenCommand } from "./cli/cmd/zen"
 import { WorktreeCommand } from "./cli/cmd/worktree"
 import { JobsCommand } from "./cli/cmd/jobs"
+import { SpecCommand } from "./cli/cmd/spec"
 import { PairCommand } from "./cli/cmd/pair"
 import { BridgeCommand } from "./cli/cmd/bridge"
 import { MarketCommand } from "./cli/cmd/market"
@@ -195,6 +196,7 @@ const cli = yargs(args)
   .command(ZenCommand)
   .command(WorktreeCommand)
   .command(JobsCommand)
+  .command(SpecCommand)
   .command(PairCommand)
   .command(BridgeCommand)
   .command(MarketCommand)

@@ -41,8 +41,23 @@ Session artifacts live in `.async-coder/artifacts/<session-id>/`:
 
 Every write keeps the previous revision as `<name>.rev.<n>.md` and records `{revision, summary, review, comments}` in `<name>.meta.json`. A new revision resets `review` to `pending`.
 
+## Review of the plan
+
+When the agent has written an `implementation_plan` artifact, `plan_exit` asks you to approve *that* revision. Approving marks it `approved` in `implementation_plan.meta.json`; typing feedback instead marks it `changes` and keeps your text as a comment, so the next revision can address it. A new revision resets the review to `pending`.
+
+## Running a spec
+
+```sh
+async-coder spec status auth                 # progress, ready tasks, requirements no task covers
+async-coder serve                            # jobs run in the server
+async-coder spec run auth --verify "bun test"            # one task at a time
+async-coder spec run auth --wave --verify "bun test"     # independent ready tasks together
+async-coder spec run auth --task 2.1         # a single task
+```
+
+Each task is a background job in its own worktree. The spec documents are embedded in the job prompt (an uncommitted spec is not in a fresh worktree). A task is marked done only after its job finished, its gate passed and its branch merged into the project — in task order, so later tasks start from a tree that contains earlier ones. The run stops at the first failed job, failed gate or merge conflict and says why; optional `*` tasks are never run.
+
 ## Not done yet
 
-- Review gate: nothing blocks `plan_exit` on an artifact review yet, and there is no server route or client UI for approving or commenting.
-- `async-coder spec run` (execute ready tasks as gated jobs) and the `/spec` TUI dialog.
-- Bundled spec skills that teach the model the document templates.
+- `/spec` dialog in the TUI and a client UI for approving or commenting on artifacts (the `plan_exit` question is the only review surface today).
+- A server route for artifact review, so desktop and VS Code clients can show it.
