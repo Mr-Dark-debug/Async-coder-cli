@@ -9,3 +9,21 @@ When the agent reads a file below the current directory, nearby directory `AGENT
 Use normal file-edit tools to update instruction files. Keep shared project guidance in committed `AGENTS.md`; keep personal project overrides in `AGENTS.local.md`. async-coder adds an `AGENTS.local.md` entry to the configuration directory's `.gitignore`, preserving existing excludes.
 
 The separate existing memory tool stores and searches project, session, and global notes. Windows and POSIX file paths are supported, including Claude Code memory compatibility and CRLF frontmatter. Scope IDs and keys reject path traversal and absolute-path injection.
+
+## Steering files
+
+`.async-coder/steering/*.md` (project) and `steering/*.md` in the user config directory add scoped guidance. Frontmatter chooses when a file applies:
+
+```markdown
+---
+inclusion: fileMatch            # always (default) | fileMatch | manual
+fileMatchPattern: "src/api/**/*.ts"   # string or list; used by fileMatch
+---
+API routes return problem+json.
+```
+
+- `always`: included in the system prompt like `AGENTS.md`.
+- `fileMatch`: attached, once per message, when the agent reads a file matching a pattern (project-relative, forward slashes).
+- `manual`: never attached automatically.
+
+Invalid or unknown frontmatter falls back to `always`.

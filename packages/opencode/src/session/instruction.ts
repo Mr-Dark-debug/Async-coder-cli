@@ -9,6 +9,7 @@ import { AppFileSystem } from "@async-coder/shared/filesystem"
 import { withTransientReadRetry } from "@/util/effect-http-client"
 import { Global } from "../global"
 import { Log } from "../util"
+import * as Steering from "./steering"
 import type { MessageV2 } from "./message-v2"
 import type { MessageID } from "./schema"
 
@@ -106,6 +107,25 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
         return yield* fs.readFileString(filepath).pipe(Effect.catch(() => Effect.succeed("")))
       })
 
+      // Steering files: user config dir plus every .async-coder/steering between the directory and the worktree.
+      const steeringFiles = Effect.fnUntraced(function* () {
+        const ctx = yield* InstanceState.context
+        const dirs = [path.join(Global.Path.config, "steering")]
+        if (!Flag.ASYNC_CODER_DISABLE_PROJECT_CONFIG) {
+          const found = yield* fs.up({ targets: [".async-coder"], start: ctx.directory, stop: ctx.worktree })
+          found.toReversed().forEach((dir) => dirs.push(path.join(dir, "steering")))
+        }
+        const lists = yield* Effect.forEach(
+          dirs,
+          (dir) =>
+            fs
+              .glob("*.md", { cwd: dir, absolute: true, include: "file" })
+              .pipe(Effect.catch(() => Effect.succeed([] as string[]))),
+          { concurrency: 4 },
+        )
+        return [...new Set(lists.flat().map((item) => path.resolve(item)))]
+      })
+
       const fetch = Effect.fnUntraced(function* (url: string) {
         const res = yield* http.execute(HttpClientRequest.get(url)).pipe(
           Effect.timeout(5000),
@@ -186,6 +206,10 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
           }
         }
 
+        for (const file of yield* steeringFiles()) {
+          if (Steering.parse(yield* read(file)).inclusion === "always") paths.add(file)
+        }
+
         return paths
       })
 
@@ -254,6 +278,22 @@ export const layer: Layer.Layer<Service, never, AppFileSystem.Service | Config.S
           }
 
           current = path.dirname(current)
+        }
+
+        const relativeTarget = path.relative(root, target).split(path.sep).join("/")
+        if (!relativeTarget.startsWith("..") && !path.isAbsolute(relativeTarget)) {
+          for (const file of yield* steeringFiles()) {
+            if (sys.has(file) || already.has(file) || file === target) continue
+            const text = yield* read(file)
+            if (!Steering.applies(Steering.parse(text), relativeTarget)) continue
+            const set = s.claims.get(messageID) ?? new Set<string>()
+            s.claims.set(messageID, set)
+            if (set.has(file)) continue
+            set.add(file)
+            const content = Steering.body(text)
+            if (content) results.push({ filepath: file, content: `Instructions from: ${file}
+${content}` })
+          }
         }
 
         return results.toReversed()
