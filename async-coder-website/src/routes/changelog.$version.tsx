@@ -73,7 +73,7 @@ function ReleasePage() {
             <span className="font-mono text-sm px-2.5 py-1 rounded bg-lavender/15 text-lavender border border-lavender/30">
               {release.tagName}
             </span>
-            <h2 className="font-display font-semibold text-xl md:text-2xl">{release.name}</h2>
+            <h2 className="font-serif-display text-xl md:text-2xl">{release.name}</h2>
           </div>
           
           <div className="prose prose-invert max-w-none text-muted-foreground leading-relaxed">

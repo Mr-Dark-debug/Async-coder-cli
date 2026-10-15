@@ -13,14 +13,12 @@ export function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <section className="relative pt-16 md:pt-24 pb-12 md:pb-16 overflow-hidden border-b border-border/60">
-      <div className="absolute inset-0 hero-grid-bg opacity-70" aria-hidden />
-      <div className="absolute inset-0 dot-grid opacity-20" aria-hidden />
+    <section className="relative pt-10 md:pt-16 pb-12 md:pb-16 border-b border-border">
       <div className="relative mx-auto max-w-7xl px-4 md:px-6">
-        <div className="text-xs font-mono uppercase tracking-widest text-lavender mb-3">
+        <p className="text-xs font-medium tracking-[0.18em] uppercase text-muted-foreground mb-4">
           {eyebrow}
-        </div>
-        <h1 className="font-display text-4xl md:text-6xl font-semibold tracking-[-0.03em] text-foreground max-w-3xl">
+        </p>
+        <h1 className="font-serif-display text-[clamp(2.4rem,6vw,4.6rem)] text-foreground max-w-4xl">
           {title}
         </h1>
         {description && (

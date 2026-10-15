@@ -1,23 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site-layout";
 import { Hero } from "@/components/sections/hero";
-import { Features } from "@/components/sections/features";
-import { ProviderShowcase } from "@/components/sections/providers";
-import { UsageDashboard } from "@/components/sections/usage-dashboard";
-import { WebSearch } from "@/components/sections/web-search";
-import { Migration } from "@/components/sections/migration";
-import { QuickInstall } from "@/components/sections/quick-install";
-import {
-  CommunityStats,
-  LatestReleases,
-  ContributorsWall,
-} from "@/components/sections/community";
+import { Capabilities } from "@/components/sections/capabilities";
+import { Parallel } from "@/components/sections/parallel";
+import { Models } from "@/components/sections/models";
+import { Numbers } from "@/components/sections/numbers";
+import { GetStarted } from "@/components/sections/get-started";
+import { LatestReleases, ContributorsWall } from "@/components/sections/community";
 import { FinalCTA } from "@/components/sections/final-cta";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "async-coder — the async coding agent for every model" },
+      { title: "async-coder — code that keeps shipping while you're away" },
       {
         name: "description",
         content:
@@ -39,13 +34,11 @@ function Home() {
   return (
     <SiteLayout>
       <Hero />
-      <CommunityStats />
-      <Features />
-      <ProviderShowcase />
-      <UsageDashboard />
-      <WebSearch />
-      <Migration />
-      <QuickInstall />
+      <Capabilities />
+      <Parallel />
+      <Models />
+      <Numbers />
+      <GetStarted />
       <LatestReleases />
       <ContributorsWall />
       <FinalCTA />

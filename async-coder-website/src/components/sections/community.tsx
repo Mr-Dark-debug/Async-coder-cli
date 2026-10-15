@@ -82,7 +82,7 @@ export function CommunityStats() {
             ].map((s) => (
               <div key={s.label}>
                 <s.icon className="w-4 h-4 text-lavender mx-auto mb-2" />
-                <div className="font-display text-2xl md:text-3xl font-semibold">
+                <div className="font-serif-display text-2xl md:text-3xl">
                   <span ref={s.ref as any}>{s.value}</span>
                 </div>
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
@@ -122,20 +122,20 @@ export function LatestReleases() {
         ];
 
   return (
-    <section className="py-24 md:py-28">
-      <div className="mx-auto max-w-5xl px-4 md:px-6">
+    <section className="pb-24 md:pb-28">
+      <div className="mx-auto max-w-6xl px-5 md:px-8">
         <div className="flex items-end justify-between gap-4 mb-10">
           <div>
-            <div className="text-xs font-mono uppercase tracking-widest text-lavender mb-2">
+            <p className="text-xs font-medium tracking-[0.18em] uppercase text-muted-foreground mb-4">
               What's new
-            </div>
-            <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
-              Latest releases
+            </p>
+            <h2 className="font-serif-display text-[clamp(2.1rem,4.6vw,3.6rem)]">
+              Latest <em className="italic text-lavender-deep">releases</em>
             </h2>
           </div>
           <Link
             to="/changelog"
-            className="text-sm text-lavender hover:text-lavender-soft inline-flex items-center gap-1"
+            className="text-sm text-foreground hover:text-lavender-deep inline-flex items-center gap-1 whitespace-nowrap"
           >
             Full changelog <ArrowRight className="w-3.5 h-3.5" />
           </Link>
@@ -149,14 +149,14 @@ export function LatestReleases() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: i * 0.04 }}
-              className="rounded-xl border border-border/60 bg-panel/50 p-5 hover:border-lavender/40 transition-colors"
+              className="paper-card p-5 hover:border-foreground/25 transition-colors"
             >
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm px-2 py-0.5 rounded bg-lavender/15 text-lavender border border-lavender/30">
+                  <span className="font-mono text-[12px] px-2.5 py-0.5 rounded-full bg-accent text-lavender-deep">
                     {r.tagName}
                   </span>
-                  <span className="font-display font-semibold">{r.name}</span>
+                  <span className="text-[15px] font-medium tracking-tight">{r.name}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
                   {new Date(r.publishedAt).toLocaleDateString()}
@@ -170,7 +170,7 @@ export function LatestReleases() {
                 href={r.htmlUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-3 inline-flex items-center gap-1 text-xs text-lavender hover:text-lavender-soft"
+                className="mt-3 inline-flex items-center gap-1 text-xs text-lavender-deep hover:underline"
               >
                 View release notes <ArrowRight className="w-3 h-3" />
               </a>
@@ -190,14 +190,14 @@ export function ContributorsWall() {
   });
 
   return (
-    <section className="py-24 md:py-28">
-      <div className="mx-auto max-w-6xl px-4 md:px-6">
+    <section className="pb-16 md:pb-20">
+      <div className="mx-auto max-w-6xl px-5 md:px-8">
         <div className="max-w-2xl mb-10">
-          <div className="text-xs font-mono uppercase tracking-widest text-lavender mb-2">
+          <p className="text-xs font-medium tracking-[0.18em] uppercase text-muted-foreground mb-4">
             Contributors
-          </div>
-          <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
-            Built in the open.
+          </p>
+          <h2 className="font-serif-display text-[clamp(2.1rem,4.6vw,3.6rem)]">
+            Built <em className="italic text-lavender-deep">in the open.</em>
           </h2>
           <p className="mt-3 text-muted-foreground">
             async-coder stands on the shoulders of OpenCode and MiMo-Code.

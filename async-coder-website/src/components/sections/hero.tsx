@@ -1,160 +1,76 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Check, Copy, Play } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { SITE } from "@/lib/site";
+import { ArrowRight, Check, Circle, Copy, Github, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { SITE } from "@/lib/site";
 
-const PROVIDERS = ["Groq", "OpenRouter", "OpenAI", "Anthropic", "Google", "xAI", "Copilot"];
+const PROMPT = "Fix the flaky checkout tests and open a draft PR";
 
-function Starfield() {
-  const stars = Array.from({ length: 60 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    s: Math.random() * 1.5 + 0.5,
-    d: Math.random() * 4 + 2,
-    delay: Math.random() * 4,
-  }));
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      {stars.map((s) => (
-        <span
-          key={s.id}
-          className="absolute rounded-full bg-foreground/50"
-          style={{
-            left: `${s.x}%`,
-            top: `${s.y}%`,
-            width: s.s,
-            height: s.s,
-            animation: `star-twinkle ${s.d}s ease-in-out ${s.delay}s infinite`,
-          }}
-        />
-      ))}
-    </div>
-  );
+const STEPS = [
+  { state: "done", label: "Created worktree", meta: "fix/checkout-tests" },
+  { state: "done", label: "Reproduced 3 failures", meta: "checkout.test.ts" },
+  { state: "run", label: "Patching retry logic", meta: "your model" },
+  { state: "wait", label: "Verification gate", meta: "bun test" },
+] as const;
+
+function usePrompt(text: string) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (n >= text.length) return;
+    const t = setTimeout(() => setN((v) => v + 1), 38);
+    return () => clearTimeout(t);
+  }, [n, text]);
+  return { shown: text.slice(0, n), done: n >= text.length };
 }
 
-function TerminalMock() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!ref.current) return;
-      const r = ref.current.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      setTilt({ x: (e.clientY - cy) / 80, y: -(e.clientX - cx) / 80 });
-    };
-    window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
-  }, []);
-
+function PromptCard() {
+  const { shown, done } = usePrompt(PROMPT);
   return (
     <div
-      ref={ref}
-      className="relative mx-auto max-w-5xl"
-      style={{
-        transform: `perspective(1600px) rotateX(${Math.max(-4, Math.min(4, tilt.x))}deg) rotateY(${Math.max(-4, Math.min(4, tilt.y))}deg)`,
-        transformStyle: "preserve-3d",
-        transition: "transform 0.25s ease-out",
-      }}
+      className="glass-card rounded-2xl w-full max-w-md p-3.5 text-left animate-float-up"
+      style={{ animationDelay: "600ms" }}
     >
-      <div className="absolute -inset-12 bg-lavender/20 blur-[100px] rounded-full" aria-hidden />
-      <div className="relative rounded-xl border border-lavender/25 bg-elevated/90 backdrop-blur shadow-2xl overflow-hidden">
-        {/* window chrome */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/60 bg-background/60">
-          <span className="w-2.5 h-2.5 rounded-full bg-error/70" />
-          <span className="w-2.5 h-2.5 rounded-full bg-warning/70" />
-          <span className="w-2.5 h-2.5 rounded-full bg-success/70" />
-          <span className="ml-3 font-mono text-[11px] text-muted-foreground">~ async-coder</span>
-        </div>
+      <div className="flex items-start gap-3 rounded-xl bg-white/55 dark:bg-white/10 border border-white/60 dark:border-white/10 px-3.5 py-3">
+        <p className="flex-1 text-[13.5px] leading-snug text-foreground min-h-[2.6em]">
+          {shown}
+          <span
+            className={`inline-block w-[2px] h-[1em] align-middle ml-0.5 bg-foreground ${done ? "animate-blink" : ""}`}
+          />
+        </p>
+        <span className="mt-0.5 grid place-items-center w-7 h-7 rounded-full bg-foreground text-background shrink-0">
+          <ArrowRight className="w-3.5 h-3.5 -rotate-90" />
+        </span>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] font-mono text-[12px] leading-relaxed">
-          {/* sidebar */}
-          <aside className="hidden md:flex flex-col gap-4 p-4 border-r border-border/60 bg-background/40">
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
-                Usage
-              </div>
-              <div className="text-lavender font-semibold">$0.042</div>
-              <div className="text-[11px] text-muted-foreground mt-1">
-                in 1.2k · out 340 · cr 8.1k
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
-                Context
-              </div>
-              <div className="text-foreground">12.4k / 32k</div>
-              <div className="mt-1.5 h-1.5 w-full rounded-full bg-border/60 overflow-hidden">
-                <div className="h-full w-[38%] bg-lavender rounded-full" />
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-1">38% used</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
-                Tasks
-              </div>
-              <ul className="space-y-1.5 text-[11px]">
-                <li className="text-success">✓ Add Zod schema</li>
-                <li className="text-lavender animate-pulse">▸ Wire API route</li>
-                <li className="text-muted-foreground">○ Write tests</li>
-              </ul>
-            </div>
-          </aside>
+      <ul className="mt-3 space-y-1.5 px-1">
+        {STEPS.map((s, i) => (
+          <motion.li
+            key={s.label}
+            initial={{ opacity: 0, x: -8 }}
+            animate={done ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.4, delay: 0.15 * i }}
+            className="flex items-center gap-2.5 text-[12.5px]"
+          >
+            {s.state === "done" && (
+              <span className="grid place-items-center w-4 h-4 rounded-full bg-success/90 text-white">
+                <Check className="w-2.5 h-2.5" strokeWidth={3} />
+              </span>
+            )}
+            {s.state === "run" && <Loader2 className="w-4 h-4 text-lavender-deep animate-spin" />}
+            {s.state === "wait" && <Circle className="w-4 h-4 text-muted-foreground/60" />}
+            <span className={s.state === "wait" ? "text-muted-foreground" : "text-foreground"}>
+              {s.label}
+            </span>
+            <span className="ml-auto font-mono text-[10.5px] text-muted-foreground truncate max-w-[40%]">
+              {s.meta}
+            </span>
+          </motion.li>
+        ))}
+      </ul>
 
-          {/* main */}
-          <div className="p-4 min-h-[320px]">
-            <pre className="text-lavender leading-[1.05] text-[8px] sm:text-[9px] md:text-[10px] mb-4 font-mono select-none drop-shadow-[0_0_12px_rgba(177,151,252,0.35)] whitespace-pre overflow-x-auto">{` █████╗ ███████╗██╗   ██╗███╗   ██╗ ██████╗
-██╔══██╗██╔════╝╚██╗ ██╔╝████╗  ██║██╔════╝
-███████║███████╗ ╚████╔╝ ██╔██╗ ██║██║     
-██╔══██║╚════██║  ╚██╔╝  ██║╚██╗██║██║     
-██║  ██║███████║   ██║   ██║ ╚████║╚██████╗
-╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═══╝ ╚═════╝
- ██████╗ ██████╗ ██████╗ ███████╗██████╗ 
-██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔══██╗
-██║     ██║   ██║██║  ██║█████╗  ██████╔╝
-██║     ██║   ██║██║  ██║██╔══╝  ██╔══██╗
-╚██████╗╚██████╔╝██████╔╝███████╗██║  ██║
- ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝`}</pre>
-            <div className="text-muted-foreground mb-3">
-              <span className="text-lavender">›</span> refactor src/api.ts to use Zod
-            </div>
-            <div className="space-y-1.5 text-foreground/90">
-              <div className="text-accent-blue">// applying diff to src/api.ts</div>
-              <div>
-                <span className="text-error">- export function getUser(id) {`{`}</span>
-              </div>
-              <div>
-                <span className="text-success">+ export const UserSchema = z.object({`{`}</span>
-              </div>
-              <div>
-                <span className="text-success">+ &nbsp;&nbsp;id: z.string().uuid(),</span>
-              </div>
-              <div>
-                <span className="text-success">+ &nbsp;&nbsp;name: z.string().min(1),</span>
-              </div>
-              <div>
-                <span className="text-success">+ {`});`}</span>
-              </div>
-              <div className="text-muted-foreground">  applied · 1 file changed · +4 -1</div>
-            </div>
-            <div className="mt-4 pt-3 border-t border-border/60 flex items-center gap-2">
-              <span className="text-lavender">›</span>
-              <span className="text-foreground/90">add tests for the schema</span>
-              <span className="inline-block w-1.5 h-3.5 bg-lavender animate-blink" />
-            </div>
-          </div>
-        </div>
-
-        {/* status */}
-        <div className="px-4 py-2 border-t border-border/60 bg-background/60 flex items-center justify-between font-mono text-[10px] text-muted-foreground">
-          <span>
-            <span className="text-lavender">groq</span>/llama-3.3-70b-versatile · 42 tps · $0.0012/msg
-          </span>
-          <span>tab · /help · ⌘K</span>
-        </div>
+      <div className="mt-3 flex items-center justify-between rounded-xl bg-foreground/[0.06] px-3 py-2 text-[11.5px]">
+        <span className="text-muted-foreground">Spend cap</span>
+        <span className="font-mono text-foreground">$0.42 / $2.00</span>
       </div>
     </div>
   );
@@ -162,112 +78,92 @@ function TerminalMock() {
 
 export function Hero() {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(SITE.install).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
-  };
-
   return (
-    <section className="relative pt-20 md:pt-28 pb-16 md:pb-24 overflow-hidden">
-      <div className="absolute inset-0 hero-grid-bg" aria-hidden />
-      <div className="absolute inset-0 dot-grid opacity-30" aria-hidden />
-      <Starfield />
-      <div
-        className="absolute left-1/2 top-0 -translate-x-1/2 w-[800px] h-[800px] bg-lavender/30 rounded-full blur-[140px] animate-pulse-glow pointer-events-none"
-        aria-hidden
-      />
-
-      <div className="relative mx-auto max-w-7xl px-4 md:px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-lavender/30 bg-lavender/5 text-[11px] font-mono text-lavender"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-lavender animate-pulse" />
-          {SITE.version} · MIT · Bun-powered
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.05 }}
-          className="mt-6 font-display font-semibold tracking-[-0.04em] text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.02] text-foreground max-w-4xl mx-auto"
-        >
-          The <span className="text-gradient-lavender">async</span> coding agent
-          <br className="hidden sm:block" /> for every model.
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.12 }}
-          className="mt-6 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-        >
-          Bring your own API key. Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, Copilot — or any
-          OpenAI-compatible endpoint. No telemetry, no platform lock-in, no required login.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3"
-        >
-          <div className="group flex items-center gap-3 h-12 pl-5 pr-2 rounded-lg bg-lavender text-primary-foreground glow-lavender font-mono text-sm">
-            <span className="text-primary-foreground/50">$</span>
-            <span className="font-medium">{SITE.install}</span>
-            <button
-              onClick={copy}
-              aria-label="Copy install command"
-              className="ml-2 inline-flex items-center justify-center w-8 h-8 rounded-md bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors"
-            >
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            </button>
-          </div>
-
+    <section className="relative pt-10 md:pt-16 pb-6">
+      <div className="mx-auto max-w-6xl px-5 md:px-8">
+        <div className="inline-flex animate-float-up">
           <Link
-            to="/docs"
-            className="inline-flex items-center gap-2 h-12 px-5 rounded-lg border border-lavender/40 text-foreground hover:bg-lavender/10 hover:border-lavender transition-colors text-sm font-medium"
+            to="/changelog"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-panel px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            Read the docs
-            <ArrowRight className="w-4 h-4" />
+            <span className="w-1.5 h-1.5 rounded-full bg-lavender-deep" />
+            {SITE.version} — spec workflow, steering files and a new look
+            <ArrowRight className="w-3 h-3" />
           </Link>
+        </div>
 
-          <a
-            href="#demo"
-            className="inline-flex items-center gap-2 h-12 px-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        <h1
+          className="font-serif-display mt-6 text-[clamp(2.8rem,7.4vw,6rem)] max-w-4xl animate-float-up"
+          style={{ animationDelay: "60ms" }}
+        >
+          Code that keeps shipping <em className="italic text-lavender-deep">while you're away.</em>
+        </h1>
+
+        <p
+          className="mt-6 max-w-xl text-[17px] leading-relaxed text-muted-foreground animate-float-up"
+          style={{ animationDelay: "140ms" }}
+        >
+          async-coder is a terminal-native coding agent. Bring any model, run work in isolated git
+          worktrees, cap the spend, and come back to diffs that already passed your checks.
+        </p>
+
+        <div
+          className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3 animate-float-up"
+          style={{ animationDelay: "220ms" }}
+        >
+          <button
+            onClick={() => {
+              void navigator.clipboard.writeText(SITE.install);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+            className="group inline-flex items-center gap-3 h-12 pl-5 pr-3 rounded-full bg-foreground text-background font-mono text-[13px] hover:opacity-95 transition-opacity"
+            aria-label="Copy install command"
           >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            Watch 90s demo
-          </a>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-mono text-muted-foreground"
-        >
-          <span className="text-[10px] uppercase tracking-widest">Works with</span>
-          {PROVIDERS.map((p, i) => (
-            <span key={p} className="flex items-center gap-2">
-              <span className="hover:text-lavender transition-colors cursor-default">{p}</span>
-              {i < PROVIDERS.length - 1 && <span className="text-border">·</span>}
+            <span className="opacity-50">$</span>
+            <span>{SITE.install}</span>
+            <span className="grid place-items-center w-7 h-7 rounded-full bg-background/15">
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             </span>
-          ))}
-        </motion.div>
+          </button>
+          <Link
+            to="/docs/quickstart"
+            className="inline-flex items-center gap-1.5 h-12 px-5 rounded-full border border-border bg-panel text-sm font-medium hover:border-foreground/30 transition-colors"
+          >
+            Read the quickstart <ArrowRight className="w-4 h-4" />
+          </Link>
+          <a
+            href={SITE.repoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 h-12 px-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Github className="w-4 h-4" /> GitHub
+          </a>
+        </div>
+      </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="mt-16"
-        >
-          <TerminalMock />
-        </motion.div>
+      <div
+        className="mx-auto max-w-6xl px-3 md:px-8 mt-12 md:mt-16 animate-float-up"
+        style={{ animationDelay: "300ms" }}
+      >
+        <figure className="relative overflow-hidden rounded-[22px] md:rounded-[32px] border border-border shadow-[0_30px_80px_-40px_rgba(60,40,140,0.45)]">
+          <img
+            src="/art/hero-dawn.jpg"
+            alt="A painted coastal hillside at dawn with a cottage, cypress trees and a distant lighthouse"
+            className="w-full h-[460px] md:h-[620px] object-cover object-[50%_60%]"
+            width={1536}
+            height={1024}
+            fetchPriority="high"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/10"
+            aria-hidden
+          />
+          <div className="absolute inset-0 grid place-items-center md:place-items-start md:justify-start p-4 md:p-14 md:pt-16">
+            <PromptCard />
+          </div>
+        </figure>
       </div>
     </section>
   );

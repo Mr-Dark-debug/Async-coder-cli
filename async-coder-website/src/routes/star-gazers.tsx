@@ -103,7 +103,7 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Star; label: stri
       <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground font-mono">
         <Icon className="w-3.5 h-3.5 text-lavender" /> {label}
       </div>
-      <div className="mt-2 text-3xl font-display font-semibold tabular-nums">
+      <div className="mt-2 text-3xl font-serif-display tabular-nums">
         {value.toLocaleString()}
       </div>
     </div>

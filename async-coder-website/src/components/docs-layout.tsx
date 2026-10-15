@@ -133,7 +133,7 @@ export function DocsLayout({
               )}
             </nav>
 
-            <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">
+            <h1 className="font-serif-display text-3xl md:text-4xl">
               {title}
             </h1>
             {description && (
@@ -227,7 +227,7 @@ export function H2({ id, children }: { id: string; children: ReactNode }) {
   return (
     <h2
       id={id}
-      className="font-display text-2xl font-semibold mt-12 mb-4 scroll-mt-24 tracking-tight"
+      className="font-serif-display text-2xl mt-12 mb-4 scroll-mt-24"
     >
       {children}
     </h2>

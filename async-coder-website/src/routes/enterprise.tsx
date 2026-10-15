@@ -47,7 +47,7 @@ function EnterprisePage() {
         {/* Left Column: Selling Points */}
         <div className="space-y-8">
           <div>
-            <h2 className="font-display text-2xl font-semibold mb-3">Enterprise-grade agent infrastructure</h2>
+            <h2 className="font-serif-display text-2xl mb-3">Enterprise-grade agent infrastructure</h2>
             <p className="text-muted-foreground leading-relaxed">
               async-coder is designed from the ground up for zero telemetry. With the Enterprise edition, 
               we extend this design to fit modern organizational security and compliance needs.

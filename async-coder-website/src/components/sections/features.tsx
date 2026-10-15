@@ -86,7 +86,7 @@ export function Features() {
           <div className="text-xs font-mono uppercase tracking-widest text-lavender mb-3">
             Why async-coder
           </div>
-          <h2 className="font-display text-3xl md:text-5xl font-semibold tracking-tight text-foreground">
+          <h2 className="font-serif-display text-3xl md:text-5xl text-foreground">
             A fork of OpenCode — extended.
           </h2>
           <p className="mt-4 text-muted-foreground text-base md:text-lg leading-relaxed">

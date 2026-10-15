@@ -4,18 +4,45 @@ import { Download } from "lucide-react";
 
 const PALETTE = [
   { name: "Lavender", hex: "#B197FC", role: "Primary brand" },
-  { name: "Lavender Soft", hex: "#D0BFFF", role: "Hover / glow" },
-  { name: "Lavender Deep", hex: "#9775FA", role: "Secondary" },
-  { name: "Accent Blue", hex: "#748FFC", role: "Cool accent" },
-  { name: "Background", hex: "#0A0A0A", role: "Dark canvas" },
-  { name: "Panel", hex: "#141414", role: "Cards" },
+  { name: "Lavender light", hex: "#C4B1FF", role: "Highlights, gradients" },
+  { name: "Lavender mid", hex: "#8F72F2", role: "Gradient end, links" },
+  { name: "Lavender deep", hex: "#5B3FD1", role: "Text accents on paper" },
+  { name: "Ink", hex: "#14102B", role: "Text and dark surfaces" },
+  { name: "Paper", hex: "#F6F3FF", role: "Light surfaces" },
 ];
+
+const ASSETS = [
+  {
+    file: "lockup-dark.svg",
+    title: "Lockup",
+    note: "Mark and wordmark, for light backgrounds",
+    tone: "bg-white",
+  },
+  {
+    file: "lockup-light.svg",
+    title: "Lockup (light)",
+    note: "Mark and wordmark, for dark backgrounds",
+    tone: "bg-[#14102B]",
+  },
+  {
+    file: "mark.svg",
+    title: "App mark",
+    note: "Squircle icon: prompt chevron in an orbit",
+    tone: "bg-white",
+  },
+  {
+    file: "glyph-lavender.svg",
+    title: "Glyph",
+    note: "Single-colour symbol; also glyph.svg in currentColor",
+    tone: "bg-[#14102B]",
+  },
+] as const;
 
 export const Route = createFileRoute("/brand")({
   head: () => ({
     meta: [
       { title: "Brand — async-coder" },
-      { name: "description", content: "Logos, color palette, and usage guidelines." },
+      { name: "description", content: "Logos, colour palette and usage guidelines." },
       { property: "og:title", content: "Brand — async-coder" },
       { property: "og:url", content: "/brand" },
     ],
@@ -28,59 +55,42 @@ function BrandPage() {
   return (
     <Page
       eyebrow="Brand"
-      title="Brand assets."
-      description="Use these freely to make async-coder-themed content — posts, talks, packaging, anything."
+      title="One mark, one colour."
+      description="The mark is a prompt chevron travelling inside an open orbit, with a satellite dot in the gap: a coding prompt running as an asynchronous loop."
     >
-      <section className="mb-14">
-        <h2 className="font-display text-2xl font-semibold mb-6">Logo assets</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="rounded-xl border border-border/60 bg-panel/40 p-8 flex flex-col items-center justify-between min-h-[240px]">
-            <div className="flex-1 flex items-center justify-center">
-              <img src="/logo.svg" alt="async-coder wordmark" className="h-10 w-auto" />
-            </div>
-            <div className="w-full mt-6 pt-4 border-t border-border/40 flex items-center justify-between">
-              <div>
-                <div className="font-medium text-sm text-foreground">Wordmark Logo</div>
-                <div className="text-xs text-muted-foreground mt-0.5">SVG vector format</div>
+      <section className="mb-16">
+        <h2 className="font-serif-display text-2xl mb-6">Logo assets</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {ASSETS.map((a) => (
+            <div key={a.file} className="paper-card overflow-hidden">
+              <div className={`${a.tone} h-48 flex items-center justify-center p-8`}>
+                <img src={`/brand/${a.file}`} alt={a.title} className="max-h-20 w-auto" />
               </div>
-              <a
-                href="/logo.svg"
-                download="async-coder-logo.svg"
-                className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded bg-lavender text-primary-foreground text-xs font-semibold hover:bg-lavender-soft transition-colors"
-              >
-                <Download className="w-3.5 h-3.5" /> Download
-              </a>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-border/60 bg-panel/40 p-8 flex flex-col items-center justify-between min-h-[240px]">
-            <div className="flex-1 flex items-center justify-center">
-              <img src="/mark.svg" alt="async-coder mark" className="h-12 w-auto" />
-            </div>
-            <div className="w-full mt-6 pt-4 border-t border-border/40 flex items-center justify-between">
-              <div>
-                <div className="font-medium text-sm text-foreground">Icon Mark</div>
-                <div className="text-xs text-muted-foreground mt-0.5">SVG vector format</div>
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium text-sm">{a.title}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{a.note}</div>
+                </div>
+                <a
+                  href={`/brand/${a.file}`}
+                  download={`async-coder-${a.file}`}
+                  className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-foreground text-background text-xs font-medium hover:opacity-90 transition-opacity"
+                >
+                  <Download className="w-3.5 h-3.5" /> SVG
+                </a>
               </div>
-              <a
-                href="/mark.svg"
-                download="async-coder-mark.svg"
-                className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded bg-lavender text-primary-foreground text-xs font-semibold hover:bg-lavender-soft transition-colors"
-              >
-                <Download className="w-3.5 h-3.5" /> Download
-              </a>
             </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      <section className="mb-14">
-        <h2 className="font-display text-2xl font-semibold mb-6">Color palette</h2>
+      <section className="mb-16">
+        <h2 className="font-serif-display text-2xl mb-6">Colour palette</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {PALETTE.map((c) => (
-            <div key={c.hex} className="rounded-xl border border-border/60 overflow-hidden">
-              <div className="h-24" style={{ background: c.hex }} />
-              <div className="p-4 bg-panel/60">
+            <div key={c.hex} className="paper-card overflow-hidden">
+              <div className="h-24 border-b border-border" style={{ background: c.hex }} />
+              <div className="p-4">
                 <div className="font-medium">{c.name}</div>
                 <div className="font-mono text-xs text-muted-foreground mt-0.5">{c.hex}</div>
                 <div className="text-xs text-muted-foreground mt-2">{c.role}</div>
@@ -91,22 +101,22 @@ function BrandPage() {
       </section>
 
       <section>
-        <h2 className="font-display text-2xl font-semibold mb-4">Usage guidelines</h2>
+        <h2 className="font-serif-display text-2xl mb-4">Usage guidelines</h2>
         <ul className="space-y-3 text-muted-foreground">
           <li>
-            <span className="text-foreground font-medium">Do:</span> use lavender (#B197FC) as the
-            single accent color. Pair with deep neutrals.
+            <span className="text-foreground font-medium">Do:</span> keep clear space equal to the
+            satellite dot around the mark, and use it at 16 px or larger.
           </li>
           <li>
-            <span className="text-foreground font-medium">Do:</span> use the » mark on its own as a
-            compact identifier.
+            <span className="text-foreground font-medium">Do:</span> use lavender as the single
+            accent colour on ink or paper.
           </li>
           <li>
-            <span className="text-foreground font-medium">Don't:</span> use orange, yellow, or
-            bright purple — those belong to other tools.
+            <span className="text-foreground font-medium">Don&apos;t:</span> rotate, outline or
+            recolour the mark outside the palette.
           </li>
           <li>
-            <span className="text-foreground font-medium">Don't:</span> imply endorsement by
+            <span className="text-foreground font-medium">Don&apos;t:</span> imply endorsement by
             Xiaomi, MiMo, or the OpenCode team.
           </li>
         </ul>

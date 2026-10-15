@@ -19,7 +19,7 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <div className="font-mono text-lavender text-5xl mb-2">»</div>
-        <h1 className="text-7xl font-display font-semibold text-gradient-lavender">404</h1>
+        <h1 className="text-7xl font-serif-display text-gradient-lavender">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#0a0a0a" },
+      { name: "theme-color", content: "#fbfaf6" },
       { title: "async-coder — the async coding agent for every model" },
       {
         name: "description",
@@ -101,8 +101,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="light" suppressHydrationWarning>
       <head>
+        <script
+          // Apply the remembered theme before first paint so the page never flashes the wrong palette.
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('ac-theme');if(t==='dark'){var c=document.documentElement.classList;c.add('dark');c.remove('light')}}catch(e){}",
+          }}
+        />
         <HeadContent />
       </head>
       <body>
