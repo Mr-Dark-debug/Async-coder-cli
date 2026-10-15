@@ -89,3 +89,7 @@ agent does not split plans automatically.
 
 Routines fire from the server process (checked every 20 seconds, at most once per minute) as ordinary jobs,
 so they inherit worktree isolation, gates and budgets. Invalid cron expressions are logged at startup.
+
+## See also
+
+- [Best-of-N](best-of.md): run one task on several models and promote the best verified result.
