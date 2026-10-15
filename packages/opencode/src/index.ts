@@ -36,8 +36,7 @@ import { AttachCommand } from "./cli/cmd/tui/attach"
 import { TuiThreadCommand } from "./cli/cmd/tui/thread"
 import { AcpCommand } from "./cli/cmd/acp"
 import { EOL } from "os"
-// Web command temporarily disabled
-// import { WebCommand } from "./cli/cmd/web"
+import { WebCommand } from "./cli/cmd/web"
 import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
 import { DbCommand } from "./cli/cmd/db"
@@ -191,8 +190,7 @@ const cli = yargs(args)
   .command(UpgradeCommand)
   .command(UninstallCommand)
   .command(ServeCommand)
-  // Web command temporarily disabled
-  // .command(WebCommand)
+  .command(WebCommand)
   .command(ModelsCommand)
   .command(ZenCommand)
   .command(WorktreeCommand)

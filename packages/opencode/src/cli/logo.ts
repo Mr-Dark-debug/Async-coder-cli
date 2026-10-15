@@ -35,9 +35,4 @@ export const logos = {
 
 export type LogoKey = keyof typeof logos
 
-export const go = {
-  left: pad(["     ", "  █  ", " ███ ", "█   █"]),
-  right: pad(["     ", " ███ ", "   █ ", " ██  "]),
-}
-
 export const marks = "_^~,"

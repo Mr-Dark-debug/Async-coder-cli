@@ -1,5 +1,7 @@
 # async-coder
 
+<p align="center"><img src="assets/readme/async-coder-banner.png" alt="async-coder — asynchronous AI coding agent" width="100%" /></p>
+
 <img width="1983" height="793" alt="async-coder terminal interface" src="https://github.com/user-attachments/assets/5c6019db-4ffe-4f50-8d61-9678e69b260b" />
 
 `async-coder` is a terminal-native AI coding agent for engineers who want an OpenCode-style workflow with first-class support for bring-your-own-key model providers, usage visibility, and configurable web search.

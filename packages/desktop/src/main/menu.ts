@@ -15,7 +15,7 @@ export function createMenu(deps: Deps) {
 
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: "OpenCode",
+      label: "async-coder",
       submenu: [
         { role: "about" },
         {
@@ -115,7 +115,7 @@ export function createMenu(deps: Deps) {
     {
       label: "Help",
       submenu: [
-        { label: "OpenCode Documentation", click: () => shell.openExternal("https://opencode.ai/docs") },
+        { label: "async-coder Documentation", click: () => shell.openExternal("https://github.com/Mr-Dark-debug/Async-coder-cli/tree/dev/docs") },
         { label: "Support Forum", click: () => shell.openExternal("https://discord.com/invite/opencode") },
         { type: "separator" },
         { type: "separator" },

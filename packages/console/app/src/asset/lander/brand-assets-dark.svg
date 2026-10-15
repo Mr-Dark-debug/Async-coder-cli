@@ -1,10 +1,10 @@
-<svg width="22" height="26" viewBox="0 0 22 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M15 7H7V19H15V7ZM19 23H3V3H19V23Z" fill="url(#paint0_linear_1311_94922)" stroke="#F1ECEC"/>
-<path d="M3 0V26M19 0V26M15 0V26M7 0V26M0 3H22M0 7H22M0 19H22M0 23H22" stroke="#4B4646" stroke-opacity="0.4"/>
-<defs>
-<linearGradient id="paint0_linear_1311_94922" x1="11" y1="3" x2="11" y2="23" gradientUnits="userSpaceOnUse">
-<stop stop-color="#1B1818"/>
-<stop offset="1" stop-color="#2D2828"/>
-</linearGradient>
-</defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -6 494 76" fill="none">
+<defs><linearGradient id="g" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#C4B1FF"/><stop offset="1" stop-color="#8F72F2"/></linearGradient></defs>
+<g transform="translate(0 0) scale(0.25)" stroke-linecap="round" stroke-linejoin="round">
+<rect width="256" height="256" rx="58" fill="url(#g)"/>
+<path d="M204.1 92.5A84 84 0 1 1 149.7 46.9" stroke="#14102B" stroke-width="14"/>
+<path d="M98 84L150 128L98 172" stroke="#14102B" stroke-width="22"/>
+<circle cx="182" cy="63.7" r="13" fill="#FFFFFF"/>
+</g>
+<g transform="translate(82 6)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0 0)" stroke="#F6F3FF"><circle cx="14" cy="26" r="14"/><path d="M28 12V40"/></g><g transform="translate(42 0)" stroke="#F6F3FF"><path d="M25 17C21 12 8 12 8 20C8 28 25 25 25 33C25 41 9 41 4 35"/></g><g transform="translate(78 0)" stroke="#F6F3FF"><path d="M1 12L14 40M27 12L11 50"/></g><g transform="translate(116 0)" stroke="#F6F3FF"><path d="M2 12V40M2 24C4 8 26 8 26 24V40"/></g><g transform="translate(156 0)" stroke="#F6F3FF"><path d="M24.7 17A14 14 0 1 0 24.7 35"/></g><g transform="translate(192 0)" stroke="#B197FC"><path d="M2 26H14"/></g><g transform="translate(216 0)" stroke="#F6F3FF"><path d="M24.7 17A14 14 0 1 0 24.7 35"/></g><g transform="translate(252 0)" stroke="#F6F3FF"><circle cx="14" cy="26" r="14"/></g><g transform="translate(294 0)" stroke="#F6F3FF"><circle cx="14" cy="26" r="14"/><path d="M28 0V40"/></g><g transform="translate(336 0)" stroke="#F6F3FF"><path d="M0 26H28C28 17 22 12 14 12C6 12 0 18 0 26C0 34 6 40 14 40C20 40 25 37 27 33"/></g><g transform="translate(376 0)" stroke="#F6F3FF"><path d="M2 12V40M2 26C2 15 12 10 24 12"/></g></g>
 </svg>

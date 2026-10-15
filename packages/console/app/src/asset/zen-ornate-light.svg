@@ -1,8 +1,10 @@
-<svg width="84" height="30" viewBox="0 0 84 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M24 24H6V18H18V12H24V24ZM6 18H0V12H6V18Z" fill="#CFCECD"/>
-<path d="M6 24H24V30H0V18H6V24ZM18 18H6V12H18V18ZM24 12H18V6H0V0H24V12Z" fill="#211E1E"/>
-<path d="M54 18V24H36V18H54Z" fill="#CFCECD"/>
-<path d="M54 18H36V24H54V30H30V0H54V18ZM36 12H48V6H36V12Z" fill="#211E1E"/>
-<path d="M78 30H66V12H78V30Z" fill="#CFCECD"/>
-<path d="M78 6H66V30H60V0H78V6ZM84 30H78V6H84V30Z" fill="#211E1E"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -6 494 76" fill="none">
+<defs><linearGradient id="g" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#C4B1FF"/><stop offset="1" stop-color="#8F72F2"/></linearGradient></defs>
+<g transform="translate(0 0) scale(0.25)" stroke-linecap="round" stroke-linejoin="round">
+<rect width="256" height="256" rx="58" fill="url(#g)"/>
+<path d="M204.1 92.5A84 84 0 1 1 149.7 46.9" stroke="#14102B" stroke-width="14"/>
+<path d="M98 84L150 128L98 172" stroke="#14102B" stroke-width="22"/>
+<circle cx="182" cy="63.7" r="13" fill="#FFFFFF"/>
+</g>
+<g transform="translate(82 6)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(0 0)" stroke="#14102B"><circle cx="14" cy="26" r="14"/><path d="M28 12V40"/></g><g transform="translate(42 0)" stroke="#14102B"><path d="M25 17C21 12 8 12 8 20C8 28 25 25 25 33C25 41 9 41 4 35"/></g><g transform="translate(78 0)" stroke="#14102B"><path d="M1 12L14 40M27 12L11 50"/></g><g transform="translate(116 0)" stroke="#14102B"><path d="M2 12V40M2 24C4 8 26 8 26 24V40"/></g><g transform="translate(156 0)" stroke="#14102B"><path d="M24.7 17A14 14 0 1 0 24.7 35"/></g><g transform="translate(192 0)" stroke="#B197FC"><path d="M2 26H14"/></g><g transform="translate(216 0)" stroke="#14102B"><path d="M24.7 17A14 14 0 1 0 24.7 35"/></g><g transform="translate(252 0)" stroke="#14102B"><circle cx="14" cy="26" r="14"/></g><g transform="translate(294 0)" stroke="#14102B"><circle cx="14" cy="26" r="14"/><path d="M28 0V40"/></g><g transform="translate(336 0)" stroke="#14102B"><path d="M0 26H28C28 17 22 12 14 12C6 12 0 18 0 26C0 34 6 40 14 40C20 40 25 37 27 33"/></g><g transform="translate(376 0)" stroke="#14102B"><path d="M2 12V40M2 26C2 15 12 10 24 12"/></g></g>
 </svg>

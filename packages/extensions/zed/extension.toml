@@ -8,7 +8,7 @@ repository = "https://github.com/anomalyco/opencode"
 
 [agent_servers.opencode]
 name = "OpenCode"
-icon = "./icons/opencode.svg"
+icon = "./icons/async-coder.svg"
 
 [agent_servers.opencode.targets.darwin-aarch64]
 archive = "https://github.com/anomalyco/opencode/releases/download/v1.14.19/opencode-darwin-arm64.zip"

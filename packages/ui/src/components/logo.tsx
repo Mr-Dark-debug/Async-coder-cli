@@ -1,16 +1,28 @@
 import { ComponentProps } from "solid-js"
 
+// async-coder brand marks. Geometry is generated from script/brand/mark.ts; keep the two in sync.
+// A prompt chevron inside an open orbit with a satellite dot: a coding prompt running as an async loop.
+const ORBIT = "M204.1 92.5A84 84 0 1 1 149.7 46.9"
+const CHEVRON = "M98 84L150 128L98 172"
+
+const Glyph = (props: { orbit: number; chevron: number }) => (
+  <>
+    <path data-slot="logo-orbit" d={ORBIT} stroke="var(--icon-weak-base)" stroke-width={props.orbit} stroke-linecap="round" />
+    <path data-slot="logo-chevron" d={CHEVRON} stroke="var(--icon-strong-base)" stroke-width={props.chevron} stroke-linecap="round" stroke-linejoin="round" />
+    <circle data-slot="logo-dot" cx="182" cy="63.7" r={props.chevron > 24 ? 17 : 13} fill="var(--icon-base)" />
+  </>
+)
+
 export const Mark = (props: { class?: string }) => {
   return (
     <svg
       data-component="logo-mark"
       classList={{ [props.class ?? ""]: !!props.class }}
-      viewBox="0 0 16 20"
+      viewBox="24 24 208 208"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path data-slot="logo-logo-mark-shadow" d="M12 16H4V8H12V16Z" fill="var(--icon-weak-base)" />
-      <path data-slot="logo-logo-mark-o" d="M12 4H4V16H12V4ZM16 20H0V0H16V20Z" fill="var(--icon-strong-base)" />
+      <Glyph orbit={20} chevron={30} />
     </svg>
   )
 }
@@ -21,12 +33,11 @@ export const Splash = (props: Pick<ComponentProps<"svg">, "ref" | "class">) => {
       ref={props.ref}
       data-component="logo-splash"
       classList={{ [props.class ?? ""]: !!props.class }}
-      viewBox="0 0 80 100"
+      viewBox="24 24 208 208"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path d="M60 80H20V40H60V80Z" fill="var(--icon-base)" />
-      <path d="M60 20H20V80H60V20ZM80 100H0V0H80V100Z" fill="var(--icon-strong-base)" />
+      <Glyph orbit={14} chevron={22} />
     </svg>
   )
 }
@@ -35,27 +46,49 @@ export const Logo = (props: { class?: string }) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 234 42"
+      viewBox="-6 -6 412 64"
       fill="none"
+      stroke-width="7"
+      stroke-linecap="round"
+      stroke-linejoin="round"
       classList={{ [props.class ?? ""]: !!props.class }}
     >
       <g>
-        <path d="M18 30H6V18H18V30Z" fill="var(--icon-weak-base)" />
-        <path d="M18 12H6V30H18V12ZM24 36H0V6H24V36Z" fill="var(--icon-base)" />
-        <path d="M48 30H36V18H48V30Z" fill="var(--icon-weak-base)" />
-        <path d="M36 30H48V12H36V30ZM54 36H36V42H30V6H54V36Z" fill="var(--icon-base)" />
-        <path d="M84 24V30H66V24H84Z" fill="var(--icon-weak-base)" />
-        <path d="M84 24H66V30H84V36H60V6H84V24ZM66 18H78V12H66V18Z" fill="var(--icon-base)" />
-        <path d="M108 36H96V18H108V36Z" fill="var(--icon-weak-base)" />
-        <path d="M108 12H96V36H90V6H108V12ZM114 36H108V12H114V36Z" fill="var(--icon-base)" />
-        <path d="M144 30H126V18H144V30Z" fill="var(--icon-weak-base)" />
-        <path d="M144 12H126V30H144V36H120V6H144V12Z" fill="var(--icon-strong-base)" />
-        <path d="M168 30H156V18H168V30Z" fill="var(--icon-weak-base)" />
-        <path d="M168 12H156V30H168V12ZM174 36H150V6H174V36Z" fill="var(--icon-strong-base)" />
-        <path d="M198 30H186V18H198V30Z" fill="var(--icon-weak-base)" />
-        <path d="M198 12H186V30H198V12ZM204 36H180V6H198V0H204V36Z" fill="var(--icon-strong-base)" />
-        <path d="M234 24V30H216V24H234Z" fill="var(--icon-weak-base)" />
-        <path d="M216 12V18H228V12H216ZM234 24H216V30H234V36H210V6H234V24Z" fill="var(--icon-strong-base)" />
+        <g transform="translate(0 0)" stroke="var(--icon-strong-base)">
+          <circle cx="14" cy="26" r="14" />
+          <path d="M28 12V40" />
+        </g>
+        <g transform="translate(42 0)" stroke="var(--icon-strong-base)">
+          <path d="M25 17C21 12 8 12 8 20C8 28 25 25 25 33C25 41 9 41 4 35" />
+        </g>
+        <g transform="translate(78 0)" stroke="var(--icon-strong-base)">
+          <path d="M1 12L14 40M27 12L11 50" />
+        </g>
+        <g transform="translate(116 0)" stroke="var(--icon-strong-base)">
+          <path d="M2 12V40M2 24C4 8 26 8 26 24V40" />
+        </g>
+        <g transform="translate(156 0)" stroke="var(--icon-strong-base)">
+          <path d="M24.7 17A14 14 0 1 0 24.7 35" />
+        </g>
+        <g transform="translate(192 0)" stroke="var(--icon-weak-base)">
+          <path d="M2 26H14" />
+        </g>
+        <g transform="translate(216 0)" stroke="var(--icon-strong-base)">
+          <path d="M24.7 17A14 14 0 1 0 24.7 35" />
+        </g>
+        <g transform="translate(252 0)" stroke="var(--icon-strong-base)">
+          <circle cx="14" cy="26" r="14" />
+        </g>
+        <g transform="translate(294 0)" stroke="var(--icon-strong-base)">
+          <circle cx="14" cy="26" r="14" />
+          <path d="M28 0V40" />
+        </g>
+        <g transform="translate(336 0)" stroke="var(--icon-strong-base)">
+          <path d="M0 26H28C28 17 22 12 14 12C6 12 0 18 0 26C0 34 6 40 14 40C20 40 25 37 27 33" />
+        </g>
+        <g transform="translate(376 0)" stroke="var(--icon-strong-base)">
+          <path d="M2 12V40M2 26C2 15 12 10 24 12" />
+        </g>
       </g>
     </svg>
   )

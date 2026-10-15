@@ -1,5 +1,9 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="96" fill="#7950F2"/>
-  <path d="M152 326c0-52 35-88 88-88h72v-18c0-30-21-49-58-49-31 0-52 13-65 39l-54-27c23-43 62-65 120-65 72 0 119 39 119 101v177h-62v-42c-19 31-48 47-88 47-43 0-72-11-72-75Zm62-4c0 18 16 29 43 29 34 0 55-20 55-52v-14h-61c-24 0-37 13-37 37Z" fill="white"/>
-  <path d="M388 182l76 74-76 74-37-37 39-37-39-37 37-37Z" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+<defs><linearGradient id="g" x1="24" y1="8" x2="232" y2="248" gradientUnits="userSpaceOnUse"><stop stop-color="#14102B"/><stop offset="1" stop-color="#14102B"/></linearGradient></defs>
+<rect width="256" height="256" fill="url(#g)"/>
+<g transform="translate(0 0) scale(1)" stroke-linecap="round" stroke-linejoin="round">
+<path d="M204.1 92.5A84 84 0 1 1 149.7 46.9" stroke="#B197FC" stroke-width="14"/>
+<path d="M98 84L150 128L98 172" stroke="#B197FC" stroke-width="22"/>
+<circle cx="182" cy="63.7" r="13" fill="#FFFFFF"/>
+</g>
 </svg>
