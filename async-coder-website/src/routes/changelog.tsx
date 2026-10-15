@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { formatDate } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { Page } from "@/components/page";
 import { getReleases } from "@/lib/github.functions";
@@ -63,11 +64,7 @@ function ChangelogPage() {
                 </h2>
               </div>
               <span className="text-xs text-muted-foreground">
-                {new Date(r.publishedAt).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                })}
+                {formatDate(r.publishedAt)}
               </span>
             </header>
             <pre className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed font-sans">

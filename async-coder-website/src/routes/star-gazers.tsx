@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { formatDate } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { Page } from "@/components/page";
 import { getStarHistory, getRepoStats } from "@/lib/github.functions";
@@ -104,7 +105,7 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Star; label: stri
         <Icon className="w-3.5 h-3.5 text-lavender" /> {label}
       </div>
       <div className="mt-2 text-3xl font-serif-display tabular-nums">
-        {value.toLocaleString()}
+        {value.toLocaleString("en-US")}
       </div>
     </div>
   );
@@ -139,12 +140,12 @@ function StarChart({ points }: { points: { date: string; stars: number }[] }) {
       const d = new Date(ms);
       return {
         x: sx(ms),
-        label: d.toLocaleDateString(undefined, { month: "short", year: "2-digit" }),
+        label: formatDate(d, { month: "short", year: "2-digit" }),
       };
     });
     const yTicks = [0, 0.25, 0.5, 0.75, 1].map((t) => ({
       y: sy(yMax * t),
-      label: Math.round(yMax * t).toLocaleString(),
+      label: Math.round(yMax * t).toLocaleString("en-US"),
     }));
 
     return { path: d, area: a, xTicks, yTicks };

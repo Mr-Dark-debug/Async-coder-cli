@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { formatDate } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { getRepoStats, getContributors, getReleases } from "@/lib/github.functions";
 import { motion } from "framer-motion";
@@ -35,15 +36,6 @@ function useCountUp(target: number, duration = 1400) {
 function fmt(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`;
   return String(n);
-}
-
-function timeAgo(iso?: string) {
-  if (!iso) return "—";
-  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 export function CommunityStats() {
@@ -93,7 +85,7 @@ export function CommunityStats() {
           </div>
           <div className="mt-6 pt-6 border-t border-border/60 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Clock className="w-3 h-3" />
-            Updated {timeAgo(stats?.updatedAt)} · live from GitHub
+            Updated {formatDate(stats?.updatedAt)} · live from GitHub
           </div>
         </div>
       </div>
@@ -115,7 +107,7 @@ export function LatestReleases() {
           {
             tagName: "v0.2.0",
             name: "Initial rebrand release",
-            publishedAt: new Date().toISOString(),
+            publishedAt: "2026-10-01T00:00:00.000Z",
             body: "Lavender theme, Groq first-class, pluggable web search.",
             htmlUrl: "https://github.com/Mr-Dark-debug/Async-coder-cli/releases",
           },
@@ -159,7 +151,7 @@ export function LatestReleases() {
                   <span className="text-[15px] font-medium tracking-tight">{r.name}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">
-                  {new Date(r.publishedAt).toLocaleDateString()}
+                  {formatDate(r.publishedAt)}
                 </span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground line-clamp-2 leading-relaxed">

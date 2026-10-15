@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { formatDate } from "@/lib/format";
 import { useQuery } from "@tanstack/react-query";
 import { Page } from "@/components/page";
 import { getReleases } from "@/lib/github.functions";
@@ -34,11 +35,7 @@ function ReleasePage() {
     <Page
       eyebrow="Release Notes"
       title={`Release ${version}`}
-      description={release ? `Published on ${new Date(release.publishedAt).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })}` : `Release details for version ${version}`}
+      description={release ? `Published on ${formatDate(release.publishedAt, { year: "numeric", month: "long", day: "numeric" })}` : `Release details for version ${version}`}
     >
       <div className="mb-6">
         <Link
