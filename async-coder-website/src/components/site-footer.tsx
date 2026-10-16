@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { Github } from "lucide-react";
+﻿import { Link } from "@tanstack/react-router";
+import { Github, Heart } from "lucide-react";
 import { SITE } from "@/lib/site";
 
 const COLS = [
@@ -19,51 +19,54 @@ const COLS = [
       { label: "Configuration", to: "/docs/configuration" },
       { label: "Providers", to: "/docs/providers" },
       { label: "Web search", to: "/docs/websearch" },
-      { label: "Usage", to: "/docs/usage" },
+      { label: "Usage & Spend", to: "/docs/usage" },
       { label: "Migration", to: "/docs/migration" },
     ],
   },
   {
     title: "Community",
     links: [
-      { label: "GitHub", href: SITE.repoUrl },
+      { label: "GitHub Repository", href: SITE.repoUrl },
       { label: "Discussions", href: `${SITE.repoUrl}/discussions` },
-      { label: "Issues", href: `${SITE.repoUrl}/issues` },
+      { label: "Issue Tracker", href: `${SITE.repoUrl}/issues` },
       { label: "Contributors", to: "/contributors" },
-      { label: "Star gazers", to: "/star-gazers" },
+      { label: "Star Gazers", to: "/star-gazers" },
       { label: "Community", to: "/community" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { label: "Brand assets", to: "/brand" },
+      { label: "Brand Assets", to: "/brand" },
       { label: "OpenCode (upstream)", href: "https://opencode.ai" },
       { label: "MiMo-Code", href: "https://github.com/XiaomiMiMo/MiMo-Code" },
-      { label: "View site source", href: SITE.repoUrl },
+      { label: "View Site Source", href: SITE.repoUrl },
     ],
   },
 ] as const;
 
 export function SiteFooter() {
   return (
-    <footer className="mt-16 md:mt-24 border-t border-border">
+    <footer className="mt-16 md:mt-24 border-t border-border/80 bg-panel/30">
       <div className="mx-auto max-w-6xl px-5 md:px-8 py-16">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <img src="/mark.svg" alt="" className="w-8 h-8 rounded-[10px]" />
-              <span className="font-serif text-2xl leading-none">async-coder</span>
+              <img src="/mark.svg" alt="async-coder" className="w-8 h-8 rounded-[10px] shadow-xs" />
+              <span className="font-serif-display text-2xl tracking-tight leading-none text-foreground">
+                async-coder
+              </span>
             </div>
-            <p className="text-[13px] text-muted-foreground leading-relaxed max-w-xs">
-              A coding agent that keeps working while you are away. MIT licensed, built in the open.
+            <p className="text-[13.5px] text-muted-foreground leading-relaxed max-w-xs font-normal">
+              The autonomous coding agent that keeps shipping while you are away. MIT licensed,
+              built in the open.
             </p>
             <div className="mt-5 flex items-center gap-3">
               <a
                 href={SITE.repoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-full hover:bg-foreground/[0.05]"
                 aria-label="GitHub"
               >
                 <Github className="w-4 h-4" />
@@ -73,7 +76,7 @@ export function SiteFooter() {
 
           {COLS.map((col) => (
             <div key={col.title}>
-              <h4 className="text-xs font-semibold tracking-widest uppercase text-foreground/80 mb-4">
+              <h4 className="text-[11px] font-semibold tracking-widest uppercase text-foreground/80 mb-4">
                 {col.title}
               </h4>
               <ul className="space-y-2.5">
@@ -82,7 +85,7 @@ export function SiteFooter() {
                     <li key={l.label}>
                       <Link
                         to={l.to}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-[13.5px] text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {l.label}
                       </Link>
@@ -93,7 +96,7 @@ export function SiteFooter() {
                         href={l.href}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        className="text-[13.5px] text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {l.label}
                       </a>
@@ -106,10 +109,12 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-14 pt-8 border-t border-border/60 flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-xs text-muted-foreground">
-          <p>async-coder · MIT License · Built with TanStack Start and Tailwind</p>
-          <p className="max-w-2xl md:text-right">
-            Independent fork of OpenCode (sst/opencode) originally via MiMo-Code. All Xiaomi/MiMo
-            trademarks, telemetry, and platform integrations removed.
+          <p className="font-mono text-[11.5px]">
+            async-coder · MIT License · Built with TanStack Start, React 19 & Tailwind CSS
+          </p>
+          <p className="max-w-xl md:text-right font-normal">
+            Independent fork of OpenCode (sst/opencode) originally via MiMo-Code. Zero telemetry, no
+            vendor lock-in.
           </p>
         </div>
       </div>

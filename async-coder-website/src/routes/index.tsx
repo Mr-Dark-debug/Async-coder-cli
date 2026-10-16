@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/site-layout";
 import { Hero } from "@/components/sections/hero";
 import { Capabilities } from "@/components/sections/capabilities";
@@ -12,16 +12,16 @@ import { FinalCTA } from "@/components/sections/final-cta";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "async-coder — code that keeps shipping while you're away" },
+      { title: "async-coder — Code that keeps shipping while you're away" },
       {
         name: "description",
         content:
-          "Bring your own key — Groq, OpenRouter, OpenAI, Anthropic, Google, xAI, Copilot. Background jobs in isolated worktrees with spend caps and verification gates. Per-model cost dashboards. MIT-licensed, zero telemetry.",
+          "Bring your own key — Anthropic, OpenAI, Google Gemini, Groq, xAI, OpenRouter, Copilot. Background jobs in isolated git worktrees with spend caps and verification gates. Per-model cost dashboards. MIT-licensed, zero telemetry.",
       },
       { property: "og:title", content: "async-coder" },
       {
         property: "og:description",
-        content: "The async coding agent for every model. Terminal-native, BYOK, MIT.",
+        content: "The autonomous coding agent for every model. Terminal-native, BYOK, MIT.",
       },
       { property: "og:url", content: "/" },
     ],
